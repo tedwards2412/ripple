@@ -5,14 +5,15 @@ import matplotlib.pyplot as plt
 
 
 def test_phenomD():
-    theta = np.array([3.0, 1.0, 0.9, -0.9])
-    f_l = 24
-    f_u = 512
-    del_f = 0.01
+    theta = np.array([3.0, 1.0, 0.0, 0.0])
+    f_l = 30
+    f_u = 1000
+    del_f = 0.001
     f = np.arange(f_l, f_u, del_f)
-    print(f)
+    Mf = f * (theta[0] + theta[1]) * 4.92549094830932e-6
+    # print(f)
 
-    phase = PhenomD.Phase(f, theta)
+    phase, f1, f2 = PhenomD.Phase(f, theta)
     print(phase)
 
     TF2 = kappa_waveform(
@@ -24,11 +25,26 @@ def test_phenomD():
         f_upper=f_u,
         delta_f=del_f,
     )
-    # print(TF2.Phif35PN())
-    # plt.semilogy(TF2.frequencies, abs(TF2.Phif35PN()), label="old")
-    # plt.semilogy(f, abs(phase), label="new")
-    # plt.legend()
-    # plt.savefig("test_phase.pdf")
+    print(TF2.Phif35PN())
+    plt.figure(figsize=(7, 5))
+    plt.plot(
+        TF2.frequencies * (theta[0] + theta[1]) * 4.92549094830932e-6,
+        TF2.Phif35PN(),
+        label="nonstd-gwaves",
+    )
+    # norm = phase[0] / TF2.Phif35PN()[0]
+    norm = 1.0
+    plt.plot(Mf, phase / norm, label="PhenomD")
+    # plt.axvline(x=f1)
+    # plt.axvline(x=f2)
+    plt.legend()
+    plt.savefig("test_phase_full.pdf")
+
+    phase_deriv = np.gradient(phase, del_f)
+    plt.figure(figsize=(7, 5))
+    plt.plot(f, phase_deriv, label="PhenomD")
+    plt.legend()
+    plt.savefig("test_phase_derivative_full.pdf")
 
     # coeffs = PhenomD.get_coeffs(theta)
     # print(coeffs)

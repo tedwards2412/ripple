@@ -57,11 +57,11 @@ def get_transition_frequencies(
 
     # Phase transition frequencies
     # FIXME: Need to work out what is happening with the units here
-    f1 = 0.018 / M
+    f1 = 0.018 / (M * gt)
     f2 = f_RD / 2
 
     # Amplitude transition frequencies
-    f3 = 0.018 / M
+    f3 = 0.018 / (M * gt)
     f4 = abs(f_RD + f_damp * gamma3 * (np.sqrt(1 - (gamma2 ** 2))) / gamma2)
 
     return f1, f2, f3, f4, f_RD, f_damp
@@ -80,9 +80,8 @@ def get_coeffs(theta: np.ndarray) -> np.ndarray:
     def calc_coeff(i, eta, chiPN):
         coeff = (
             PhenomD_coeff_table[i, 0]
-            + PhenomD_coeff_table[i, 1]
-            * eta
-            * (chiPN - 1.0)
+            + PhenomD_coeff_table[i, 1] * eta
+            + (chiPN - 1.0)
             * (
                 PhenomD_coeff_table[i, 2]
                 + PhenomD_coeff_table[i, 3] * eta
@@ -164,17 +163,20 @@ def Phase(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
     # First lets calculate some of the vairables that will be used below
     # Mass variables
     m1, m2, chi1, chi2 = theta
-    M = m1 + m2
-    eta = m1 * m2 / (M ** 2.0)
-    delta = (m1 - m2) / M
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s ** 2.0)
+    delta = (m1_s - m2_s) / M_s
 
     # Spin variable
     chi_s = (chi1 + chi2) / 2.0
     chi_a = (chi1 - chi2) / 2.0
-    chi_eff = (m1 * chi1 + m2 * chi2) / M
+    chi_eff = (m1_s * chi1 + m2_s * chi2) / M_s
     chiPN = chi_eff - (38.0 * eta / 113.0) * (chi1 + chi2)
 
     coeffs = get_coeffs(theta)
+    print("Here are the coeffs", coeffs)
 
     # Next we need to calculate the transition frequencies
     f1, f2, _, _, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
@@ -196,7 +198,7 @@ def Phase(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
         - 405.0 * delta * chi_a * chi_s / 4.0
         + (-405.0 / 8.0 + 5.0 * eta / 2.0) * (chi_s ** 2.0)
     )
-    phi5 = (1.0 + np.log(pi * M * f * gt)) * (
+    phi5 = (1.0 + np.log(pi * M_s * f)) * (
         38645.0 * pi / 756.0
         - 64.0 * pi * eta / 9.0
         + delta * (-732985.0 / 2268.0 - 140.0 * eta / 9.0) * chi_a
@@ -210,7 +212,7 @@ def Phase(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
         + (-15737765635.0 / 3048192.0 + 2255.0 * (pi ** 2.0) / 12.0) * eta
         + 76055.0 * (eta ** 2.0) / 1728.0
         - 127825.0 * (eta ** 3.0) / 1296.0
-        - 6848.0 * np.log(64.0 * pi * M * f * gt) / 63.0
+        - 6848.0 * np.log(64.0 * pi * M_s * f) / 63.0
         + 2270.0 * pi * delta * chi_a / 3.0
         + (2270.0 * pi / 3.0 - 520.0 * pi * eta) * chi_s
     )
@@ -235,51 +237,79 @@ def Phase(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
     )
 
     # Add frequency dependence here
-    TF2_pre = 3.0 * ((pi * f * M * gt) ** -(5.0 / 3.0)) / (128.0 * eta)
+    TF2_pre = 3.0 * ((pi * f * M_s) ** -(5.0 / 3.0)) / (128.0 * eta)
     phi_TF2 = TF2_pre * (
         phi0
-        + phi1 * ((pi * f * M * gt) ** (1 / 3))
-        + phi2 * ((pi * f * M * gt) ** (2 / 3))
-        + phi3 * ((pi * f * M * gt) ** (3 / 3))
-        + phi4 * ((pi * f * M * gt) ** (4 / 3))
-        + phi5 * ((pi * f * M * gt) ** (5 / 3))
-        + phi6 * ((pi * f * M * gt) ** (6 / 3))
-        + phi7 * ((pi * f * M * gt) ** (7 / 3))
+        + phi1 * ((pi * f * M_s) ** (1.0 / 3.0))
+        + phi2 * ((pi * f * M_s) ** (2.0 / 3.0))
+        + phi3 * ((pi * f * M_s) ** (3.0 / 3.0))
+        + phi4 * ((pi * f * M_s) ** (4.0 / 3.0))
+        + phi5 * ((pi * f * M_s) ** (5.0 / 3.0))
+        + phi6 * ((pi * f * M_s) ** (6.0 / 3.0))
+        + phi7 * ((pi * f * M_s) ** (7.0 / 3.0))
     )
-    # FIXME: Need to check units here, above this seems to work
     phi_Ins = (
         phi_TF2
         + (
-            coeffs[7] * f
-            + (3.0 / 4.0) * coeffs[8] * (f ** (4.0 / 3.0))
-            + (3.0 / 5.0) * coeffs[9] * (f ** (5.0 / 3.0))
-            + (1.0 / 2.0) * coeffs[10] * (f ** 2.0)
+            coeffs[7] * (pi * f * M_s)
+            + (3.0 / 4.0) * coeffs[8] * ((pi * f * M_s) ** (4.0 / 3.0))
+            + (3.0 / 5.0) * coeffs[9] * ((pi * f * M_s) ** (5.0 / 3.0))
+            + (1.0 / 2.0) * coeffs[10] * ((pi * f * M_s) ** 2.0)
         )
         / eta
     )
 
     # Next lets construct the phase of the late inspiral (region IIa)
-    phi_IIa = (
-        coeffs[11] * f + coeffs[12] * np.log(f) + coeffs[13] * (f ** -3.0) / 3.0
-    ) / eta
+    # Sig0 is found by matching the phase between the region I and IIa
+    # FIXME: Is there a better way to do the matching? This is probably where the error is beta ==
+    # beta0 = eta * np.interp(f1, f, phi_Ins) - (
+    #     coeffs[11] * (f1 * M * gt)
+    #     + coeffs[12] * np.log((f1 * M * gt))
+    #     - coeffs[13] * ((f1 * M * gt) ** -3.0) / 3.0
+    # )
+    # phi_IIa = (
+    #     beta0
+    #     + (
+    #         coeffs[11] * (f * M * gt)
+    #         + coeffs[12] * np.log((f * M * gt))
+    #         - coeffs[13] * ((f * M * gt) ** -3.0) / 3.0
+    #     )
+    # ) / eta
 
-    # And finally, we construct the phase of the merger-ringdown (region IIb)
-    phi_IIb = (
-        coeffs[14] * f
-        - coeffs[15] * (f ** -1.0)
-        + 4.0 * coeffs[16] * (f ** (3.0 / 4.0)) / 3.0
-        + coeffs[17] * np.arctan((f - coeffs[18] * f_RD) / f_damp)
-    ) / eta
+    # # # And finally, we construct the phase of the merger-ringdown (region IIb)
+    # sig0 = eta * np.interp(f2, f, phi_IIa) - (
+    #     coeffs[14] * (f * M * gt)
+    #     - coeffs[15] * ((f * M * gt) ** -1.0)
+    #     + 4.0 * coeffs[16] * ((f * M * gt) ** (3.0 / 4.0)) / 3.0
+    #     + coeffs[17] * np.arctan((f - coeffs[18] * f_RD) / f_damp)
+    # )
+    # phi_IIb = (
+    #     sig0
+    #     + (
+    #         coeffs[14] * (f * M * gt)
+    #         - coeffs[15] * ((f * M * gt) ** -1.0)
+    #         + 4.0 * coeffs[16] * ((f * M * gt) ** (3.0 / 4.0)) / 3.0
+    #         + coeffs[17] * np.arctan((f - coeffs[18] * f_RD) / f_damp)
+    #     )
+    # ) / eta
 
-    # And now we can combine them by multiplying by a set of heaviside functions
+    # # And now we can combine them by multiplying by a set of heaviside functions
+    # print("Within function Ins", phi_Ins * np.heaviside(f1 - f, 0.5))
+    # print(
+    #     "Within function IIa",
+    #     np.heaviside(f - f1, 0.5) * phi_IIa * np.heaviside(f2 - f, 0.5),
+    # )
+    # print("Within function IIb", phi_IIb * np.heaviside(f - f2, 0.5))
+    # print("Within function", f1, f2, f_RD, f_damp)
     phase = (
-        phi_Ins * np.heaviside(f1 - f, 0.5)
-        + np.heaviside(f - f1, 0.5) * phi_IIa * np.heaviside(f - f2, 0.5)
-        + phi_IIb * np.heaviside(f2 - f, 0.5)
+        phi_Ins
+        * np.heaviside(f1 - f, 0.5)
+        # + np.heaviside(f - f1, 0.5) * phi_IIa * np.heaviside(f2 - f, 0.5)
+        # + phi_IIb * np.heaviside(f - f2, 0.5)
     )
     # phase = phi_TF2
 
-    return phase
+    return phase, f1, f2
 
 
 def Amp(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
