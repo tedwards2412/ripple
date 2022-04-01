@@ -1,4 +1,9 @@
-import numpy as np
+# import numpy as np
+from jax.config import config
+
+config.update("jax_enable_x64", True)
+import jax.numpy as jnp
+import jax
 from math import pi
 from waveform_constants import gt, EulerGamma, PhenomD_coeff_table
 
@@ -16,7 +21,7 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
 
     a = (
         S
-        + 2 * np.sqrt(3) * eta_s
+        + 2 * jnp.sqrt(3) * eta_s
         - 4.399 * eta_s ** 2
         + 9.397 * eta_s ** 3
         - 13.181 * eta_s ** 4
@@ -38,43 +43,44 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
     )
 
     MWRD = 1.5251 - 1.1568 * (1 - a) ** 0.1292
-    fRD = (1 / (2 * np.pi)) * (MWRD) / (M_s * (1 - E_rad))
+    fRD = (1 / (2 * jnp.pi)) * (MWRD) / (M_s * (1 - E_rad))
 
     MWdamp = (1.5251 - 1.1568 * (1 - a) ** 0.1292) / (
         2 * (0.700 + 1.4187 * (1 - a) ** (-0.4990))
     )
-    fdamp = (1 / (2 * np.pi)) * (MWdamp) / (M_s * (1 - E_rad))
+    fdamp = (1 / (2 * jnp.pi)) * (MWdamp) / (M_s * (1 - E_rad))
     return fRD, fdamp
 
 
 def get_transition_frequencies(
-    theta: np.ndarray, gamma2: float, gamma3: float
-) -> np.ndarray:
+    theta: jnp.ndarray, gamma2: float, gamma3: float
+) -> jnp.ndarray:
 
     m1, m2, chi1, chi2 = theta
     M = m1 + m2
     f_RD, f_damp = get_fRD_fdamp(m1, m2, chi1, chi2)
 
     # Phase transition frequencies
-    # FIXME: Need to work out what is happening with the units here
     f1 = 0.018 / (M * gt)
     f2 = f_RD / 2
 
     # Amplitude transition frequencies
     f3 = 0.018 / (M * gt)
-    f4 = abs(f_RD + f_damp * gamma3 * (np.sqrt(1 - (gamma2 ** 2))) / gamma2)
+    f4 = abs(f_RD + f_damp * gamma3 * (jnp.sqrt(1 - (gamma2 ** 2))) / gamma2)
 
     return f1, f2, f3, f4, f_RD, f_damp
 
 
-def get_coeffs(theta: np.ndarray) -> np.ndarray:
+def get_coeffs(theta: jnp.ndarray) -> jnp.ndarray:
     # Retrives the coefficients needed to produce the waveform
 
     m1, m2, chi1, chi2 = theta
-    M = m1 + m2
-    eta = m1 * m2 / (M ** 2.0)
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s ** 2.0)
 
-    chi_eff = (m1 * chi1 + m2 * chi2) / M
+    chi_eff = (m1_s * chi1 + m2_s * chi2) / M_s
     chiPN = chi_eff - (38.0 * eta / 113.0) * (chi1 + chi2)
 
     def calc_coeff(i, eta, chiPN):
@@ -93,7 +99,7 @@ def get_coeffs(theta: np.ndarray) -> np.ndarray:
                 + PhenomD_coeff_table[i, 6] * eta
                 + PhenomD_coeff_table[i, 7] * (eta ** 2.0)
             )
-            + (chiPN - 1) ** 3.0
+            + (chiPN - 1.0) ** 3.0
             * (
                 PhenomD_coeff_table[i, 8]
                 + PhenomD_coeff_table[i, 9] * eta
@@ -123,7 +129,7 @@ def get_coeffs(theta: np.ndarray) -> np.ndarray:
     a4 = calc_coeff(17, eta, chiPN)
     a5 = calc_coeff(18, eta, chiPN)
 
-    coeffs = np.array(
+    coeffs = jnp.array(
         [
             rho1,
             rho2,
@@ -150,16 +156,7 @@ def get_coeffs(theta: np.ndarray) -> np.ndarray:
     return coeffs
 
 
-def Phase(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
-    """
-    Computes the phase of the PhenomD waveform following 1508.07253.
-    Sets time and phase of coealence to be zero.
-
-    Returns:
-    --------
-        phase (array): Phase of the GW as a function of frequency
-    """
-
+def get_inspiral_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     # First lets calculate some of the vairables that will be used below
     # Mass variables
     m1, m2, chi1, chi2 = theta
@@ -172,14 +169,8 @@ def Phase(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
     # Spin variable
     chi_s = (chi1 + chi2) / 2.0
     chi_a = (chi1 - chi2) / 2.0
-    chi_eff = (m1_s * chi1 + m2_s * chi2) / M_s
-    chiPN = chi_eff - (38.0 * eta / 113.0) * (chi1 + chi2)
 
     coeffs = get_coeffs(theta)
-    print("Here are the coeffs", coeffs)
-
-    # Next we need to calculate the transition frequencies
-    f1, f2, _, _, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
 
     # First lets construct the phase in the inspiral (region I)
     phi0 = 1.0
@@ -198,7 +189,7 @@ def Phase(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
         - 405.0 * delta * chi_a * chi_s / 4.0
         + (-405.0 / 8.0 + 5.0 * eta / 2.0) * (chi_s ** 2.0)
     )
-    phi5 = (1.0 + np.log(pi * M_s * f)) * (
+    phi5 = (1.0 + jnp.log(pi * fM_s)) * (
         38645.0 * pi / 756.0
         - 64.0 * pi * eta / 9.0
         + delta * (-732985.0 / 2268.0 - 140.0 * eta / 9.0) * chi_a
@@ -212,7 +203,7 @@ def Phase(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
         + (-15737765635.0 / 3048192.0 + 2255.0 * (pi ** 2.0) / 12.0) * eta
         + 76055.0 * (eta ** 2.0) / 1728.0
         - 127825.0 * (eta ** 3.0) / 1296.0
-        - 6848.0 * np.log(64.0 * pi * M_s * f) / 63.0
+        - 6848.0 * jnp.log(64.0 * pi * fM_s) / 63.0
         + 2270.0 * pi * delta * chi_a / 3.0
         + (2270.0 * pi / 3.0 - 520.0 * pi * eta) * chi_s
     )
@@ -237,82 +228,140 @@ def Phase(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
     )
 
     # Add frequency dependence here
-    TF2_pre = 3.0 * ((pi * f * M_s) ** -(5.0 / 3.0)) / (128.0 * eta)
+    TF2_pre = 3.0 * ((pi * fM_s) ** -(5.0 / 3.0)) / (128.0 * eta)
     phi_TF2 = TF2_pre * (
         phi0
-        + phi1 * ((pi * f * M_s) ** (1.0 / 3.0))
-        + phi2 * ((pi * f * M_s) ** (2.0 / 3.0))
-        + phi3 * ((pi * f * M_s) ** (3.0 / 3.0))
-        + phi4 * ((pi * f * M_s) ** (4.0 / 3.0))
-        + phi5 * ((pi * f * M_s) ** (5.0 / 3.0))
-        + phi6 * ((pi * f * M_s) ** (6.0 / 3.0))
-        + phi7 * ((pi * f * M_s) ** (7.0 / 3.0))
+        + phi1 * ((pi * fM_s) ** (1.0 / 3.0))
+        + phi2 * ((pi * fM_s) ** (2.0 / 3.0))
+        + phi3 * ((pi * fM_s) ** (3.0 / 3.0))
+        + phi4 * ((pi * fM_s) ** (4.0 / 3.0))
+        + phi5 * ((pi * fM_s) ** (5.0 / 3.0))
+        + phi6 * ((pi * fM_s) ** (6.0 / 3.0))
+        + phi7 * ((pi * fM_s) ** (7.0 / 3.0))
     )
     phi_Ins = (
         phi_TF2
         + (
-            coeffs[7] * (pi * f * M_s)
-            + (3.0 / 4.0) * coeffs[8] * ((pi * f * M_s) ** (4.0 / 3.0))
-            + (3.0 / 5.0) * coeffs[9] * ((pi * f * M_s) ** (5.0 / 3.0))
-            + (1.0 / 2.0) * coeffs[10] * ((pi * f * M_s) ** 2.0)
+            coeffs[7] * fM_s
+            + (3.0 / 4.0) * coeffs[8] * (fM_s ** (4.0 / 3.0))
+            + (3.0 / 5.0) * coeffs[9] * (fM_s ** (5.0 / 3.0))
+            + (1.0 / 2.0) * coeffs[10] * (fM_s ** 2.0)
         )
         / eta
     )
+    return phi_Ins
+
+
+def get_IIa_raw_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+    m1, m2, _, _ = theta
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s ** 2.0)
+
+    coeffs = get_coeffs(theta)
+
+    phi_IIa_raw = (
+        coeffs[11] * fM_s
+        + coeffs[12] * jnp.log(fM_s)
+        - coeffs[13] * (fM_s ** -3.0) / 3.0
+    ) / eta
+
+    return phi_IIa_raw
+
+
+def get_IIb_raw_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+    m1, m2, _, _ = theta
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s ** 2.0)
+
+    coeffs = get_coeffs(theta)
+    _, _, _, _, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
+    f_RDM_s = f_RD * M_s
+    f_dampM_s = f_damp * M_s
+
+    phi_IIb_raw = (
+        coeffs[14] * fM_s
+        - coeffs[15] * (fM_s ** -1.0)
+        + 4.0 * coeffs[16] * (fM_s ** (3.0 / 4.0)) / 3.0
+        + coeffs[17] * jnp.arctan((fM_s - coeffs[18] * f_RDM_s) / f_dampM_s)
+    ) / eta
+
+    return phi_IIb_raw
+
+
+def Phase(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+    """
+    Computes the phase of the PhenomD waveform following 1508.07253.
+    Sets time and phase of coealence to be zero.
+
+    Returns:
+    --------
+        phase (array): Phase of the GW as a function of frequency
+    """
+    # First lets calculate some of the vairables that will be used below
+    # Mass variables
+    m1, m2, _, _ = theta
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s ** 2.0)
+
+    coeffs = get_coeffs(theta)
+
+    # Next we need to calculate the transition frequencies
+    f1, f2, _, _, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
+
+    phi_Ins = get_inspiral_phase(f * M_s, theta)
 
     # Next lets construct the phase of the late inspiral (region IIa)
-    # Sig0 is found by matching the phase between the region I and IIa
-    # FIXME: Is there a better way to do the matching? This is probably where the error is beta ==
-    # beta0 = eta * np.interp(f1, f, phi_Ins) - (
-    #     coeffs[11] * (f1 * M * gt)
-    #     + coeffs[12] * np.log((f1 * M * gt))
-    #     - coeffs[13] * ((f1 * M * gt) ** -3.0) / 3.0
-    # )
-    # phi_IIa = (
-    #     beta0
-    #     + (
-    #         coeffs[11] * (f * M * gt)
-    #         + coeffs[12] * np.log((f * M * gt))
-    #         - coeffs[13] * ((f * M * gt) ** -3.0) / 3.0
-    #     )
-    # ) / eta
+    # beta0 is found by matching the phase between the region I and IIa
+    # C(1) continuity must be preserved. We therefore need to solve for an additional
+    # contribution to beta1
+    # Note that derivatives seem to be d/d(fM_s), not d/df
 
-    # # # And finally, we construct the phase of the merger-ringdown (region IIb)
-    # sig0 = eta * np.interp(f2, f, phi_IIa) - (
-    #     coeffs[14] * (f * M * gt)
-    #     - coeffs[15] * ((f * M * gt) ** -1.0)
-    #     + 4.0 * coeffs[16] * ((f * M * gt) ** (3.0 / 4.0)) / 3.0
-    #     + coeffs[17] * np.arctan((f - coeffs[18] * f_RD) / f_damp)
-    # )
-    # phi_IIb = (
-    #     sig0
-    #     + (
-    #         coeffs[14] * (f * M * gt)
-    #         - coeffs[15] * ((f * M * gt) ** -1.0)
-    #         + 4.0 * coeffs[16] * ((f * M * gt) ** (3.0 / 4.0)) / 3.0
-    #         + coeffs[17] * np.arctan((f - coeffs[18] * f_RD) / f_damp)
-    #     )
-    # ) / eta
+    # Here I've now defined
+    # phi_IIa(f1*M_s) + beta0 + beta1_correction*(f1*M_s) = phi_Ins(f1)
+    # ==> phi_IIa'(f1*M_s) + beta1_correction = phi_Ins'(f1*M_s)
+    # ==> beta1_correction = phi_Ins'(f1*M_s) - phi_IIa'(f1*M_s)
+    # ==> beta0 = phi_Ins(f1*M_s) - phi_IIa(f1*M_s) - beta1_correction*(f1*M_s)
+    phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(get_inspiral_phase)(f1 * M_s, theta)
+    phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(f1 * M_s, theta)
 
-    # # And now we can combine them by multiplying by a set of heaviside functions
-    # print("Within function Ins", phi_Ins * np.heaviside(f1 - f, 0.5))
-    # print(
-    #     "Within function IIa",
-    #     np.heaviside(f - f1, 0.5) * phi_IIa * np.heaviside(f2 - f, 0.5),
-    # )
-    # print("Within function IIb", phi_IIb * np.heaviside(f - f2, 0.5))
-    # print("Within function", f1, f2, f_RD, f_damp)
-    phase = (
-        phi_Ins
-        * np.heaviside(f1 - f, 0.5)
-        # + np.heaviside(f - f1, 0.5) * phi_IIa * np.heaviside(f2 - f, 0.5)
-        # + phi_IIb * np.heaviside(f - f2, 0.5)
+    beta1_correction = dphi_Ins_f1 - dphi_IIa_f1
+    beta0 = phi_Ins_f1 - beta1_correction * (f1 * M_s) - phi_IIa_f1
+
+    phi_IIa_func = (
+        lambda fM_s: get_IIa_raw_phase(fM_s, theta) + beta0 + (beta1_correction * fM_s)
     )
-    # phase = phi_TF2
+    phi_IIa = phi_IIa_func(f * M_s)
 
-    return phase, f1, f2
+    # And finally, we do the same thing to get the phase of the merger-ringdown (region IIb)
+    # phi_IIb(f2*M_s) + a0 + a1_correction*(f2*M_s) = phi_IIa(f2*M_s)
+    # ==> phi_IIb'(f2*M_s) + a1_correction = phi_IIa'(f2*M_s)
+    # ==> a1_correction = phi_IIa'(f2*M_s) - phi_IIb'(f2*M_s)
+    # ==> a0 = phi_IIa(f2*M_s) - phi_IIb(f2*M_s) - beta1_correction*(f2*M_s)
+    phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(f2 * M_s)
+    phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIa_raw_phase)(f2 * M_s, theta)
+
+    a1_correction = dphi_IIa_f2 - dphi_IIb_f2
+    a0 = phi_IIa_f2 - a1_correction * (f2 * M_s) - phi_IIb_f2
+
+    phi_IIb = get_IIa_raw_phase(f * M_s, theta) + a0 + a1_correction * (f * M_s)
+
+    # And now we can combine them by multiplying by a set of heaviside functions
+    phase = (
+        phi_Ins * jnp.heaviside(f1 - f, 0.5)
+        + jnp.heaviside(f - f1, 0.5) * phi_IIa * jnp.heaviside(f2 - f, 0.5)
+        + phi_IIb * jnp.heaviside(f - f2, 0.5)
+    )
+
+    return phase, f1, f2, f_RD, f_damp
 
 
-def Amp(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
+def Amp(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     """
     Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
     Note that this waveform also assumes that object one is the more massive.
@@ -342,10 +391,11 @@ def Amp(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
 
     ### Need to check units here
     Amp0 = (
-        eta ** (1.0 / 2.0)(f + 1e-100) ** (-7.0 / 6.0)
+        eta ** (1.0 / 2.0)
+        * (f + 1e-100) ** (-7.0 / 6.0)
         * (2.0 / 3.0) ** (1.0 / 2.0)
         * pi ** (3.0 / 2.0)
-        * np.sqrt(5.0 / 24.0)
+        * jnp.sqrt(5.0 / 24.0)
     )
 
     # First lets construct the Amplitude in the inspiral (region I)
@@ -419,14 +469,14 @@ def Amp(f: np.ndarray, theta: np.ndarray) -> np.ndarray:
             * f_damp
             / ((f - f_RD) ** 2.0 + (coeffs[6] * f_damp) ** 2)
         )
-        * np.exp(-coeffs[5] * (f - f_RD) / coeffs[6] / f_damp)
+        * jnp.exp(-coeffs[5] * (f - f_RD) / coeffs[6] / f_damp)
     )
 
     # And now we can combine them by multiplying by a set of heaviside functions
     Amp = (
-        Amp_Ins * np.heaviside(f3 - f, 0.5)
-        + np.heaviside(f - f3, 0.5) * Amp_IIa * np.heaviside(f - f4, 0.5)
-        + Amp_IIb * np.heaviside(f4 - f, 0.5)
+        Amp_Ins * jnp.heaviside(f3 - f, 0.5)
+        + jnp.heaviside(f - f3, 0.5) * Amp_IIa * jnp.heaviside(f - f4, 0.5)
+        + Amp_IIb * jnp.heaviside(f4 - f, 0.5)
     )
 
     pre = 3.6686934875530996e-19  # (GN*Msun/c^3)^(5/6)/Hz^(7/6)*c/Mpc/sec
