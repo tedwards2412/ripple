@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 def test_phenomD():
     theta = np.array([20.0, 19.99, -0.95, -0.95])
     Mf0 = 0.003
-    Mf1 = 0.1
+    Mf1 = 0.15
     f_l = Mf0 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
     f_u = Mf1 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
     # f_l = 20
@@ -49,7 +49,7 @@ def test_phenomD():
     plt.ylabel(r"$\Phi$")
     # plt.xlim(0.004, 0.018)
     # plt.ylim(-50, 200)
-    plt.savefig("test_phase_full.pdf")
+    plt.savefig("test_phase_full.pdf", bbox_inches="tight")
 
     phase_deriv = np.gradient(phase, del_f)
     print("derivative", -phase_deriv)
@@ -62,9 +62,9 @@ def test_phenomD():
     )
     plt.legend()
     plt.xlabel(r"Mf")
-    plt.ylabel(r"$-\Phi^{\prime}$")
+    plt.ylabel(r"$\Phi^{\prime}$")
     plt.xlim(Mf0, Mf1)
-    plt.savefig("test_phase_derivative_full.pdf")
+    plt.savefig("test_phase_derivative_full.pdf", bbox_inches="tight")
 
     # coeffs = PhenomD.get_coeffs(theta)
     # print(coeffs)

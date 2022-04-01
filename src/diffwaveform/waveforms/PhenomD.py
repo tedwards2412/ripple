@@ -344,12 +344,12 @@ def Phase(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     # ==> a1_correction = phi_IIa'(f2*M_s) - phi_IIb'(f2*M_s)
     # ==> a0 = phi_IIa(f2*M_s) - phi_IIb(f2*M_s) - beta1_correction*(f2*M_s)
     phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(f2 * M_s)
-    phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIa_raw_phase)(f2 * M_s, theta)
+    phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIb_raw_phase)(f2 * M_s, theta)
 
     a1_correction = dphi_IIa_f2 - dphi_IIb_f2
     a0 = phi_IIa_f2 - a1_correction * (f2 * M_s) - phi_IIb_f2
 
-    phi_IIb = get_IIa_raw_phase(f * M_s, theta) + a0 + a1_correction * (f * M_s)
+    phi_IIb = get_IIb_raw_phase(f * M_s, theta) + a0 + a1_correction * (f * M_s)
 
     # And now we can combine them by multiplying by a set of heaviside functions
     phase = (
