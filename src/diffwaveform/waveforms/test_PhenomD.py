@@ -5,7 +5,7 @@ import PhenomD
 import matplotlib.pyplot as plt
 
 
-def test_phenomD():
+def test_phase_phenomD():
     theta = np.array([20.0, 19.99, -0.95, -0.95])
     Mf0 = 0.003
     Mf1 = 0.15
@@ -19,25 +19,8 @@ def test_phenomD():
     # print(f)
 
     phase, f1, f2, f_RD, f_damp = PhenomD.Phase(f, theta)
-    print(phase)
 
-    # TF2 = kappa_waveform(
-    #     mass1=theta[0],
-    #     mass2=theta[1],
-    #     spin1z=theta[2],
-    #     spin2z=theta[3],
-    #     f_lower=f_l,
-    #     f_upper=f_u,
-    #     delta_f=del_f,
-    # )
-    # print(TF2.Phif35PN())
     plt.figure(figsize=(7, 5))
-    # plt.plot(
-    #     TF2.frequencies * (theta[0] + theta[1]) * 4.92549094830932e-6,
-    #     TF2.Phif35PN(),
-    #     label="nonstd-gwaves",
-    # )
-    # norm = phase[0] / TF2.Phif35PN()[0]
     plt.plot(Mf, phase, label="PhenomD")
     plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
     plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
@@ -71,6 +54,29 @@ def test_phenomD():
     return None
 
 
+def test_Amp_phenomD():
+    theta = np.array([20.0, 19.99, -0.95, -0.95])
+    Mf0 = 0.003
+    Mf1 = 0.018
+    f_l = Mf0 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
+    f_u = Mf1 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
+    del_f = 0.001
+    f = np.arange(f_l, f_u, del_f)
+    Mf = f * (theta[0] + theta[1]) * 4.92549094830932e-6
+
+    Amp = PhenomD.Amp(f, theta)
+    print(Amp)
+
+    plt.figure(figsize=(7, 5))
+    plt.plot(Mf, Amp, label="PhenomD")
+    plt.legend()
+    plt.xlabel(r"Mf")
+    plt.ylabel(r"Amplitude")
+    plt.savefig("test_Amp_full.pdf", bbox_inches="tight")
+
+    return None
+
+
 def test_frequency_calc():
     theta = np.array([5.0, 4.0, 0.0, 0.0])
     m1, m2, chi1, chi2 = theta
@@ -81,5 +87,6 @@ def test_frequency_calc():
 
 
 if __name__ == "__main__":
-    test_phenomD()
+    test_Amp_phenomD()
+    # test_phase_phenomD()
     # test_frequency_calc()
