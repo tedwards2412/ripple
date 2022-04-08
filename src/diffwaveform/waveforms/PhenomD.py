@@ -75,7 +75,7 @@ def get_transition_frequencies(
 
     # Amplitude transition frequencies
     f3 = 0.014 / (M * gt)
-    f4 = abs(f_RD + f_damp * gamma3 * (jnp.sqrt(1 - (gamma2 ** 2))) / gamma2)
+    f4 = abs(f_RD + f_damp * gamma3 * (jnp.sqrt(1 - (gamma2 ** 2)) - 1) / gamma2)
 
     return f1, f2, f3, f4, f_RD, f_damp
 
@@ -301,10 +301,10 @@ def get_IIb_raw_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     return phi_IIb_raw
 
 
-def get_Amp0(f: jnp.ndarray, eta: jnp.float64) -> jnp.ndarray:
+def get_Amp0(fM_s: jnp.ndarray, eta: jnp.float64) -> jnp.ndarray:
     Amp0 = (
         eta ** (1.0 / 2.0)
-        * (f) ** (-7.0 / 6.0)
+        * (fM_s) ** (-7.0 / 6.0)
         * (2.0 / 3.0) ** (1.0 / 2.0)
         * pi ** (3.0 / 2.0)
     )
@@ -369,7 +369,7 @@ def get_inspiral_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
         * (31.0 * pi / 12.0 + (1614569.0 / 32256.0 - 165961.0 * eta / 2688.0) * chi_s)
     )
 
-    Amp0 = get_Amp0(fM_s / M_s, eta)
+    Amp0 = get_Amp0(fM_s, eta)
 
     Amp_PN = Amp0 * (
         A0
@@ -402,21 +402,23 @@ def get_IIa_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     # Frequency breaks
     _, _, f1, f3, _, _ = get_transition_frequencies(theta, coeffs[5], coeffs[6])
     f2 = (f1 + f3) / 2
+    print(f1 * M_s, f3 * M_s)
 
     # For this region, we also need to calculate the the values and derivatives
     # of the Ins and IIb regions
     v1, d1 = jax.value_and_grad(get_inspiral_Amp)(f1 * M_s, theta)
     v3, d3 = jax.value_and_grad(get_IIb_Amp)(f3 * M_s, theta)
-    print(f1 * M_s, f2 * M_s, f3 * M_s)
+    print("eta:", eta, "v2", coeffs[3])
 
-    Amp0 = get_Amp0(fM_s / M_s, eta)
+    Amp0 = get_Amp0(fM_s, eta)
 
     # Here we need the delta solutions
-    delta0 = get_delta0(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
-    delta1 = get_delta1(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
-    delta2 = get_delta2(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
-    delta3 = get_delta3(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
-    delta4 = get_delta4(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
+    delta0 = get_delta0(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3, Amp0)
+    delta1 = get_delta1(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3, Amp0)
+    delta2 = get_delta2(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3, Amp0)
+    delta3 = get_delta3(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3, Amp0)
+    delta4 = get_delta4(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3, Amp0)
+    print("deltas", delta0, delta1, delta2, delta3, delta4, "stopping deltas")
 
     Amp_IIa = Amp0 * (
         delta0
@@ -442,7 +444,7 @@ def get_IIb_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     # Frequency breaks
     _, _, _, _, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
 
-    Amp0 = get_Amp0(fM_s / M_s, eta)
+    Amp0 = get_Amp0(fM_s, eta)
 
     Amp_IIb = Amp0 * (
         (
@@ -564,4 +566,4 @@ def Amp(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     )
 
     # Need to add in an overall scaling of M_s^(5/6)
-    return Amp * (M_s ** (5.0 / 6.0))
+    return Amp * (M_s ** 2.0), f3, f4
