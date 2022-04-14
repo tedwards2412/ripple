@@ -5,164 +5,16 @@ config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import jax
 from math import pi
-from waveform_constants import (
-    gt,
-    EulerGamma,
-    PhenomD_coeff_table,
+from waveform_constants import gt, EulerGamma
+from PhenomD_utils import (
+    get_transition_frequencies,
+    get_coeffs,
     get_delta0,
     get_delta1,
     get_delta2,
     get_delta3,
     get_delta4,
 )
-
-# All these equations are defined in the papers
-# Taken from https://github.com/scottperkins/phenompy/blob/master/utilities.py
-def get_fRD_fdamp(m1, m2, chi1, chi2):
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M_s = m1_s + m2_s
-    eta_s = m1_s * m2_s / (M_s ** 2.0)
-    S = (
-        chi1 * m1_s ** 2 + chi2 * m2_s ** 2
-    ) / M_s ** 2  # convert chi to spin s in z direction
-    S_red = S / (1 - 2 * eta_s)
-
-    a = (
-        S
-        + 2 * jnp.sqrt(3) * eta_s
-        - 4.399 * eta_s ** 2
-        + 9.397 * eta_s ** 3
-        - 13.181 * eta_s ** 4
-        + (-0.085 * S + 0.102 * S ** 2 - 1.355 * S ** 3 - 0.868 * S ** 4) * eta_s
-        + (-5.837 * S - 2.097 * S ** 2 + 4.109 * S ** 3 + 2.064 * S ** 4) * eta_s ** 2
-    )
-
-    E_rad_ns = (
-        0.0559745 * eta_s
-        + 0.580951 * eta_s ** 2
-        - 0.960673 * eta_s ** 3
-        + 3.35241 * eta_s ** 4
-    )
-
-    E_rad = (
-        E_rad_ns
-        * (1 + S_red * (-0.00303023 - 2.00661 * eta_s + 7.70506 * eta_s ** 2))
-        / (1 + S_red * (-0.67144 - 1.47569 * eta_s + 7.30468 * eta_s ** 2))
-    )
-
-    MWRD = 1.5251 - 1.1568 * (1 - a) ** 0.1292
-    fRD = (1 / (2 * jnp.pi)) * (MWRD) / (M_s * (1 - E_rad))
-
-    MWdamp = (1.5251 - 1.1568 * (1 - a) ** 0.1292) / (
-        2 * (0.700 + 1.4187 * (1 - a) ** (-0.4990))
-    )
-    fdamp = (1 / (2 * jnp.pi)) * (MWdamp) / (M_s * (1 - E_rad))
-    return fRD, fdamp
-
-
-def get_transition_frequencies(
-    theta: jnp.ndarray, gamma2: float, gamma3: float
-) -> jnp.ndarray:
-
-    m1, m2, chi1, chi2 = theta
-    M = m1 + m2
-    f_RD, f_damp = get_fRD_fdamp(m1, m2, chi1, chi2)
-
-    # Phase transition frequencies
-    f1 = 0.018 / (M * gt)
-    f2 = f_RD / 2
-
-    # Amplitude transition frequencies
-    f3 = 0.014 / (M * gt)
-    f4 = abs(f_RD + f_damp * gamma3 * (jnp.sqrt(1 - (gamma2 ** 2)) - 1) / gamma2)
-
-    return f1, f2, f3, f4, f_RD, f_damp
-
-
-def get_coeffs(theta: jnp.ndarray) -> jnp.ndarray:
-    # Retrives the coefficients needed to produce the waveform
-
-    m1, m2, chi1, chi2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
-
-    chi_eff = (m1_s * chi1 + m2_s * chi2) / M_s
-    chiPN = chi_eff - (38.0 * eta / 113.0) * (chi1 + chi2)
-
-    def calc_coeff(i, eta, chiPN):
-        coeff = (
-            PhenomD_coeff_table[i, 0]
-            + PhenomD_coeff_table[i, 1] * eta
-            + (chiPN - 1.0)
-            * (
-                PhenomD_coeff_table[i, 2]
-                + PhenomD_coeff_table[i, 3] * eta
-                + PhenomD_coeff_table[i, 4] * (eta ** 2.0)
-            )
-            + (chiPN - 1.0) ** 2.0
-            * (
-                PhenomD_coeff_table[i, 5]
-                + PhenomD_coeff_table[i, 6] * eta
-                + PhenomD_coeff_table[i, 7] * (eta ** 2.0)
-            )
-            + (chiPN - 1.0) ** 3.0
-            * (
-                PhenomD_coeff_table[i, 8]
-                + PhenomD_coeff_table[i, 9] * eta
-                + PhenomD_coeff_table[i, 10] * (eta ** 2.0)
-            )
-        )
-
-        return coeff
-
-    rho1 = calc_coeff(0, eta, chiPN)
-    rho2 = calc_coeff(1, eta, chiPN)
-    rho3 = calc_coeff(2, eta, chiPN)
-    v2 = calc_coeff(3, eta, chiPN)
-    gamma1 = calc_coeff(4, eta, chiPN)
-    gamma2 = calc_coeff(5, eta, chiPN)
-    gamma3 = calc_coeff(6, eta, chiPN)
-    sig1 = calc_coeff(7, eta, chiPN)
-    sig2 = calc_coeff(8, eta, chiPN)
-    sig3 = calc_coeff(9, eta, chiPN)
-    sig4 = calc_coeff(10, eta, chiPN)
-    beta1 = calc_coeff(11, eta, chiPN)
-    beta2 = calc_coeff(12, eta, chiPN)
-    beta3 = calc_coeff(13, eta, chiPN)
-    a1 = calc_coeff(14, eta, chiPN)
-    a2 = calc_coeff(15, eta, chiPN)
-    a3 = calc_coeff(16, eta, chiPN)
-    a4 = calc_coeff(17, eta, chiPN)
-    a5 = calc_coeff(18, eta, chiPN)
-
-    coeffs = jnp.array(
-        [
-            rho1,
-            rho2,
-            rho3,
-            v2,
-            gamma1,
-            gamma2,
-            gamma3,
-            sig1,
-            sig2,
-            sig3,
-            sig4,
-            beta1,
-            beta2,
-            beta3,
-            a1,
-            a2,
-            a3,
-            a4,
-            a5,
-        ]
-    )
-
-    return coeffs
 
 
 def get_inspiral_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
@@ -306,7 +158,7 @@ def get_Amp0(fM_s: jnp.ndarray, eta: jnp.float64) -> jnp.ndarray:
         eta ** (1.0 / 2.0)
         * (fM_s) ** (-7.0 / 6.0)
         * (2.0 / 3.0) ** (1.0 / 2.0)
-        * pi ** (3.0 / 2.0)
+        * pi ** (-1.0 / 6.0)
     )
     return Amp0
 
@@ -369,9 +221,7 @@ def get_inspiral_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
         * (31.0 * pi / 12.0 + (1614569.0 / 32256.0 - 165961.0 * eta / 2688.0) * chi_s)
     )
 
-    Amp0 = get_Amp0(fM_s, eta)
-
-    Amp_PN = Amp0 * (
+    Amp_PN = (
         A0
         + A1 * ((pi * fM_s) ** (1.0 / 3.0))
         + A2 * ((pi * fM_s) ** (2.0 / 3.0))
@@ -381,7 +231,7 @@ def get_inspiral_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
         + A6 * ((pi * fM_s) ** (6.0 / 3.0))
     )
 
-    Amp_Ins = Amp_PN + Amp0 * (
+    Amp_Ins = Amp_PN + (
         +coeffs[0] * (fM_s ** (7.0 / 3.0))
         + coeffs[1] * (fM_s ** (8.0 / 3.0))
         + coeffs[2] * (fM_s ** (9.0 / 3.0))
@@ -394,7 +244,6 @@ def get_IIa_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
 
     # And the coefficients
     coeffs = get_coeffs(theta)
@@ -402,25 +251,20 @@ def get_IIa_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     # Frequency breaks
     _, _, f1, f3, _, _ = get_transition_frequencies(theta, coeffs[5], coeffs[6])
     f2 = (f1 + f3) / 2
-    print(f1 * M_s, f3 * M_s)
 
     # For this region, we also need to calculate the the values and derivatives
     # of the Ins and IIb regions
     v1, d1 = jax.value_and_grad(get_inspiral_Amp)(f1 * M_s, theta)
     v3, d3 = jax.value_and_grad(get_IIb_Amp)(f3 * M_s, theta)
-    print("eta:", eta, "v2", coeffs[3])
-
-    Amp0 = get_Amp0(fM_s, eta)
 
     # Here we need the delta solutions
-    delta0 = get_delta0(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3, Amp0)
-    delta1 = get_delta1(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3, Amp0)
-    delta2 = get_delta2(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3, Amp0)
-    delta3 = get_delta3(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3, Amp0)
-    delta4 = get_delta4(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3, Amp0)
-    print("deltas", delta0, delta1, delta2, delta3, delta4, "stopping deltas")
+    delta0 = get_delta0(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
+    delta1 = get_delta1(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
+    delta2 = get_delta2(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
+    delta3 = get_delta3(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
+    delta4 = get_delta4(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
 
-    Amp_IIa = Amp0 * (
+    Amp_IIa = (
         delta0
         + delta1 * fM_s
         + delta2 * (fM_s ** 2.0)
@@ -436,7 +280,6 @@ def get_IIb_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
 
     # And the coefficients
     coeffs = get_coeffs(theta)
@@ -444,17 +287,12 @@ def get_IIb_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     # Frequency breaks
     _, _, _, _, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
 
-    Amp0 = get_Amp0(fM_s, eta)
-
-    Amp_IIb = Amp0 * (
-        (
-            coeffs[4]
-            * coeffs[6]
-            * (f_damp * M_s)
-            / ((fM_s - (f_RD * M_s)) ** 2.0 + (coeffs[6] * (f_damp * M_s)) ** 2)
-        )
-        * jnp.exp(-coeffs[5] * (fM_s - (f_RD * M_s)) / coeffs[6] / (f_damp * M_s))
-    )
+    Amp_IIb = (
+        coeffs[4]
+        * coeffs[6]
+        * (f_damp * M_s)
+        / ((fM_s - (f_RD * M_s)) ** 2.0 + (coeffs[6] * (f_damp * M_s)) ** 2)
+    ) * jnp.exp(-coeffs[5] * (fM_s - (f_RD * M_s)) / coeffs[6] / (f_damp * M_s))
     return Amp_IIb
 
 
@@ -523,14 +361,13 @@ def Phase(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
         + phi_IIb * jnp.heaviside(f - f2, 0.5)
     )
 
-    return phase, f1, f2, f_RD, f_damp
+    return phase
 
 
 def Amp(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     """
     Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
     Note that this waveform also assumes that object one is the more massive.
-    Therefore the more massive object is always considered a BH
 
     Returns:
     --------
@@ -543,12 +380,13 @@ def Amp(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s ** 2.0)
 
     coeffs = get_coeffs(theta)
 
     _, _, f3, f4, _, _ = get_transition_frequencies(theta, coeffs[5], coeffs[6])
 
-    # FIXME: Not sure about units below here
+    # First we get the inspiral amplitude
     Amp_Ins = get_inspiral_Amp(f * M_s, theta)
 
     # Next lets construct the phase of the late inspiral (region IIa)
@@ -565,5 +403,8 @@ def Amp(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
         + Amp_IIb * jnp.heaviside(f - f4, 0.5)
     )
 
-    # Need to add in an overall scaling of M_s^(5/6)
-    return Amp * (M_s ** 2.0), f3, f4
+    # Prefactor
+    Amp0 = get_Amp0(f * M_s, eta)
+
+    # Need to add in an overall scaling of M_s^2 to make the units correct
+    return Amp0 * Amp * (M_s ** 2.0)
