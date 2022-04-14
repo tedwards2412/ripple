@@ -1,22 +1,15 @@
-from jax.config import config
-
-config.update("jax_enable_x64", True)
-import jax.numpy as jnp
-import jax
 from math import pi
-from waveform_constants import gt, EulerGamma, m_per_Mpc, c
-from PhenomD_utils import (
-    get_transition_frequencies,
-    get_coeffs,
-    get_delta0,
-    get_delta1,
-    get_delta2,
-    get_delta3,
-    get_delta4,
-)
+
+import jax
+import jax.numpy as jnp
+from .PhenomD_utils import (get_coeffs, get_delta0, get_delta1, get_delta2,
+                           get_delta3, get_delta4, get_transition_frequencies)
+
+from ..constants import EulerGamma, gt, m_per_Mpc, C
+from ..typing import Array
 
 
-def get_inspiral_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+def get_inspiral_phase(fM_s: Array, theta: Array) -> Array:
     # First lets calculate some of the vairables that will be used below
     # Mass variables
     m1, m2, chi1, chi2 = theta
@@ -112,7 +105,7 @@ def get_inspiral_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     return phi_Ins
 
 
-def get_IIa_raw_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+def get_IIa_raw_phase(fM_s: Array, theta: Array) -> Array:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -130,7 +123,7 @@ def get_IIa_raw_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     return phi_IIa_raw
 
 
-def get_IIb_raw_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+def get_IIb_raw_phase(fM_s: Array, theta: Array) -> Array:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -152,7 +145,7 @@ def get_IIb_raw_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     return phi_IIb_raw
 
 
-def get_Amp0(fM_s: jnp.ndarray, eta: jnp.float64) -> jnp.ndarray:
+def get_Amp0(fM_s: Array, eta: float) -> Array:
     Amp0 = (
         eta ** (1.0 / 2.0)
         * (fM_s) ** (-7.0 / 6.0)
@@ -162,7 +155,7 @@ def get_Amp0(fM_s: jnp.ndarray, eta: jnp.float64) -> jnp.ndarray:
     return Amp0
 
 
-def get_inspiral_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -238,7 +231,7 @@ def get_inspiral_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     return Amp_Ins
 
 
-def get_IIa_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+def get_IIa_Amp(fM_s: Array, theta: Array) -> Array:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -274,7 +267,7 @@ def get_IIa_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     return Amp_IIa
 
 
-def get_IIb_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+def get_IIb_Amp(fM_s: Array, theta: Array) -> Array:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -296,7 +289,7 @@ def get_IIb_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
 
 
 @jax.jit
-def Phase(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+def Phase(f: Array, theta: Array) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
     Sets time and phase of coealence to be zero.
@@ -365,7 +358,7 @@ def Phase(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
 
 
 @jax.jit
-def Amp(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
+def Amp(f: Array, theta: Array) -> Array:
     """
     Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
     Note that this waveform also assumes that object one is the more massive.
@@ -409,5 +402,5 @@ def Amp(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
 
     # Need to add in an overall scaling of M_s^2 to make the units correct
     # We currently assume that the distance is 1 Mpc and use the conversion factor
-    dist_s = (1 * m_per_Mpc) / c
+    dist_s = (1 * m_per_Mpc) / C
     return Amp0 * Amp * (M_s ** 2.0) / dist_s
