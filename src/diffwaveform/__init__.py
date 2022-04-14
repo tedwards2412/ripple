@@ -1,3 +1,276 @@
+"""
+Core utilities for calculating properties of binaries, sampling their parameters
+and comparing waveforms.
+"""
+
 from jax.config import config
 
 config.update("jax_enable_x64", True)
+
+from math import pi
+from typing import Callable, Optional, Tuple
+import warnings
+
+from jax import random
+import jax.numpy as jnp
+
+from .constants import C, G
+from .typing import Array, PRNGKeyArray
+
+
+def ms_to_Mc_eta(m):
+    r"""
+    Converts binary component masses to chirp mass and symmetric mass ratio.
+
+    Args:
+        m: the binary component masses ``(m1, m2)``
+
+    Returns:
+        :math:`(\mathcal{M}, \eta)`, with the chirp mass in the same units as
+        the component masses
+    """
+    m1, m2 = m
+    return (m1 * m2) ** (3 / 5) / (m1 + m2) ** (1 / 5), m1 * m2 / (m1 + m2) ** 2
+
+
+def get_f_isco(m):
+    r"""
+    Computes the ISCO frequency for a black hole.
+
+    Args:
+        m: the black hole's mass in kg
+
+    Returns:
+        The ISCO frequency in Hz
+    """
+    return 1 / (6 ** (3 / 2) * pi * m / (C**3 / G))
+
+
+def get_M_eta_sampler(
+    M_range: Tuple[float, float], eta_range: Tuple[float, float]
+) -> Callable[[PRNGKeyArray, int], Array]:
+    """
+    Uniformly values of the chirp mass and samples over the specified ranges.
+    This function may be removed in the future since it is trivial.
+    """
+
+    def sampler(key, n):
+        M_eta = random.uniform(
+            key,
+            minval=jnp.array([M_range[0], eta_range[0]]),
+            maxval=jnp.array([M_range[1], eta_range[1]]),
+            shape=(n, 2),
+        )
+        return M_eta
+
+    return sampler
+
+
+def get_m1_m2_sampler(
+    m1_range: Tuple[float, float], m2_range: Tuple[float, float]
+) -> Callable[[PRNGKeyArray, int], Array]:
+    r"""
+    Creates a function to uniformly sample two parameters, with the restriction
+    that the first is larger than the second.
+
+    Note:
+        While this function is particularly useful for sampling masses in a
+        binary, nothing in it is specific to that context.
+
+    Args:
+        m1_range: the minimum and maximum values of the first parameter
+        m2_range: the minimum and maximum values of the second parameter
+
+    Returns:
+        The sampling function
+    """
+
+    def sampler(key, n):
+        ms = random.uniform(
+            key,
+            minval=jnp.array([m1_range[0], m2_range[0]]),
+            maxval=jnp.array([m1_range[1], m2_range[1]]),
+            shape=(n, 2),
+        )
+        return jnp.stack([ms.max(axis=1), ms.min(axis=1)]).T  # type: ignore
+
+    return sampler
+
+
+def get_eff_pads(fs: Array) -> Tuple[Array, Array]:
+    r"""
+    Gets arrays of zeros to pad a function evaluated on a frequency grid so the
+    function values can be passed to ``jax.numpy.fft.ifft``.
+
+    Args:
+        fs: uniformly-spaced grid of frequencies. It is assumed that the first
+            element in the grid must be an integer multiple of the grid spacing
+            (i.e., ``fs[0] % df == 0``, where ``df`` is the grid spacing).
+
+    Returns:
+        The padding arrays of zeros. The first is of length ``fs[0] / df`` and
+        the second is of length ``fs[-1] / df - 2``.
+    """
+    df = (fs[-1] - fs[0]) / (len(fs) - 1)
+
+    if not jnp.allclose(jnp.diff(fs), df).all():
+        warnings.warn("frequency grid may not be evenly spaced")
+
+    if fs[0] % df != 0 or fs[-1] % df != 0:
+        warnings.warn(
+            "The first and/or last elements of the frequency grid are not integer "
+            "multiples of the grid spacing. The frequency grid and pads from this "
+            "function will thus yield inaccurate results when used with fft/ifft."
+        )
+
+    N = 2 * jnp.array(fs[-1] / df - 1).astype(int)
+    pad_low = jnp.zeros(jnp.array(fs[0] / df).astype(int))
+    pad_high = jnp.zeros(N - jnp.array(fs[-1] / df).astype(int))
+    return pad_low, pad_high
+
+
+# pad_low, pad_high, Sns, h1s, h2s
+def get_phase_maximized_inner_product_arr(
+    del_t: Array, fs: Array, Sns: Array, h1s: Array, h2s: Array
+) -> Array:
+    r"""
+    Calculates the inner product between two waveforms, maximized over the difference
+    in phase at coalescence. This is just the absolute value of the noise-weighted
+    inner product.
+
+    Args:
+        del_t: difference in the time at coalescence for the waveforms
+        h1s: the first set of strains
+        h2s: the second set of strains
+        Sns: the noise power spectral densities
+        fs: uniformly-spaced grid of frequencies used to perform the integration
+
+    Returns:
+        The noise-weighted inner product between the waveforms, maximized over
+        the phase at coalescence
+    """
+    # Normalize both waveforms. Factors of 4 and df drop out.
+    norm1 = jnp.sqrt(jnp.sum(jnp.abs(h1s) ** 2 / Sns))
+    norm2 = jnp.sqrt(jnp.sum(jnp.abs(h2s) ** 2 / Sns))
+    # Compute unnormalized match, maximizing over phi_0 by taking the absolute value
+    integral = jnp.abs(
+        jnp.sum(h1s.conj() * h2s * jnp.exp(1j * 2 * pi * fs * del_t) / Sns)
+    )
+    return integral / (norm1 * norm2)
+
+
+def get_phase_maximized_inner_product(
+    del_t: Array,
+    fs: Array,
+    Sn: Callable[[Array], Array],
+    theta1: Array,
+    theta2: Array,
+    amp1: Callable[[Array, Array], Array],
+    Psi1: Callable[[Array, Array], Array],
+    amp2: Optional[Callable[[Array, Array], Array]],
+    Psi2: Optional[Callable[[Array, Array], Array]],
+) -> Array:
+    r"""
+    Calculates the inner product between two waveforms, maximized over the difference
+    in phase at coalescence. This is just the absolute value of the noise-weighted
+    inner product.
+
+    Args:
+        theta1: parameters for the first waveform
+        theta2: parameters for the second waveform
+        del_t: difference in the time at coalescence for the waveforms
+        amp1: amplitude function for first waveform
+        Psi1: phase function for first waveform
+        amp2: amplitude function for second waveform
+        Psi2: phase function for second waveform
+        fs: uniformly-spaced grid of frequencies used to perform the integration
+        Sn: power spectral density of the detector noise
+
+    Returns:
+        The noise-weighted inner product between the waveforms, maximized over
+        the phase at coalescence
+    """
+    h1s = amp1(fs, theta1) * jnp.exp(1j * Psi1(fs, theta1))
+    if amp2 is None:
+        amp2 = amp1
+    if Psi2 is None:
+        Psi2 = Psi1
+    h2s = amp2(fs, theta2) * jnp.exp(1j * Psi2(fs, theta2))
+    Sns = Sn(fs)
+    return get_phase_maximized_inner_product_arr(del_t, fs, Sns, h1s, h2s)
+
+
+def get_match_arr(
+    pad_low: Array, pad_high: Array, Sns: Array, h1s: Array, h2s: Array
+) -> Array:
+    """
+    Calculates the match between two frequency-domain complex strains. The maximizations
+    over the difference in time and phase at coalescence are performed by taking
+    the absolute value of the inverse Fourier transform.
+
+    Args:
+        h1s: the first set of strains
+        h2s: the second set of strains
+        Sns: the noise power spectral densities
+        pad_low: array of zeros to pad the left side of the integrand before it
+            is passed to ``jax.numpy.fft.ifft``
+        pad_right: array of zeros to pad the right side of the integrand before
+            it is passed to ``jax.numpy.fft.ifft``
+
+    Returns:
+        The match.
+    """
+    # Factors of 4 and df drop out due to linearity
+    norm1 = jnp.sqrt(jnp.sum(jnp.abs(h1s) ** 2 / Sns))
+    norm2 = jnp.sqrt(jnp.sum(jnp.abs(h2s) ** 2 / Sns))
+
+    # Use IFFT trick to maximize over t_c. Ref: Maggiore's book, eq. 7.171.
+    integrand_padded = jnp.concatenate((pad_low, h1s.conj() * h2s / Sns, pad_high))
+    return jnp.abs(len(integrand_padded) * jnp.fft.ifft(integrand_padded)).max() / (
+        norm1 * norm2
+    )
+
+
+def get_match(
+    fs: Array,
+    pad_low: Array,
+    pad_high: Array,
+    Sn: Callable[[Array], Array],
+    theta1: Array,
+    theta2: Array,
+    amp1: Callable[[Array, Array], Array],
+    Psi1: Callable[[Array, Array], Array],
+    amp2: Optional[Callable[[Array, Array], Array]],
+    Psi2: Optional[Callable[[Array, Array], Array]],
+) -> Array:
+    r"""
+    Calculates the match between two waveforms with different parameters and of
+    distinct types. The match is defined as the noise-weighted inner product maximized
+    over the difference in time and phase at coalescence. The maximizations are
+    performed using the absolute value of the inverse Fourier transform trick.
+
+    Args:
+        theta1: parameters for the first waveform
+        theta2: parameters for the second waveform
+        amp1: amplitude function for first waveform
+        Psi1: phase function for first waveform
+        amp2: amplitude function for second waveform
+        Psi2: phase function for second waveform
+        fs: uniformly-spaced grid of frequencies used to perform the integration
+        Sn: power spectral density of the detector noise
+        pad_low: array of zeros to pad the left side of the integrand before it
+            is passed to ``jax.numpy.fft.ifft``
+        pad_right: array of zeros to pad the right side of the integrand before
+            it is passed to ``jax.numpy.fft.ifft``
+
+    Returns:
+        The match :math:`m[\theta_1, \theta_2]`
+    """
+    h1s = amp1(fs, theta1) * jnp.exp(1j * Psi1(fs, theta1))
+    if amp2 is None:
+        amp2 = amp1
+    if Psi2 is None:
+        Psi2 = Psi1
+    h2s = amp2(fs, theta2) * jnp.exp(1j * Psi2(fs, theta2))
+    Sns = Sn(fs)
+    return get_match_arr(pad_low, pad_high, Sns, h1s, h2s)
