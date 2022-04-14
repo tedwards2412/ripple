@@ -1,2 +1,3 @@
 # diffwaveform
-Here I'll start to develop the basics of differentiable waveforms
+
+A small `jax` package for differentiable and fast gravitational wave data analysis.

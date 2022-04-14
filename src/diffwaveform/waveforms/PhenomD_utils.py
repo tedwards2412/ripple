@@ -1,9 +1,10 @@
-from jax.config import config
-import jax.numpy as jnp
-from waveform_constants import gt, EulerGamma
-from math import pi
+from typing import Tuple
 
-config.update("jax_enable_x64", True)
+import jax.numpy as jnp
+
+from ..constants import gt
+from ..typing import Array
+
 
 # All these equations are defined in the papers
 # Taken from https://github.com/scottperkins/phenompy/blob/master/utilities.py
@@ -51,8 +52,8 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
 
 
 def get_transition_frequencies(
-    theta: jnp.ndarray, gamma2: float, gamma3: float
-) -> jnp.ndarray:
+    theta: Array, gamma2: float, gamma3: float
+) -> Tuple[float, float, float, float, float, float]:
 
     m1, m2, chi1, chi2 = theta
     M = m1 + m2
@@ -69,7 +70,7 @@ def get_transition_frequencies(
     return f1, f2, f3, f4, f_RD, f_damp
 
 
-def get_coeffs(theta: jnp.ndarray) -> jnp.ndarray:
+def get_coeffs(theta: Array) -> Array:
     # Retrives the coefficients needed to produce the waveform
 
     m1, m2, chi1, chi2 = theta

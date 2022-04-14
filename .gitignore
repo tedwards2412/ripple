@@ -1,0 +1,7 @@
+.DS_Store
+.ipynb_checkpoints/
+.python-version
+*__pycache__
+*.egg-info
+docs/build/*
+figures/*.pdf
