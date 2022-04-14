@@ -1,9 +1,16 @@
 import numpy as np
 import PhenomD
 import PhenomD_utils
+from math import pi
 
-# from nonstd_gwaves.waveforms import kappa_waveform
+from utils import get_match
+
+##############
+from pycbc import waveform
 import matplotlib.pyplot as plt
+import numpy as np
+
+##############
 
 
 def test_phase_phenomD():
@@ -99,7 +106,67 @@ def test_frequency_calc():
     return None
 
 
+def compare_waveforms():
+    # Get a frequency domain waveform
+    theta = np.array([10.1, 10.0, 0.95, -0.95])
+    f_l = 40
+    f_u = 512
+    df = 1.0 / 1000.0
+
+    sptilde, sctilde = waveform.get_fd_waveform(
+        approximant="IMRPhenomD",
+        mass1=theta[0],
+        mass2=theta[1],
+        spin1z=theta[2],
+        spin2z=theta[3],
+        delta_f=df,
+        f_lower=f_l,
+        f_final=f_u,
+    )
+
+    del_f = 0.001
+    f = np.arange(f_l, f_u, del_f)
+    print(
+        sptilde.sample_frequencies[
+            (sptilde.sample_frequencies >= f_l) & (sptilde.sample_frequencies < f_u)
+        ].shape,
+        f.shape,
+    )
+
+    Amp = PhenomD.Amp(f, theta)
+    Phase = PhenomD.Phase(f, theta)
+    # Seems to be an extra factor of pi here wrong
+    wv = (Amp / pi) * np.exp(-1.0j * Phase)
+
+    # print(get_match)
+
+    # plt.figure(figsize=(15, 5))
+    # plt.plot(
+    #     sptilde.sample_frequencies[sptilde.sample_frequencies >= f_l],
+    #     sptilde[sptilde.sample_frequencies >= f_l],
+    #     label="pycbc",
+    # )
+    # plt.plot(f, wv, label="ripple", alpha=0.3)
+    # plt.legend()
+    # plt.xlim(40, 80)
+    # plt.xlabel("Frequency")
+    # plt.ylabel("hf")
+    # plt.show()
+
+    print(
+        get_match(
+            wv,
+            sptilde[
+                (sptilde.sample_frequencies >= f_l) & (sptilde.sample_frequencies < f_u)
+            ],
+            np.ones_like(f),
+            f,
+        )
+    )
+
+
 if __name__ == "__main__":
-    test_Amp_phenomD()
-    test_phase_phenomD()
-    test_frequency_calc()
+    # test_Amp_phenomD()
+    # test_phase_phenomD()
+    # test_frequency_calc()
+    compare_waveforms()

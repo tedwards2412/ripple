@@ -1,11 +1,10 @@
-# import numpy as np
 from jax.config import config
 
 config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import jax
 from math import pi
-from waveform_constants import gt, EulerGamma
+from waveform_constants import gt, EulerGamma, m_per_Mpc, c
 from PhenomD_utils import (
     get_transition_frequencies,
     get_coeffs,
@@ -296,6 +295,7 @@ def get_IIb_Amp(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     return Amp_IIb
 
 
+@jax.jit
 def Phase(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
@@ -364,6 +364,7 @@ def Phase(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     return phase
 
 
+@jax.jit
 def Amp(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     """
     Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
@@ -407,4 +408,6 @@ def Amp(f: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
     Amp0 = get_Amp0(f * M_s, eta)
 
     # Need to add in an overall scaling of M_s^2 to make the units correct
-    return Amp0 * Amp * (M_s ** 2.0)
+    # We currently assume that the distance is 1 Mpc and use the conversion factor
+    dist_s = (1 * m_per_Mpc) / c
+    return Amp0 * Amp * (M_s ** 2.0) / dist_s
