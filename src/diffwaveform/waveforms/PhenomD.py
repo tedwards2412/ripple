@@ -53,7 +53,7 @@ def get_inspiral_phase(fM_s: jnp.ndarray, theta: jnp.ndarray) -> jnp.ndarray:
         38645.0 * pi / 756.0
         - 64.0 * pi * eta / 9.0
         + delta * (-732985.0 / 2268.0 - 140.0 * eta / 9.0) * chi_a
-        + (732985.0 / 2268.0 + 24260.0 * eta / 81.0 + 340.0 * (eta ** 2.0) / 9.0)
+        + (-732985.0 / 2268.0 + 24260.0 * eta / 81.0 + 340.0 * (eta ** 2.0) / 9.0)
         * chi_s
     )
     phi6 = (

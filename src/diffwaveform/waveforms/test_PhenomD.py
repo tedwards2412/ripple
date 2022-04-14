@@ -2,6 +2,7 @@ import numpy as np
 import PhenomD
 import PhenomD_utils
 from math import pi
+from tqdm import tqdm
 
 from utils import get_match
 
@@ -106,11 +107,11 @@ def test_frequency_calc():
     return None
 
 
-def compare_waveforms():
+def plot_waveforms():
     # Get a frequency domain waveform
-    theta = np.array([10.1, 10.0, 0.95, -0.95])
+    theta = np.array([29.2470611, 9.23337794, -0.409828828, -0.522292775])
     f_l = 40
-    f_u = 512
+    f_u = 1024
     df = 1.0 / 1000.0
 
     sptilde, sctilde = waveform.get_fd_waveform(
@@ -126,32 +127,25 @@ def compare_waveforms():
 
     del_f = 0.001
     f = np.arange(f_l, f_u, del_f)
-    print(
-        sptilde.sample_frequencies[
-            (sptilde.sample_frequencies >= f_l) & (sptilde.sample_frequencies < f_u)
-        ].shape,
-        f.shape,
-    )
 
     Amp = PhenomD.Amp(f, theta)
     Phase = PhenomD.Phase(f, theta)
-    # Seems to be an extra factor of pi here wrong
+
+    # FIXME: Seems to be an extra factor of pi needed here
     wv = (Amp / pi) * np.exp(-1.0j * Phase)
 
-    # print(get_match)
-
-    # plt.figure(figsize=(15, 5))
-    # plt.plot(
-    #     sptilde.sample_frequencies[sptilde.sample_frequencies >= f_l],
-    #     sptilde[sptilde.sample_frequencies >= f_l],
-    #     label="pycbc",
-    # )
-    # plt.plot(f, wv, label="ripple", alpha=0.3)
-    # plt.legend()
+    plt.figure(figsize=(15, 5))
+    plt.plot(
+        sptilde.sample_frequencies[sptilde.sample_frequencies >= f_l],
+        sptilde[sptilde.sample_frequencies >= f_l],
+        label="pycbc",
+    )
+    plt.plot(f, wv, label="ripple", alpha=0.3)
+    plt.legend()
     # plt.xlim(40, 80)
-    # plt.xlabel("Frequency")
-    # plt.ylabel("hf")
-    # plt.show()
+    plt.xlabel("Frequency")
+    plt.ylabel("hf")
+    plt.show()
 
     print(
         get_match(
@@ -165,8 +159,84 @@ def compare_waveforms():
     )
 
 
+def random_match_waveforms(n=100):
+    # Get a frequency domain waveform
+    f_l = 40
+    f_u = 1024
+    df = 1.0 / 1000.0
+    thetas = []
+    matches = []
+
+    for i in tqdm(range(n)):
+        m1 = np.random.uniform(1.0, 50.0)
+        m2 = np.random.uniform(1.0, 50.0)
+        s1 = np.random.uniform(-1.0, 1.0)
+        s2 = np.random.uniform(-1.0, 1.0)
+
+        if m1 < m2:
+            theta = np.array([m2, m1, s1, s2])
+        elif m1 > m2:
+            theta = np.array([m1, m2, s1, s2])
+        else:
+            raise ValueError("Something went wrong with the parameters")
+        sptilde, sctilde = waveform.get_fd_waveform(
+            approximant="IMRPhenomD",
+            mass1=theta[0],
+            mass2=theta[1],
+            spin1z=theta[2],
+            spin2z=theta[3],
+            delta_f=df,
+            f_lower=f_l,
+            f_final=f_u,
+        )
+
+        del_f = 0.001
+        f = np.arange(f_l, f_u, del_f)
+
+        Amp = PhenomD.Amp(f, theta)
+        Phase = PhenomD.Phase(f, theta)
+
+        # FIXME: Seems to be an extra factor of pi needed here
+        wv = (Amp / pi) * np.exp(-1.0j * Phase)
+
+        matches.append(
+            get_match(
+                wv,
+                sptilde[
+                    (sptilde.sample_frequencies >= f_l)
+                    & (sptilde.sample_frequencies < f_u)
+                ],
+                np.ones_like(f),
+                f,
+            )
+        )
+        thetas.append(theta)
+
+    thetas = np.array(thetas)
+    matches = np.array(matches)
+
+    plt.figure(figsize=(7, 5))
+    cm = plt.cm.get_cmap("inferno")
+    sc = plt.scatter(thetas[:, 0], thetas[:, 1], c=matches, cmap=cm)
+    plt.colorbar(sc)
+    plt.xlabel("m1")
+    plt.ylabel("m2")
+    plt.savefig("../../../plots/test_match_vs_pycbc_m1m2.pdf", bbox_inches="tight")
+
+    plt.figure(figsize=(7, 5))
+    cm = plt.cm.get_cmap("inferno")
+    sc = plt.scatter(thetas[:, 2], thetas[:, 3], c=matches, cmap=cm)
+    plt.colorbar(sc)
+    plt.xlabel("s1")
+    plt.ylabel("s2")
+    plt.savefig("../../../plots/test_match_vs_pycbc_s1s2.pdf", bbox_inches="tight")
+
+    print(thetas, matches)
+
+
 if __name__ == "__main__":
     # test_Amp_phenomD()
     # test_phase_phenomD()
     # test_frequency_calc()
-    compare_waveforms()
+    # plot_waveforms()
+    random_match_waveforms(n=300)
