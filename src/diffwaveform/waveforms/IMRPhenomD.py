@@ -1,12 +1,21 @@
 from math import pi
+from cv2 import hconcat
 
 import jax
 import jax.numpy as jnp
-from .PhenomD_utils import (get_coeffs, get_delta0, get_delta1, get_delta2,
-                           get_delta3, get_delta4, get_transition_frequencies)
+from .IMRPhenomD_utils import (
+    get_coeffs,
+    get_delta0,
+    get_delta1,
+    get_delta2,
+    get_delta3,
+    get_delta4,
+    get_transition_frequencies,
+)
 
 from ..constants import EulerGamma, gt, m_per_Mpc, C
 from ..typing import Array
+from diffwaveform import Mc_eta_to_ms
 
 
 def get_inspiral_phase(fM_s: Array, theta: Array) -> Array:
@@ -319,7 +328,7 @@ def Phase(f: Array, theta: Array) -> Array:
     # Note that derivatives seem to be d/d(fM_s), not d/df
 
     # Here I've now defined
-    # phi_IIa(f1*M_s) + beta0 + beta1_correction*(f1*M_s) = phi_Ins(f1)
+    # phi_IIa(f1*M_s) + beta0 + beta1_correction*(f1*M_s) = phi_Ins(f1*M_s)
     # ==> phi_IIa'(f1*M_s) + beta1_correction = phi_Ins'(f1*M_s)
     # ==> beta1_correction = phi_Ins'(f1*M_s) - phi_IIa'(f1*M_s)
     # ==> beta0 = phi_Ins(f1*M_s) - phi_IIa(f1*M_s) - beta1_correction*(f1*M_s)
@@ -358,7 +367,7 @@ def Phase(f: Array, theta: Array) -> Array:
 
 
 @jax.jit
-def Amp(f: Array, theta: Array) -> Array:
+def Amp(f: Array, theta: Array, D=1) -> Array:
     """
     Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
     Note that this waveform also assumes that object one is the more massive.
@@ -402,5 +411,49 @@ def Amp(f: Array, theta: Array) -> Array:
 
     # Need to add in an overall scaling of M_s^2 to make the units correct
     # We currently assume that the distance is 1 Mpc and use the conversion factor
-    dist_s = (1 * m_per_Mpc) / C
+    dist_s = (D * m_per_Mpc) / C
     return Amp0 * Amp * (M_s ** 2.0) / dist_s
+
+
+@jax.jit
+def gen_IMRPhenomD(f: Array, params: Array):
+    """
+    Generate PhenomD frequency domain waveform following 1508.07253.
+    Note that this waveform also assumes that object one is the more massive.
+    vars array contains both intrinsic and extrinsic variables
+    theta = [m1, m2, chi1, chi2, D, tc, phic]
+    ###################### Currently incorrect
+    m1: Mass of the primary object [solar masses] (m1 > m2)
+    m2: Mass of the secondary object [solar masses] (m1 > m2)
+    ######################
+    Mchirp: Chirp mass of the system [solar masses]
+    eta: symmetric mass ratio
+    chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
+    chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+    D: Luminosity distance to source [Mpc]
+    tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
+    phic: Phase of coalesence
+
+    Returns:
+    --------
+      hp (array): Strain
+    """
+    # Lets make this easier by starting in Mchirp and eta space
+    m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
+    theta = jnp.array([m1, m2, params[2], params[3]])
+
+    # Lets call the amplitude and phase now
+    Psi = Phase(f, theta)
+    A = Amp(f, theta, D=params[4]) / pi  # FIXME: Not sure why the 1/pi is needed here
+
+    # We can add on the constant contributions to the phase
+    Psi_full = 2 * pi * f * params[5] - params[6] - pi / 4 + Psi
+
+    # hc = A * jnp.exp(1j * Psi_full)
+    hp = A * jnp.exp(1j * Psi_full)
+
+    # FIXME: The factor of 2 here just accounts for the fact that
+    # Inclination factors (according to code from nonstd-gwaves)
+    # hp: (1.0 + np.cos(inclination)**2) / 2.0
+    # hc: jnp.cos(inclination)
+    return 2 * hp

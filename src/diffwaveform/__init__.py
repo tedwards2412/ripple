@@ -18,6 +18,24 @@ from .constants import C, G
 from .typing import Array, PRNGKeyArray
 
 
+def Mc_eta_to_ms(m):
+    r"""
+    Converts chirp mass and symmetric mass ratio to binary component masses.
+
+    Args:
+        m: the binary component masses ``(Mchirp, eta)``
+
+    Returns:
+        :math:`(m1, m2)`, with the chirp mass in the same units as
+        the component masses
+    """
+    Mchirp, eta = m
+    M = Mchirp / (eta ** (3 / 5))
+    m2 = (M - jnp.sqrt(M ** 2 - 4 * M ** 2 * eta)) / 2
+    m1 = M - m2
+    return m1, m2
+
+
 def ms_to_Mc_eta(m):
     r"""
     Converts binary component masses to chirp mass and symmetric mass ratio.
@@ -43,7 +61,7 @@ def get_f_isco(m):
     Returns:
         The ISCO frequency in Hz
     """
-    return 1 / (6 ** (3 / 2) * pi * m / (C**3 / G))
+    return 1 / (6 ** (3 / 2) * pi * m / (C ** 3 / G))
 
 
 def get_M_eta_sampler(
