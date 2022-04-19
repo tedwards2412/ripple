@@ -1,5 +1,4 @@
 from math import pi
-from cv2 import hconcat
 
 import jax
 import jax.numpy as jnp
