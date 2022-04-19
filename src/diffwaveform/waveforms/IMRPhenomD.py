@@ -18,7 +18,7 @@ from ..typing import Array
 from diffwaveform import Mc_eta_to_ms
 
 
-def get_inspiral_phase(fM_s: Array, theta: Array) -> Array:
+def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     # First lets calculate some of the vairables that will be used below
     # Mass variables
     m1, m2, chi1, chi2 = theta
@@ -32,7 +32,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array) -> Array:
     chi_s = (chi1 + chi2) / 2.0
     chi_a = (chi1 - chi2) / 2.0
 
-    coeffs = get_coeffs(theta)
+    # coeffs = get_coeffs(theta)
 
     # First lets construct the phase in the inspiral (region I)
     phi0 = 1.0
@@ -114,14 +114,14 @@ def get_inspiral_phase(fM_s: Array, theta: Array) -> Array:
     return phi_Ins
 
 
-def get_IIa_raw_phase(fM_s: Array, theta: Array) -> Array:
+def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s ** 2.0)
 
-    coeffs = get_coeffs(theta)
+    # coeffs = get_coeffs(theta)
 
     phi_IIa_raw = (
         coeffs[11] * fM_s
@@ -132,14 +132,14 @@ def get_IIa_raw_phase(fM_s: Array, theta: Array) -> Array:
     return phi_IIa_raw
 
 
-def get_IIb_raw_phase(fM_s: Array, theta: Array) -> Array:
+def get_IIb_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s ** 2.0)
 
-    coeffs = get_coeffs(theta)
+    # coeffs = get_coeffs(theta)
     _, _, _, _, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
     f_RDM_s = f_RD * M_s
     f_dampM_s = f_damp * M_s
@@ -164,7 +164,7 @@ def get_Amp0(fM_s: Array, eta: float) -> Array:
     return Amp0
 
 
-def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
+def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -240,14 +240,14 @@ def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
     return Amp_Ins
 
 
-def get_IIa_Amp(fM_s: Array, theta: Array) -> Array:
+def get_IIa_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
 
     # And the coefficients
-    coeffs = get_coeffs(theta)
+    # coeffs = get_coeffs(theta)
 
     # Frequency breaks
     _, _, f1, f3, _, _ = get_transition_frequencies(theta, coeffs[5], coeffs[6])
@@ -255,8 +255,8 @@ def get_IIa_Amp(fM_s: Array, theta: Array) -> Array:
 
     # For this region, we also need to calculate the the values and derivatives
     # of the Ins and IIb regions
-    v1, d1 = jax.value_and_grad(get_inspiral_Amp)(f1 * M_s, theta)
-    v3, d3 = jax.value_and_grad(get_IIb_Amp)(f3 * M_s, theta)
+    v1, d1 = jax.value_and_grad(get_inspiral_Amp)(f1 * M_s, theta, coeffs)
+    v3, d3 = jax.value_and_grad(get_IIb_Amp)(f3 * M_s, theta, coeffs)
 
     # Here we need the delta solutions
     delta0 = get_delta0(f1 * M_s, f2 * M_s, f3 * M_s, v1, coeffs[3], v3, d1, d3)
@@ -276,14 +276,14 @@ def get_IIa_Amp(fM_s: Array, theta: Array) -> Array:
     return Amp_IIa
 
 
-def get_IIb_Amp(fM_s: Array, theta: Array) -> Array:
+def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
 
     # And the coefficients
-    coeffs = get_coeffs(theta)
+    # coeffs = get_coeffs(theta)
 
     # Frequency breaks
     _, _, _, _, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
@@ -317,9 +317,9 @@ def Phase(f: Array, theta: Array) -> Array:
     coeffs = get_coeffs(theta)
 
     # Next we need to calculate the transition frequencies
-    f1, f2, _, _, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
+    f1, f2, _, _, _, _ = get_transition_frequencies(theta, coeffs[5], coeffs[6])
 
-    phi_Ins = get_inspiral_phase(f * M_s, theta)
+    phi_Ins = get_inspiral_phase(f * M_s, theta, coeffs)
 
     # Next lets construct the phase of the late inspiral (region IIa)
     # beta0 is found by matching the phase between the region I and IIa
@@ -332,14 +332,20 @@ def Phase(f: Array, theta: Array) -> Array:
     # ==> phi_IIa'(f1*M_s) + beta1_correction = phi_Ins'(f1*M_s)
     # ==> beta1_correction = phi_Ins'(f1*M_s) - phi_IIa'(f1*M_s)
     # ==> beta0 = phi_Ins(f1*M_s) - phi_IIa(f1*M_s) - beta1_correction*(f1*M_s)
-    phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(get_inspiral_phase)(f1 * M_s, theta)
-    phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(f1 * M_s, theta)
+    phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(get_inspiral_phase)(
+        f1 * M_s, theta, coeffs
+    )
+    phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(
+        f1 * M_s, theta, coeffs
+    )
 
     beta1_correction = dphi_Ins_f1 - dphi_IIa_f1
     beta0 = phi_Ins_f1 - beta1_correction * (f1 * M_s) - phi_IIa_f1
 
     phi_IIa_func = (
-        lambda fM_s: get_IIa_raw_phase(fM_s, theta) + beta0 + (beta1_correction * fM_s)
+        lambda fM_s: get_IIa_raw_phase(fM_s, theta, coeffs)
+        + beta0
+        + (beta1_correction * fM_s)
     )
     phi_IIa = phi_IIa_func(f * M_s)
 
@@ -349,12 +355,14 @@ def Phase(f: Array, theta: Array) -> Array:
     # ==> a1_correction = phi_IIa'(f2*M_s) - phi_IIb'(f2*M_s)
     # ==> a0 = phi_IIa(f2*M_s) - phi_IIb(f2*M_s) - beta1_correction*(f2*M_s)
     phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(f2 * M_s)
-    phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIb_raw_phase)(f2 * M_s, theta)
+    phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIb_raw_phase)(
+        f2 * M_s, theta, coeffs
+    )
 
     a1_correction = dphi_IIa_f2 - dphi_IIb_f2
     a0 = phi_IIa_f2 - a1_correction * (f2 * M_s) - phi_IIb_f2
 
-    phi_IIb = get_IIb_raw_phase(f * M_s, theta) + a0 + a1_correction * (f * M_s)
+    phi_IIb = get_IIb_raw_phase(f * M_s, theta, coeffs) + a0 + a1_correction * (f * M_s)
 
     # And now we can combine them by multiplying by a set of heaviside functions
     phase = (
@@ -390,14 +398,14 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
     _, _, f3, f4, _, _ = get_transition_frequencies(theta, coeffs[5], coeffs[6])
 
     # First we get the inspiral amplitude
-    Amp_Ins = get_inspiral_Amp(f * M_s, theta)
+    Amp_Ins = get_inspiral_Amp(f * M_s, theta, coeffs)
 
     # Next lets construct the phase of the late inspiral (region IIa)
     # Note that this part is a little harder since we need to solve a system of equations for deltas
-    Amp_IIa = get_IIa_Amp(f * M_s, theta)
+    Amp_IIa = get_IIa_Amp(f * M_s, theta, coeffs)
 
     # And finally, we construct the phase of the merger-ringdown (region IIb)
-    Amp_IIb = get_IIb_Amp(f * M_s, theta)
+    Amp_IIb = get_IIb_Amp(f * M_s, theta, coeffs)
 
     # And now we can combine them by multiplying by a set of heaviside functions
     Amp = (
