@@ -2,8 +2,8 @@ from math import pi
 from tqdm import tqdm
 import jax.numpy as jnp
 
-from diffwaveform import get_eff_pads, get_match_arr
-from diffwaveform.waveforms import IMRPhenomD, IMRPhenomD_utils
+from ripple import get_eff_pads, get_match_arr
+from ripple.waveforms import IMRPhenomD, IMRPhenomD_utils
 import matplotlib.pyplot as plt
 import numpy as np
 import cProfile
@@ -23,7 +23,7 @@ def profile_grad():
     # Now lets compute the waveform ripple
     m1 = 20.0
     m2 = 10.0
-    from diffwaveform import ms_to_Mc_eta
+    from ripple import ms_to_Mc_eta
 
     Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
     chi1 = 0.0

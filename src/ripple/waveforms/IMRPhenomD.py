@@ -14,7 +14,7 @@ from .IMRPhenomD_utils import (
 
 from ..constants import EulerGamma, gt, m_per_Mpc, C
 from ..typing import Array
-from diffwaveform import Mc_eta_to_ms
+from ripple import Mc_eta_to_ms
 
 
 def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
