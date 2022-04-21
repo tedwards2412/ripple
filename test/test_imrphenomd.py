@@ -1,10 +1,12 @@
 from math import pi
 from tqdm import tqdm
+import jax.numpy as jnp
 
 from diffwaveform import get_eff_pads, get_match_arr
 from diffwaveform.waveforms import IMRPhenomD, IMRPhenomD_utils
 import matplotlib.pyplot as plt
 import numpy as np
+import cProfile
 
 # Only use pycbc if it's installed
 try:
@@ -13,6 +15,32 @@ try:
     PYCBC_INSTALLED = True
 except ModuleNotFoundError:
     PYCBC_INSTALLED = False
+
+
+def profile_grad():
+    from jax import grad
+
+    # Now lets compute the waveform ripple
+    m1 = 20.0
+    m2 = 10.0
+    from diffwaveform import ms_to_Mc_eta
+
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    chi1 = 0.0
+    chi2 = 0.0
+    D = 100.0
+    tc = 0.01
+    phic = 0.0
+    f_l = 40
+    f_u = 512
+    del_f = 0.25
+    f_list = np.arange(f_l, f_u, del_f)
+
+    params = jnp.array([Mc, eta, chi1, chi2, D, tc, phic])
+    grad_func = lambda p: IMRPhenomD.gen_IMRPhenomD(f_list[10], p).real
+    # print(grad(grad_func)(params))
+    grad(grad_func)(params)
+    return None
 
 
 def test_phase_phenomD():
@@ -198,7 +226,7 @@ if PYCBC_INSTALLED:
             f_lower=f_l,
             f_final=f_u,
         )
-        print(dir(sptilde))
+        # print(dir(sptilde))
 
         del_f = 0.001
         fs = np.arange(f_l, f_u, del_f)
@@ -321,10 +349,19 @@ if PYCBC_INSTALLED:
 
 
 if __name__ == "__main__":
-    # test_Amp_phenomD()
-    # test_phase_phenomD()
-    # test_frequency_calc()
+    import cProfile, pstats
+
+    # profiler = cProfile.Profile()
+    # profiler.enable()
+    # profile_grad()
+    # profiler.disable()
+    # stats = pstats.Stats(profiler).sort_stats("cumtime")
+    # stats.print_stats()
+    # profile_grad()
+    test_Amp_phenomD()
+    test_phase_phenomD()
+    test_frequency_calc()
     if PYCBC_INSTALLED:
-        # plot_waveforms()
+        plot_waveforms()
         random_match_waveforms(n=500)
         None

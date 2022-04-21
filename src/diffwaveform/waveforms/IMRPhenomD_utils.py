@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import jax.numpy as jnp
+import jax
 
 from ..constants import gt
 from ..typing import Array
@@ -8,6 +9,7 @@ from ..typing import Array
 
 # All these equations are defined in the papers
 # Taken from https://github.com/scottperkins/phenompy/blob/master/utilities.py
+# Maybe this is the source of the issue in the waveform model
 def get_fRD_fdamp(m1, m2, chi1, chi2):
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -70,6 +72,7 @@ def get_transition_frequencies(
     return f1, f2, f3, f4, f_RD, f_damp
 
 
+@jax.jit
 def get_coeffs(theta: Array) -> Array:
     # Retrives the coefficients needed to produce the waveform
 
@@ -85,78 +88,37 @@ def get_coeffs(theta: Array) -> Array:
     seta = (1 - 4 * eta) ** (1 / 2)
     chiPN = chi_s * (1 - 76 * eta / 113) + seta * chi_a
 
-    def calc_coeff(i, eta, chiPN):
+    def calc_coeff(i, eta_, chiPN_):
         coeff = (
             PhenomD_coeff_table[i, 0]
-            + PhenomD_coeff_table[i, 1] * eta
-            + (chiPN - 1.0)
+            + PhenomD_coeff_table[i, 1] * eta_
+            + (chiPN_ - 1.0)
             * (
                 PhenomD_coeff_table[i, 2]
-                + PhenomD_coeff_table[i, 3] * eta
-                + PhenomD_coeff_table[i, 4] * (eta ** 2.0)
+                + PhenomD_coeff_table[i, 3] * eta_
+                + PhenomD_coeff_table[i, 4] * (eta_ ** 2.0)
             )
-            + (chiPN - 1.0) ** 2.0
+            + (chiPN_ - 1.0) ** 2.0
             * (
                 PhenomD_coeff_table[i, 5]
-                + PhenomD_coeff_table[i, 6] * eta
-                + PhenomD_coeff_table[i, 7] * (eta ** 2.0)
+                + PhenomD_coeff_table[i, 6] * eta_
+                + PhenomD_coeff_table[i, 7] * (eta_ ** 2.0)
             )
-            + (chiPN - 1.0) ** 3.0
+            + (chiPN_ - 1.0) ** 3.0
             * (
                 PhenomD_coeff_table[i, 8]
-                + PhenomD_coeff_table[i, 9] * eta
-                + PhenomD_coeff_table[i, 10] * (eta ** 2.0)
+                + PhenomD_coeff_table[i, 9] * eta_
+                + PhenomD_coeff_table[i, 10] * (eta_ ** 2.0)
             )
         )
 
         return coeff
 
-    rho1 = calc_coeff(0, eta, chiPN)
-    rho2 = calc_coeff(1, eta, chiPN)
-    rho3 = calc_coeff(2, eta, chiPN)
-    v2 = calc_coeff(3, eta, chiPN)
-    gamma1 = calc_coeff(4, eta, chiPN)
-    gamma2 = calc_coeff(5, eta, chiPN)
-    gamma3 = calc_coeff(6, eta, chiPN)
-    sig1 = calc_coeff(7, eta, chiPN)
-    sig2 = calc_coeff(8, eta, chiPN)
-    sig3 = calc_coeff(9, eta, chiPN)
-    sig4 = calc_coeff(10, eta, chiPN)
-    beta1 = calc_coeff(11, eta, chiPN)
-    beta2 = calc_coeff(12, eta, chiPN)
-    beta3 = calc_coeff(13, eta, chiPN)
-    a1 = calc_coeff(14, eta, chiPN)
-    a2 = calc_coeff(15, eta, chiPN)
-    a3 = calc_coeff(16, eta, chiPN)
-    a4 = calc_coeff(17, eta, chiPN)
-    a5 = calc_coeff(18, eta, chiPN)
-
-    coeffs = jnp.array(
-        [
-            rho1,
-            rho2,
-            rho3,
-            v2,
-            gamma1,
-            gamma2,
-            gamma3,
-            sig1,
-            sig2,
-            sig3,
-            sig4,
-            beta1,
-            beta2,
-            beta3,
-            a1,
-            a2,
-            a3,
-            a4,
-            a5,
-        ]
-    )
+    calc_coeffs_simple = lambda i: calc_coeff(i, eta, chiPN)
+    coeffs_vmap = jax.vmap(calc_coeffs_simple)(jnp.arange(0, 18, dtype=int))
 
     # FIXME: Change to dictionary lookup
-    return coeffs
+    return coeffs_vmap
 
 
 def get_delta0(f1, f2, f3, v1, v2, v3, d1, d3):
