@@ -428,12 +428,14 @@ def gen_IMRPhenomD(f: Array, params: Array):
 
     Returns:
     --------
-      hp (array): Strain
+      hp (array): Strain of the plus polarization
+      hc (array): Strain of the cross polarization
     """
     # Lets make this easier by starting in Mchirp and eta space
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     M_s = (m1 + m2) * gt
     theta = jnp.array([m1, m2, params[2], params[3]])
+    l, psi = params[]
 
     # Shift phase so that peak amplitude matches t = 0
     coeffs = get_coeffs(theta)
@@ -447,13 +449,50 @@ def gen_IMRPhenomD(f: Array, params: Array):
     Psi += ext_phase_contrib
     A = Amp(f, theta, D=params[4]) / pi  # FIXME: Not sure why the 1/pi is needed here
 
-    # hc = A * jnp.exp(1j * Psi_full)
-    hp = A * jnp.exp(1j * -Psi)
+    h0 = A * jnp.exp(1j * -Psi)
+    return h0
 
-    # FIXME: The factor of 2 here just accounts for the fact that
-    # Inclination factors (according to code from nonstd-gwaves)
-    # hp: (1.0 + np.cos(inclination)**2) / 2.0
-    # hc: jnp.cos(inclination)
+@jax.jit
+def gen_IMRPhenomD_polar(f: Array, params: Array):
+    """
+    Generate PhenomD frequency domain waveform following 1508.07253.
+    Note that this waveform also assumes that object one is the more massive.
+    vars array contains both intrinsic and extrinsic variables
+    theta = [m1, m2, chi1, chi2, D, tc, phic]
+    Mchirp: Chirp mass of the system [solar masses]
+    eta: Symmetric mass ratio [between 0.0 and 0.25]
+    chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
+    chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+    D: Luminosity distance to source [Mpc]
+    tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
+    phic: Phase of coalesence
+    inclination: Inclination angle of the binary
+    polarization_angle: Polarization angle of the binary
 
-    # Definition of tc should be with respect to the peak in the waveform
-    return 2 * hp
+    Returns:
+    --------
+      hp (array): Strain of the plus polarization
+      hc (array): Strain of the cross polarization
+    """
+    # Lets make this easier by starting in Mchirp and eta space
+    m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
+    M_s = (m1 + m2) * gt
+    theta = jnp.array([m1, m2, params[2], params[3]])
+    l, psi = params[7], params[8]
+
+    # Shift phase so that peak amplitude matches t = 0
+    coeffs = get_coeffs(theta)
+    _, _, _, f4, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
+    t0 = jax.grad(get_IIb_raw_phase)(f4 * M_s, theta, coeffs, f_RD, f_damp)
+
+    # Lets call the amplitude and phase now
+    Psi = Phase(f, theta)
+    Psi -= t0 * f * M_s
+    ext_phase_contrib = 2.0 * pi * f * params[5] - params[6] - pi / 4.0
+    Psi += ext_phase_contrib
+    A = Amp(f, theta, D=params[4]) / pi  # FIXME: Not sure why the 1/pi is needed here
+
+    hp = A * jnp.exp(1j * -Psi) * (1/2*(1+jnp.cos(l)**2)*jnp.cos(2*psi))
+    hc = A * jnp.exp(1j * -Psi) * jnp.cos(l)*jnp.sin(2*psi)
+
+    return hp, hc
