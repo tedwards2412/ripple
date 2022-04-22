@@ -435,7 +435,6 @@ def gen_IMRPhenomD(f: Array, params: Array):
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     M_s = (m1 + m2) * gt
     theta = jnp.array([m1, m2, params[2], params[3]])
-    l, psi = params[]
 
     # Shift phase so that peak amplitude matches t = 0
     coeffs = get_coeffs(theta)
@@ -451,6 +450,7 @@ def gen_IMRPhenomD(f: Array, params: Array):
 
     h0 = A * jnp.exp(1j * -Psi)
     return h0
+
 
 @jax.jit
 def gen_IMRPhenomD_polar(f: Array, params: Array):
@@ -492,7 +492,7 @@ def gen_IMRPhenomD_polar(f: Array, params: Array):
     Psi += ext_phase_contrib
     A = Amp(f, theta, D=params[4]) / pi  # FIXME: Not sure why the 1/pi is needed here
 
-    hp = A * jnp.exp(1j * -Psi) * (1/2*(1+jnp.cos(l)**2)*jnp.cos(2*psi))
-    hc = A * jnp.exp(1j * -Psi) * jnp.cos(l)*jnp.sin(2*psi)
+    hp = A * jnp.exp(1j * -Psi) * (1 / 2 * (1 + jnp.cos(l) ** 2) * jnp.cos(2 * psi))
+    hc = A * jnp.exp(1j * -Psi) * jnp.cos(l) * jnp.sin(2 * psi)
 
     return hp, hc
