@@ -8,53 +8,6 @@ from ..typing import Array
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
 
-# All these equations are defined in the papers
-# Taken from https://github.com/scottperkins/phenompy/blob/master/utilities.py
-# Maybe this is the source of the issue in the waveform model
-# def get_fRD_fdamp(m1, m2, chi1, chi2):
-#     m1_s = m1 * gt
-#     m2_s = m2 * gt
-#     M_s = m1_s + m2_s
-#     eta_s = m1_s * m2_s / (M_s ** 2.0)
-#     S = (
-#         chi1 * m1_s ** 2 + chi2 * m2_s ** 2
-#     ) / M_s ** 2  # convert chi to spin s in z direction
-#     S_red = S / (1 - 2 * eta_s)
-
-#     a = (
-#         S
-#         + 2 * jnp.sqrt(3) * eta_s
-#         - 4.399 * eta_s ** 2
-#         + 9.397 * eta_s ** 3
-#         - 13.181 * eta_s ** 4
-#         + (-0.085 * S + 0.102 * S ** 2 - 1.355 * S ** 3 - 0.868 * S ** 4) * eta_s
-#         + (-5.837 * S - 2.097 * S ** 2 + 4.109 * S ** 3 + 2.064 * S ** 4) * eta_s ** 2
-#     )
-
-#     E_rad_ns = (
-#         0.0559745 * eta_s
-#         + 0.580951 * eta_s ** 2
-#         - 0.960673 * eta_s ** 3
-#         + 3.35241 * eta_s ** 4
-#     )
-
-#     E_rad = (
-#         E_rad_ns
-#         * (1 + S_red * (-0.00303023 - 2.00661 * eta_s + 7.70506 * eta_s ** 2))
-#         / (1 + S_red * (-0.67144 - 1.47569 * eta_s + 7.30468 * eta_s ** 2))
-#     )
-
-#     MWRD = 1.5251 - 1.1568 * (1 - a) ** 0.1292
-#     fRD = (1 / (2 * jnp.pi)) * (MWRD) / (M_s * (1 - E_rad))
-
-#     MWdamp = (1.5251 - 1.1568 * (1 - a) ** 0.1292) / (
-#         2 * (0.700 + 1.4187 * (1 - a) ** (-0.4990))
-#     )
-#     fdamp = (1 / (2 * jnp.pi)) * (MWdamp) / (M_s * (1 - E_rad))
-
-#     return fRD, fdamp
-
-
 def EradRational0815(m1, m2, chi1, chi2):
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -173,37 +126,33 @@ def get_coeffs(theta: Array) -> Array:
     seta = (1 - 4 * eta) ** (1 / 2)
     chiPN = chi_s * (1 - 76 * eta / 113) + seta * chi_a
 
-    def calc_coeff(i, eta_, chiPN_):
-        coeff = (
-            PhenomD_coeff_table[i, 0]
-            + PhenomD_coeff_table[i, 1] * eta_
-            + (chiPN_ - 1.0)
-            * (
-                PhenomD_coeff_table[i, 2]
-                + PhenomD_coeff_table[i, 3] * eta_
-                + PhenomD_coeff_table[i, 4] * (eta_ ** 2.0)
-            )
-            + (chiPN_ - 1.0) ** 2.0
-            * (
-                PhenomD_coeff_table[i, 5]
-                + PhenomD_coeff_table[i, 6] * eta_
-                + PhenomD_coeff_table[i, 7] * (eta_ ** 2.0)
-            )
-            + (chiPN_ - 1.0) ** 3.0
-            * (
-                PhenomD_coeff_table[i, 8]
-                + PhenomD_coeff_table[i, 9] * eta_
-                + PhenomD_coeff_table[i, 10] * (eta_ ** 2.0)
-            )
+    coeff = (
+        PhenomD_coeff_table[:, 0]
+        + PhenomD_coeff_table[:, 1] * eta
+        + (chiPN - 1.0)
+        * (
+            PhenomD_coeff_table[:, 2]
+            + PhenomD_coeff_table[:, 3] * eta
+            + PhenomD_coeff_table[:, 4] * (eta ** 2.0)
         )
+        + (chiPN - 1.0) ** 2.0
+        * (
+            PhenomD_coeff_table[:, 5]
+            + PhenomD_coeff_table[:, 6] * eta
+            + PhenomD_coeff_table[:, 7] * (eta ** 2.0)
+        )
+        + (chiPN - 1.0) ** 3.0
+        * (
+            PhenomD_coeff_table[:, 8]
+            + PhenomD_coeff_table[:, 9] * eta
+            + PhenomD_coeff_table[:, 10] * (eta ** 2.0)
+        )
+    )
 
-        return coeff
-
-    calc_coeffs_simple = lambda i: calc_coeff(i, eta, chiPN)
-    coeffs_vmap = jax.vmap(calc_coeffs_simple)(jnp.arange(0, 18, dtype=int))
+    #     return coeff
 
     # FIXME: Change to dictionary lookup
-    return coeffs_vmap
+    return coeff
 
 
 def get_delta0(f1, f2, f3, v1, v2, v3, d1, d3):
