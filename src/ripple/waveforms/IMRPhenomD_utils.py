@@ -5,52 +5,124 @@ import jax
 
 from ..constants import gt
 from ..typing import Array
+from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
 
 # All these equations are defined in the papers
 # Taken from https://github.com/scottperkins/phenompy/blob/master/utilities.py
 # Maybe this is the source of the issue in the waveform model
+# def get_fRD_fdamp(m1, m2, chi1, chi2):
+#     m1_s = m1 * gt
+#     m2_s = m2 * gt
+#     M_s = m1_s + m2_s
+#     eta_s = m1_s * m2_s / (M_s ** 2.0)
+#     S = (
+#         chi1 * m1_s ** 2 + chi2 * m2_s ** 2
+#     ) / M_s ** 2  # convert chi to spin s in z direction
+#     S_red = S / (1 - 2 * eta_s)
+
+#     a = (
+#         S
+#         + 2 * jnp.sqrt(3) * eta_s
+#         - 4.399 * eta_s ** 2
+#         + 9.397 * eta_s ** 3
+#         - 13.181 * eta_s ** 4
+#         + (-0.085 * S + 0.102 * S ** 2 - 1.355 * S ** 3 - 0.868 * S ** 4) * eta_s
+#         + (-5.837 * S - 2.097 * S ** 2 + 4.109 * S ** 3 + 2.064 * S ** 4) * eta_s ** 2
+#     )
+
+#     E_rad_ns = (
+#         0.0559745 * eta_s
+#         + 0.580951 * eta_s ** 2
+#         - 0.960673 * eta_s ** 3
+#         + 3.35241 * eta_s ** 4
+#     )
+
+#     E_rad = (
+#         E_rad_ns
+#         * (1 + S_red * (-0.00303023 - 2.00661 * eta_s + 7.70506 * eta_s ** 2))
+#         / (1 + S_red * (-0.67144 - 1.47569 * eta_s + 7.30468 * eta_s ** 2))
+#     )
+
+#     MWRD = 1.5251 - 1.1568 * (1 - a) ** 0.1292
+#     fRD = (1 / (2 * jnp.pi)) * (MWRD) / (M_s * (1 - E_rad))
+
+#     MWdamp = (1.5251 - 1.1568 * (1 - a) ** 0.1292) / (
+#         2 * (0.700 + 1.4187 * (1 - a) ** (-0.4990))
+#     )
+#     fdamp = (1 / (2 * jnp.pi)) * (MWdamp) / (M_s * (1 - E_rad))
+
+#     return fRD, fdamp
+
+
+def EradRational0815(m1, m2, chi1, chi2):
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta_s = m1_s * m2_s / (M_s ** 2.0)
+    eta2 = eta_s * eta_s
+    eta3 = eta2 * eta_s
+
+    m1s = m1_s * m1_s
+    m2s = m2_s * m2_s
+    S = (m1s * chi1 + m2s * chi2) / (m1s + m2s)
+    return (
+        eta_s
+        * (
+            0.055974469826360077
+            + 0.5809510763115132 * eta_s
+            - 0.9606726679372312 * eta2
+            + 3.352411249771192 * eta3
+        )
+        * (
+            1.0
+            + (
+                -0.0030302335878845507
+                - 2.0066110851351073 * eta_s
+                + 7.7050567802399215 * eta2
+            )
+            * S
+        )
+    ) / (
+        1.0
+        + (-0.6714403054720589 - 1.4756929437702908 * eta_s + 7.304676214885011 * eta2)
+        * S
+    )
+
+
 def get_fRD_fdamp(m1, m2, chi1, chi2):
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta_s = m1_s * m2_s / (M_s ** 2.0)
-    S = (
-        chi1 * m1_s ** 2 + chi2 * m2_s ** 2
-    ) / M_s ** 2  # convert chi to spin s in z direction
-    S_red = S / (1 - 2 * eta_s)
+    S = (chi1 * m1_s ** 2 + chi2 * m2_s ** 2) / (M_s ** 2.0)
+    eta2 = eta_s * eta_s
+    eta3 = eta2 * eta_s
+    S2 = S * S
+    S3 = S2 * S
 
-    a = (
-        S
-        + 2 * jnp.sqrt(3) * eta_s
-        - 4.399 * eta_s ** 2
-        + 9.397 * eta_s ** 3
-        - 13.181 * eta_s ** 4
-        + (-0.085 * S + 0.102 * S ** 2 - 1.355 * S ** 3 - 0.868 * S ** 4) * eta_s
-        + (-5.837 * S - 2.097 * S ** 2 + 4.109 * S ** 3 + 2.064 * S ** 4) * eta_s ** 2
+    a = eta_s * (
+        3.4641016151377544
+        - 4.399247300629289 * eta_s
+        + 9.397292189321194 * eta2
+        - 13.180949901606242 * eta3
+        + S
+        * (
+            (1.0 / eta_s - 0.0850917821418767 - 5.837029316602263 * eta_s)
+            + (0.1014665242971878 - 2.0967746996832157 * eta_s) * S
+            + (-1.3546806617824356 + 4.108962025369336 * eta_s) * S2
+            + (-0.8676969352555539 + 2.064046835273906 * eta_s) * S3
+        )
     )
 
-    E_rad_ns = (
-        0.0559745 * eta_s
-        + 0.580951 * eta_s ** 2
-        - 0.960673 * eta_s ** 3
-        + 3.35241 * eta_s ** 4
+    fRD = jnp.interp(a, QNMData_a, QNMData_fRD) / (
+        1.0 - EradRational0815(m1, m2, chi1, chi2)
+    )
+    fdamp = jnp.interp(a, QNMData_a, QNMData_fdamp) / (
+        1.0 - EradRational0815(m1, m2, chi1, chi2)
     )
 
-    E_rad = (
-        E_rad_ns
-        * (1 + S_red * (-0.00303023 - 2.00661 * eta_s + 7.70506 * eta_s ** 2))
-        / (1 + S_red * (-0.67144 - 1.47569 * eta_s + 7.30468 * eta_s ** 2))
-    )
-
-    MWRD = 1.5251 - 1.1568 * (1 - a) ** 0.1292
-    fRD = (1 / (2 * jnp.pi)) * (MWRD) / (M_s * (1 - E_rad))
-
-    MWdamp = (1.5251 - 1.1568 * (1 - a) ** 0.1292) / (
-        2 * (0.700 + 1.4187 * (1 - a) ** (-0.4990))
-    )
-    fdamp = (1 / (2 * jnp.pi)) * (MWdamp) / (M_s * (1 - E_rad))
-    return fRD, fdamp
+    return fRD / M_s, fdamp / M_s
 
 
 def get_transition_frequencies(
@@ -67,8 +139,21 @@ def get_transition_frequencies(
 
     # Amplitude transition frequencies
     f3 = 0.014 / (M * gt)
-    f4 = jnp.abs(f_RD + f_damp * gamma3 * (jnp.sqrt(1 - (gamma2 ** 2)) - 1) / gamma2)
-
+    f4_gammaneg_gtr_1 = lambda f_RD_, f_damp_, gamma3_, gamma2_: jnp.abs(
+        f_RD_ + (-f_damp_ * gamma3_) / gamma2_
+    )
+    f4_gammaneg_less_1 = lambda f_RD_, f_damp_, gamma3_, gamma2_: jnp.abs(
+        f_RD_ + (f_damp_ * (-1 + jnp.sqrt(1 - (gamma2_) ** 2.0)) * gamma3_) / gamma2_
+    )
+    f4 = jax.lax.cond(
+        gamma2 > 1,
+        f4_gammaneg_gtr_1,
+        f4_gammaneg_less_1,
+        f_RD,
+        f_damp,
+        gamma3,
+        gamma2,
+    )
     return f1, f2, f3, f4, f_RD, f_damp
 
 

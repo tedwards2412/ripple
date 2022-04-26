@@ -7,14 +7,17 @@ from ripple.waveforms import IMRPhenomD, IMRPhenomD_utils
 import matplotlib.pyplot as plt
 import numpy as np
 import cProfile
+import lalsimulation as lalsim
+from ripple import ms_to_Mc_eta
+import lal
 
 # Only use pycbc if it's installed
-try:
-    from pycbc import waveform
+# try:
+#     from pycbc import waveform
 
-    PYCBC_INSTALLED = True
-except ModuleNotFoundError:
-    PYCBC_INSTALLED = False
+#     PYCBC_INSTALLED = True
+# except ModuleNotFoundError:
+#     PYCBC_INSTALLED = False
 
 
 def profile_grad():
@@ -45,37 +48,62 @@ def profile_grad():
 
 def test_phase_phenomD():
     theta = np.array([20.0, 19.99, -0.95, -0.95])
+    Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     Mf0 = 0.003
     Mf1 = 0.15
     f_l = Mf0 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
     f_u = Mf1 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
     del_f = 0.001
+    inclination = np.pi / 2
+    psi = 0.0
+    phi_ref = 0.0
+    dist_mpc = 1.0
     f = np.arange(f_l, f_u, del_f)
     Mf = f * (theta[0] + theta[1]) * 4.92549094830932e-6
     del_Mf = np.diff(Mf)
 
     # Calculate the frequency regions
     coeffs = IMRPhenomD_utils.get_coeffs(theta)
-    f1, f2, _, _, f_RD, _ = IMRPhenomD_utils.get_transition_frequencies(
+    _, _, f3, f4, _, _ = IMRPhenomD_utils.get_transition_frequencies(
         theta, coeffs[5], coeffs[6]
     )
-
-    phase = IMRPhenomD.Phase(f, theta)
-
-    sptilde, sctilde = waveform.get_fd_waveform(
-        approximant="IMRPhenomD",
-        mass1=theta[0],
-        mass2=theta[1],
-        spin1z=theta[2],
-        spin2z=theta[3],
-        delta_f=del_f,
-        f_lower=f_l,
-        f_final=f_u,
+    theta_ripple = np.array(
+        [Mc, eta, theta[2], theta[3], dist_mpc, 0.0, 0.0, inclination, psi]
     )
-    # phase_pycbc = waveform.utils.phase_from_polarizations(sptilde, sctilde)
-    phase_pycbc = waveform.utils.phase_from_frequencyseries(sctilde)
-    f_mask = [(sptilde.sample_frequencies >= f_l) & (sptilde.sample_frequencies < f_u)]
-    normalised_ripple_phase = -phase - (-phase[0] - phase_pycbc[f_mask][0])
+
+    # Amp = IMRPhenomD.Amp(f, theta)
+    hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(f, theta_ripple)
+
+    f_ref = f_l
+    m1_kg = theta[0] * lal.MSUN_SI
+    m2_kg = theta[1] * lal.MSUN_SI
+    distance = dist_mpc * 1e6 * lal.PC_SI
+    approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomD")
+
+    hp, hc = lalsim.SimInspiralChooseFDWaveform(
+        m1_kg,
+        m2_kg,
+        0.0,
+        0.0,
+        theta[2],
+        0.0,
+        0.0,
+        theta[3],
+        distance,
+        inclination,
+        phi_ref,
+        0,
+        0.0,
+        0.0,
+        del_f,
+        f_l,
+        f_u,
+        f_ref,
+        None,
+        approximant,
+    )
+    freq = np.arange(len(hp.data.data)) * del_f
+    f_mask = (freq >= f_l) & (freq < f_u)
 
     plt.figure(figsize=(7, 5))
     plt.plot(
@@ -86,7 +114,7 @@ def test_phase_phenomD():
     )
     delta_t = 0.0
     plt.plot(
-        Mf, normalised_ripple_phase + 2 * pi * f * delta_t, label="ripple", alpha=0.3
+        Mf, , label="ripple", alpha=0.3
     )
     plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
     plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
@@ -96,25 +124,25 @@ def test_phase_phenomD():
     plt.legend()
     plt.xlabel(r"Mf")
     plt.ylabel(r"$\Phi$")
-    plt.savefig("../figures/test_phase_full_fig5check.pdf", bbox_inches="tight")
+    plt.savefig("../figures/test_phase.pdf", bbox_inches="tight")
 
-    plt.figure(figsize=(7, 5))
-    plt.plot(
-        sptilde.sample_frequencies[f_mask]
-        * ((theta[0] + theta[1]) * 4.92549094830932e-6),
-        normalised_ripple_phase[:-1] - phase_pycbc[f_mask],
-        label="phase difference",
-    )
-    plt.plot(Mf, -2 * pi * f * delta_t)
-    plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-    plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-    plt.axvline(
-        x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
-    )
-    plt.legend()
-    plt.xlabel(r"Mf")
-    plt.ylabel(r"$\Phi_1 - \Phi_2$")
-    plt.savefig("../figures/test_phasedifference.pdf", bbox_inches="tight")
+    # plt.figure(figsize=(7, 5))
+    # plt.plot(
+    #     sptilde.sample_frequencies[f_mask]
+    #     * ((theta[0] + theta[1]) * 4.92549094830932e-6),
+    #     normalised_ripple_phase[:-1] - phase_pycbc[f_mask],
+    #     label="phase difference",
+    # )
+    # plt.plot(Mf, -2 * pi * f * delta_t)
+    # plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
+    # plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
+    # plt.axvline(
+    #     x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
+    # )
+    # plt.legend()
+    # plt.xlabel(r"Mf")
+    # plt.ylabel(r"$\Phi_1 - \Phi_2$")
+    # plt.savefig("../figures/test_phasedifference.pdf", bbox_inches="tight")
 
     phase_deriv = np.gradient(phase, del_Mf[0])
     plt.figure(figsize=(6, 5))
@@ -136,11 +164,16 @@ def test_phase_phenomD():
 
 def test_Amp_phenomD():
     theta = np.array([20.0, 19.99, -0.95, -0.95])
+    Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     Mf0 = 0.003
     Mf1 = 0.11
     f_l = Mf0 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
     f_u = Mf1 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
     del_f = 0.001
+    inclination = np.pi / 2
+    psi = 0.0
+    phi_ref = 0.0
+    dist_mpc = 1.0
     f = np.arange(f_l, f_u, del_f)
     Mf = f * (theta[0] + theta[1]) * 4.92549094830932e-6
 
@@ -149,30 +182,51 @@ def test_Amp_phenomD():
     _, _, f3, f4, _, _ = IMRPhenomD_utils.get_transition_frequencies(
         theta, coeffs[5], coeffs[6]
     )
-
-    Amp = IMRPhenomD.Amp(f, theta) / pi
-
-    sptilde, sctilde = waveform.get_fd_waveform(
-        approximant="IMRPhenomD",
-        mass1=theta[0],
-        mass2=theta[1],
-        spin1z=theta[2],
-        spin2z=theta[3],
-        delta_f=del_f,
-        f_lower=f_l,
-        f_final=f_u,
+    theta_ripple = np.array(
+        [Mc, eta, theta[2], theta[3], dist_mpc, 0.0, 0.0, inclination, psi]
     )
-    amp_pycbc = waveform.utils.amplitude_from_frequencyseries(sptilde)
-    f_mask = [(sptilde.sample_frequencies >= f_l) & (sptilde.sample_frequencies < f_u)]
+
+    # Amp = IMRPhenomD.Amp(f, theta)
+    hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(f, theta_ripple)
+
+    f_ref = f_l
+    m1_kg = theta[0] * lal.MSUN_SI
+    m2_kg = theta[1] * lal.MSUN_SI
+    distance = dist_mpc * 1e6 * lal.PC_SI
+    approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomD")
+
+    hp, hc = lalsim.SimInspiralChooseFDWaveform(
+        m1_kg,
+        m2_kg,
+        0.0,
+        0.0,
+        theta[2],
+        0.0,
+        0.0,
+        theta[3],
+        distance,
+        inclination,
+        phi_ref,
+        0,
+        0.0,
+        0.0,
+        del_f,
+        f_l,
+        f_u,
+        f_ref,
+        None,
+        approximant,
+    )
+    freq = np.arange(len(hp.data.data)) * del_f
+    f_mask = (freq >= f_l) & (freq < f_u)
 
     plt.figure(figsize=(7, 5))
     plt.plot(
-        sptilde.sample_frequencies[f_mask]
-        * ((theta[0] + theta[1]) * 4.92549094830932e-6),
-        amp_pycbc[f_mask],
-        label="pycbc",
+        freq[f_mask] * ((theta[0] + theta[1]) * 4.92549094830932e-6),
+        abs(hp.data.data)[f_mask],
+        label="lalsuite",
     )
-    plt.loglog(Mf, Amp, label="ripple")
+    plt.loglog(Mf, abs(hp_ripple), label="ripple")
     plt.axvline(x=f3 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
     plt.axvline(x=f4 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
     plt.legend()
@@ -181,19 +235,17 @@ def test_Amp_phenomD():
     plt.savefig("../figures/test_Amp_full.pdf", bbox_inches="tight")
 
     plt.figure(figsize=(7, 5))
-    print(Amp, amp_pycbc[f_mask])
     plt.semilogy(
-        sptilde.sample_frequencies[f_mask]
-        * ((theta[0] + theta[1]) * 4.92549094830932e-6),
-        (Amp - amp_pycbc[f_mask]) / Amp,
-        label="difference",
+        freq[f_mask] * ((theta[0] + theta[1]) * 4.92549094830932e-6),
+        (abs(hp_ripple) / abs(hp.data.data)[f_mask]),
+        label="ratio",
     )
     plt.axvline(x=f3 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
     plt.axvline(x=f4 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
     plt.legend()
     plt.xlabel(r"Mf")
     plt.ylabel(r"Amplitude")
-    plt.savefig("../figures/test_Amp_difference.pdf", bbox_inches="tight")
+    plt.savefig("../figures/test_Amp_ratio.pdf", bbox_inches="tight")
 
     return None
 
@@ -207,145 +259,225 @@ def test_frequency_calc():
     return None
 
 
-if PYCBC_INSTALLED:
+def plot_waveforms():
+    # Get a frequency domain waveform
+    # source parameters
+    m1_msun = 49.0
+    m2_msun = 48.0
+    chi1 = [0, 0, 0.5]
+    chi2 = [0, 0, 0.5]
+    tc = 0.0
+    phic = 0.0
+    dist_mpc = 440
+    inclination = 0.0
+    phi_ref = 0
+    polarization_angle = 0.0
 
-    def plot_waveforms():
-        # Get a frequency domain waveform
-        theta = np.array([49.2470611, 9.23337794, -0.409828828, -0.522292775])
-        f_l = 20
-        f_u = 1024
-        df = 1.0 / 1000.0
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1_msun, m2_msun]))
 
-        sptilde, sctilde = waveform.get_fd_waveform(
-            approximant="IMRPhenomD",
-            mass1=theta[0],
-            mass2=theta[1],
-            spin1z=theta[2],
-            spin2z=theta[3],
-            delta_f=df,
-            f_lower=f_l,
-            f_final=f_u,
+    theta_ripple = np.array(
+        [Mc, eta, chi1[2], chi2[2], dist_mpc, tc, phic, inclination, polarization_angle]
+    )
+
+    theta = np.array([m1_msun, m2_msun, chi1[2], chi2[2]])
+    f_l = 20
+    f_u = 1024
+    del_f = 0.01
+    fs = np.arange(f_l, f_u, del_f)
+
+    coeffs = IMRPhenomD_utils.get_coeffs(theta)
+    _, _, f3, f4, _, _ = IMRPhenomD_utils.get_transition_frequencies(
+        theta, coeffs[5], coeffs[6]
+    )
+
+    approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomD")
+
+    f_ref = f_l
+    m1_kg = m1_msun * lal.MSUN_SI
+    m2_kg = m2_msun * lal.MSUN_SI
+    distance = dist_mpc * 1e6 * lal.PC_SI
+
+    hp, hc = lalsim.SimInspiralChooseFDWaveform(
+        m1_kg,
+        m2_kg,
+        chi1[0],
+        chi1[1],
+        chi1[2],
+        chi2[0],
+        chi2[1],
+        chi2[2],
+        distance,
+        inclination,
+        phi_ref,
+        0,
+        0.0,
+        0.0,
+        del_f,
+        f_l,
+        f_u,
+        f_ref,
+        None,
+        approximant,
+    )
+    freqs = np.arange(len(hp.data.data)) * del_f
+    mask_lal = (freqs >= f_l) & (freqs < f_u)
+    # print(freqs[(freqs >= f_l) & (freqs < f_u)])
+    # print(fs)
+
+    hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple)
+    # hp_ripple_shifted = hp_ripple * jnp.exp(1j * (2 * jnp.pi * fs * -0.0005))
+    # print(hp_ripple, hc_ripple)
+    # print((1 / 2 * (1 + jnp.cos(inclination) ** 2) * jnp.cos(2 * polarization_angle)))
+    # print(jnp.cos(inclination) * jnp.sin(2 * polarization_angle))
+
+    plt.figure(figsize=(15, 5))
+    plt.plot(
+        freqs[mask_lal], hp.data.data[mask_lal].real, label="hp lalsuite", alpha=0.3
+    )
+    # plt.plot(freqs, hc.data.data, label="hc lalsuite", alpha=0.3)
+
+    plt.plot(
+        fs,
+        hp_ripple.real,
+        label="hp ripple",
+        alpha=0.3,
+    )
+    # plt.plot(fs, hc_ripple, label="hc ripple", alpha=0.3)
+
+    plt.axvline(x=f3, ls="--")
+    plt.axvline(x=f4, ls="--")
+    plt.legend()
+    plt.xlabel("Frequency")
+    plt.ylabel("hf")
+    # plt.xlim(30, 40)
+    plt.savefig("../figures/waveform_comparison.pdf", bbox_inches="tight")
+
+    pad_low, pad_high = get_eff_pads(fs)
+
+    print(
+        get_match_arr(
+            pad_low,
+            pad_high,
+            np.ones_like(fs),
+            hp_ripple,
+            hp.data.data[mask_lal],
         )
-        # print(dir(sptilde))
+    )
 
-        del_f = 0.001
-        fs = np.arange(f_l, f_u, del_f)
 
-        Amp = IMRPhenomD.Amp(fs, theta)
-        Phase = IMRPhenomD.Phase(fs, theta)
+def random_match_waveforms(n=100):
+    # Get a frequency domain waveform
+    f_l = 32
+    f_u = 1024
+    del_f = 0.0125
+    thetas = []
+    matches = []
+
+    for i in tqdm(range(n)):
+        m1 = np.random.uniform(1.0, 50.0)
+        m2 = np.random.uniform(1.0, 50.0)
+        s1 = np.random.uniform(-1.0, 1.0)
+        s2 = np.random.uniform(-1.0, 1.0)
+        tc = 0.0
+        phic = 0.0
+        dist_mpc = 440
+        inclination = 0.0
+        phi_ref = 0
+        polarization_angle = 0.0
+
+        if m1 < m2:
+            theta = np.array([m2, m1, s1, s2])
+        elif m1 > m2:
+            theta = np.array([m1, m2, s1, s2])
+        else:
+            raise ValueError("Something went wrong with the parameters")
+        approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomD")
 
         coeffs = IMRPhenomD_utils.get_coeffs(theta)
         _, _, f3, f4, _, _ = IMRPhenomD_utils.get_transition_frequencies(
             theta, coeffs[5], coeffs[6]
         )
-        # FIXME: Seems to be an extra factor of pi needed here
-        wv = (Amp / pi) * np.exp(-1.0j * Phase)
 
-        plt.figure(figsize=(15, 5))
-        plt.plot(fs, wv, label="ripple", alpha=0.3)
-        plt.plot(
-            sptilde.sample_frequencies[sptilde.sample_frequencies >= f_l],
-            sptilde[sptilde.sample_frequencies >= f_l],
-            label="pycbc",
+        f_ref = f_l
+        m1_kg = theta[0] * lal.MSUN_SI
+        m2_kg = theta[1] * lal.MSUN_SI
+        distance = dist_mpc * 1e6 * lal.PC_SI
+
+        hp, hc = lalsim.SimInspiralChooseFDWaveform(
+            m1_kg,
+            m2_kg,
+            0.0,
+            0.0,
+            theta[2],
+            0.0,
+            0.0,
+            theta[3],
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0.0,
+            0.0,
+            del_f,
+            f_l,
+            f_u,
+            f_ref,
+            None,
+            approximant,
         )
-        plt.axvline(x=f3, ls="--")
-        plt.axvline(x=f4, ls="--")
-        plt.legend()
-        plt.xlabel("Frequency")
-        plt.ylabel("hf")
-        plt.savefig("../figures/waveform_comparison.pdf", bbox_inches="tight")
+        freqs = np.arange(len(hp.data.data)) * del_f
+        mask_lal = (freqs >= f_l) & (freqs < f_u)
 
+        fs = np.arange(f_l, f_u, del_f)
+        Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+
+        theta_ripple = np.array(
+            [
+                Mc,
+                eta,
+                s1,
+                s2,
+                dist_mpc,
+                tc,
+                phic,
+                inclination,
+                polarization_angle,
+            ]
+        )
+        hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple)
         pad_low, pad_high = get_eff_pads(fs)
 
-        print(
+        matches.append(
             get_match_arr(
                 pad_low,
                 pad_high,
                 np.ones_like(fs),
-                wv,
-                sptilde[
-                    (sptilde.sample_frequencies >= f_l)
-                    & (sptilde.sample_frequencies < f_u)
-                ],
+                hp_ripple,
+                hp.data.data[mask_lal],
             )
         )
+        thetas.append(theta)
 
-    def random_match_waveforms(n=100):
-        # Get a frequency domain waveform
-        f_l = 40
-        f_u = 1024
-        df = 1.0 / 1000.0
-        thetas = []
-        matches = []
+    thetas = np.array(thetas)
+    matches = np.array(matches)
 
-        for i in tqdm(range(n)):
-            m1 = np.random.uniform(1.0, 50.0)
-            m2 = np.random.uniform(1.0, 50.0)
-            s1 = np.random.uniform(-1.0, 1.0)
-            s2 = np.random.uniform(-1.0, 1.0)
+    plt.figure(figsize=(7, 5))
+    cm = plt.cm.get_cmap("inferno")
+    sc = plt.scatter(thetas[:, 0], thetas[:, 1], c=matches, cmap=cm)
+    plt.colorbar(sc)
+    plt.xlabel("m1")
+    plt.ylabel("m2")
+    plt.savefig("../figures/test_match_vs_pycbc_m1m2.pdf", bbox_inches="tight")
 
-            if m1 < m2:
-                theta = np.array([m2, m1, s1, s2])
-            elif m1 > m2:
-                theta = np.array([m1, m2, s1, s2])
-            else:
-                raise ValueError("Something went wrong with the parameters")
-            sptilde, sctilde = waveform.get_fd_waveform(
-                approximant="IMRPhenomD",
-                mass1=theta[0],
-                mass2=theta[1],
-                spin1z=theta[2],
-                spin2z=theta[3],
-                delta_f=df,
-                f_lower=f_l,
-                f_final=f_u,
-            )
+    plt.figure(figsize=(7, 5))
+    cm = plt.cm.get_cmap("inferno")
+    sc = plt.scatter(thetas[:, 2], thetas[:, 3], c=matches, cmap=cm)
+    plt.colorbar(sc)
+    plt.xlabel("s1")
+    plt.ylabel("s2")
+    plt.savefig("../figures/test_match_vs_pycbc_s1s2.pdf", bbox_inches="tight")
 
-            del_f = 0.001
-            fs = np.arange(f_l, f_u, del_f)
-
-            Amp = IMRPhenomD.Amp(fs, theta)
-            Phase = IMRPhenomD.Phase(fs, theta)
-
-            pad_low, pad_high = get_eff_pads(fs)
-
-            # FIXME: Seems to be an extra factor of pi needed here
-            wv = (Amp / pi) * np.exp(-1.0j * Phase)
-
-            matches.append(
-                get_match_arr(
-                    pad_low,
-                    pad_high,
-                    np.ones_like(fs),
-                    wv,
-                    sptilde[
-                        (sptilde.sample_frequencies >= f_l)
-                        & (sptilde.sample_frequencies < f_u)
-                    ],
-                )
-            )
-            thetas.append(theta)
-
-        thetas = np.array(thetas)
-        matches = np.array(matches)
-
-        plt.figure(figsize=(7, 5))
-        cm = plt.cm.get_cmap("inferno")
-        sc = plt.scatter(thetas[:, 0], thetas[:, 1], c=matches, cmap=cm)
-        plt.colorbar(sc)
-        plt.xlabel("m1")
-        plt.ylabel("m2")
-        plt.savefig("../figures/test_match_vs_pycbc_m1m2.pdf", bbox_inches="tight")
-
-        plt.figure(figsize=(7, 5))
-        cm = plt.cm.get_cmap("inferno")
-        sc = plt.scatter(thetas[:, 2], thetas[:, 3], c=matches, cmap=cm)
-        plt.colorbar(sc)
-        plt.xlabel("s1")
-        plt.ylabel("s2")
-        plt.savefig("../figures/test_match_vs_pycbc_s1s2.pdf", bbox_inches="tight")
-
-        print(thetas, matches)
+    print(thetas, matches)
 
 
 if __name__ == "__main__":
@@ -358,10 +490,9 @@ if __name__ == "__main__":
     # stats = pstats.Stats(profiler).sort_stats("cumtime")
     # stats.print_stats()
     # profile_grad()
-    test_Amp_phenomD()
-    test_phase_phenomD()
-    test_frequency_calc()
-    if PYCBC_INSTALLED:
-        plot_waveforms()
-        random_match_waveforms(n=500)
-        None
+    # test_Amp_phenomD()
+    # test_phase_phenomD()
+    # test_frequency_calc()
+    # plot_waveforms()
+    random_match_waveforms(n=500)
+    None

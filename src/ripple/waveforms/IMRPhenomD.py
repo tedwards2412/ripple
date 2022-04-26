@@ -151,84 +151,114 @@ def get_IIb_raw_phase(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) ->
 
 def get_Amp0(fM_s: Array, eta: float) -> Array:
     Amp0 = (
-        eta ** (1.0 / 2.0)
-        * (fM_s) ** (-7.0 / 6.0)
-        * (2.0 / 3.0) ** (1.0 / 2.0)
-        * pi ** (-1.0 / 6.0)
+        (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * pi ** (-1.0 / 6.0)
     )
     return Amp0
 
 
 def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
+    # Below is taken from https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimIMRPhenomD_internals.c
+    # Lines 302 --> 351
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s ** 2.0)
-    delta = (m1_s - m2_s) / M_s
+    eta2 = eta * eta
+    eta3 = eta * eta2
+
+    Seta = jnp.sqrt(1.0 - 4.0 * eta)
+    SetaPlus1 = 1.0 + Seta
 
     # Spin variables
-    chi_s = (chi1 + chi2) / 2.0
-    chi_a = (chi1 - chi2) / 2.0
+    chi12 = chi1 * chi1
+    chi22 = chi2 * chi2
 
     # First lets construct the Amplitude in the inspiral (region I)
     A0 = 1.0
-    A1 = 0.0
-    A2 = -323.0 / 224.0 + 451.0 * eta / 168.0
-    A3 = 27.0 * delta * chi_a / 8.0 + (27.0 / 8.0 - 11.0 * eta / 6.0) * chi_s
+    A2 = ((-969 + 1804 * eta) * pi ** (2.0 / 3.0)) / 672.0
+    A3 = (
+        (chi1 * (81 * SetaPlus1 - 44 * eta) + chi2 * (81 - 81 * Seta - 44 * eta)) * pi
+    ) / 48.0
     A4 = (
-        -27312085.0 / 8128512.0
-        - 1975055.0 * eta / 338688.0
-        + 105271.0 * (eta ** 2.0) / 24192.0
-        + (-81.0 / 32.0 + 8.0 * eta) * (chi_a ** 2.0)
-        - 81.0 / 16.0 * delta * chi_a * chi_s
-        + (-81.0 / 32.0 + 17.0 * eta / 8.0) * (chi_s ** 2.0)
-    )
+        (
+            -27312085.0
+            - 10287648 * chi22
+            - 10287648 * chi12 * SetaPlus1
+            + 10287648 * chi22 * Seta
+            + 24
+            * (-1975055 + 857304 * chi12 - 994896 * chi1 * chi2 + 857304 * chi22)
+            * eta
+            + 35371056 * eta2
+        )
+        * (pi ** (4.0 / 3.0))
+    ) / 8.128512e6
+
     A5 = (
-        -85.0 * pi / 64.0
-        + 85.0 * pi * eta / 16.0
-        + delta * (285197.0 / 16128.0 - 1579.0 * eta / 4032.0) * chi_a
-        + (285197.0 / 16128.0 - 15317.0 * eta / 672.0 - 2227.0 * (eta ** 2.0) / 1008.0)
-        * chi_s
-    )
+        (pi ** (5.0 / 3.0))
+        * (
+            chi2
+            * (-285197 * (-1 + Seta) + 4 * (-91902 + 1579 * Seta) * eta - 35632 * eta2)
+            + chi1
+            * (285197 * SetaPlus1 - 4 * (91902 + 1579 * Seta) * eta - 35632 * eta2)
+            + 42840 * (-1.0 + 4 * eta) * pi
+        )
+    ) / 32256.0
+
     A6 = (
-        -177520268561.0 / 8583708672.0
-        + (545384828789.0 / 5007163392.0 - 205.0 * (pi ** 2.0) / 48.0) * eta
-        - 3248849057.0 * (eta ** 2.0) / 178827264.0
-        + 34473079.0 * (eta ** 3.0) / 6386688.0
-        + (
-            1614569.0 / 64512.0
-            - 1873643.0 * eta / 16128.0
-            + 2167.0 * (eta ** 2.0) / 42.0
+        -(
+            (pi ** 2.0)
+            * (
+                -336
+                * (
+                    -3248849057.0
+                    + 2943675504 * chi12
+                    - 3339284256 * chi1 * chi2
+                    + 2943675504 * chi22
+                )
+                * eta2
+                - 324322727232 * eta3
+                - 7
+                * (
+                    -177520268561
+                    + 107414046432 * chi22
+                    + 107414046432 * chi12 * SetaPlus1
+                    - 107414046432 * chi22 * Seta
+                    + 11087290368 * (chi1 + chi2 + chi1 * Seta - chi2 * Seta) * pi
+                )
+                + 12
+                * eta
+                * (
+                    -545384828789
+                    - 176491177632 * chi1 * chi2
+                    + 202603761360 * chi22
+                    + 77616 * chi12 * (2610335 + 995766 * Seta)
+                    - 77287373856 * chi22 * Seta
+                    + 5841690624 * (chi1 + chi2) * pi
+                    + 21384760320 * (pi ** 2.0)
+                )
+            )
         )
-        * (chi_a ** 2.0)
-        + (31.0 * pi / 12.0 - 8.0 * pi * eta / 3.0) * chi_s
-        + (
-            1614569.0 / 64512.0
-            - 61391.0 * eta / 1344.0
-            + 57451.0 * (eta ** 2.0) / 4032.0
-        )
-        * (chi_s ** 2.0)
-        + delta
-        * chi_a
-        * (31.0 * pi / 12.0 + (1614569.0 / 32256.0 - 165961.0 * eta / 2688.0) * chi_s)
+        / 6.0085960704e10
     )
+    A7 = coeffs[0]
+    A8 = coeffs[1]
+    A9 = coeffs[2]
 
-    Amp_PN = (
+    Amp_Ins = (
         A0
-        + A1 * ((pi * fM_s) ** (1.0 / 3.0))
-        + A2 * ((pi * fM_s) ** (2.0 / 3.0))
-        + A3 * ((pi * fM_s) ** (3.0 / 3.0))
-        + A4 * ((pi * fM_s) ** (4.0 / 3.0))
-        + A5 * ((pi * fM_s) ** (5.0 / 3.0))
-        + A6 * ((pi * fM_s) ** (6.0 / 3.0))
+        # A1 is missed since its zero
+        + A2 * (fM_s ** (2.0 / 3.0))
+        + A3 * fM_s
+        + A4 * (fM_s ** (4.0 / 3.0))
+        + A5 * (fM_s ** (5.0 / 3.0))
+        + A6 * (fM_s ** 2.0)
+        # Now we add the coefficient terms
+        + A7 * (fM_s ** (7.0 / 3.0))
+        + A8 * (fM_s ** (8.0 / 3.0))
+        + A9 * (fM_s ** 3.0)
     )
 
-    Amp_Ins = Amp_PN + (
-        +coeffs[0] * (fM_s ** (7.0 / 3.0))
-        + coeffs[1] * (fM_s ** (8.0 / 3.0))
-        + coeffs[2] * (fM_s ** (9.0 / 3.0))
-    )
     return Amp_Ins
 
 
@@ -271,13 +301,19 @@ def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
+    gamma1 = coeffs[4]
+    gamma2 = coeffs[5]
+    gamma3 = coeffs[6]
+    fDM = f_damp * M_s
+    fRD = f_RD * M_s
 
+    fDMgamma3 = fDM * gamma3
+    fminfRD = fM_s - fRD
     Amp_IIb = (
-        coeffs[4]
-        * coeffs[6]
-        * (f_damp * M_s)
-        / ((fM_s - (f_RD * M_s)) ** 2.0 + (coeffs[6] * (f_damp * M_s)) ** 2)
-    ) * jnp.exp(-coeffs[5] * (fM_s - (f_RD * M_s)) / coeffs[6] / (f_damp * M_s))
+        jnp.exp(-(fminfRD) * gamma2 / (fDMgamma3))
+        * (fDMgamma3 * gamma1)
+        / ((fminfRD) ** 2.0 + (fDMgamma3) ** 2.0)
+    )
     return Amp_IIb
 
 
@@ -392,7 +428,7 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
     # Note that this part is a little harder since we need to solve a system of equations for deltas
     Amp_IIa = get_IIa_Amp(f * M_s, theta, coeffs, f3, f4, f_RD, f_damp)
 
-    # And finally, we construct the phase of the merger-ringdown (region IIb)
+    # And finally, we construct the amplitude of the merger-ringdown (region IIb)
     Amp_IIb = get_IIb_Amp(f * M_s, theta, coeffs, f_RD, f_damp)
 
     # And now we can combine them by multiplying by a set of heaviside functions
@@ -403,10 +439,11 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
     )
 
     # Prefactor
-    Amp0 = get_Amp0(f * M_s, eta)
+    Amp0 = get_Amp0(f * M_s, eta) * (
+        2.0 * jnp.sqrt(5.0 / (64.0 * pi))
+    )  # This second factor is from lalsuite...
 
     # Need to add in an overall scaling of M_s^2 to make the units correct
-    # We currently assume that the distance is 1 Mpc and use the conversion factor
     dist_s = (D * m_per_Mpc) / C
     return Amp0 * Amp * (M_s ** 2.0) / dist_s
 
@@ -445,8 +482,9 @@ def gen_IMRPhenomD(f: Array, params: Array):
     Psi = Phase(f, theta)
     Psi -= t0 * f * M_s
     ext_phase_contrib = 2.0 * pi * f * params[5] - params[6] - pi / 4.0
+
     Psi += ext_phase_contrib
-    A = Amp(f, theta, D=params[4]) / pi  # FIXME: Not sure why the 1/pi is needed here
+    A = Amp(f, theta, D=params[4])
 
     h0 = A * jnp.exp(1j * -Psi)
     return h0
@@ -489,8 +527,9 @@ def gen_IMRPhenomD_polar(f: Array, params: Array):
     Psi = Phase(f, theta)
     Psi -= t0 * f * M_s
     ext_phase_contrib = 2.0 * pi * f * params[5] - params[6] - pi / 4.0
+
     Psi += ext_phase_contrib
-    A = Amp(f, theta, D=params[4]) / pi  # FIXME: Not sure why the 1/pi is needed here
+    A = Amp(f, theta, D=params[4])
 
     hp = A * jnp.exp(1j * -Psi) * (1 / 2 * (1 + jnp.cos(l) ** 2) * jnp.cos(2 * psi))
     hc = A * jnp.exp(1j * -Psi) * jnp.cos(l) * jnp.sin(2 * psi)
