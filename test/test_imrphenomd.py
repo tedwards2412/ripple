@@ -38,120 +38,134 @@ def profile_grad():
     return None
 
 
-# def test_phase_phenomD():
-#     theta = np.array([20.0, 19.99, -0.95, -0.95])
-#     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
-#     Mf0 = 0.003
-#     Mf1 = 0.15
-#     f_l = Mf0 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
-#     f_u = Mf1 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
-#     del_f = 0.001
-#     inclination = np.pi / 2
-#     psi = 0.0
-#     phi_ref = 0.0
-#     dist_mpc = 1.0
-#     f = np.arange(f_l, f_u, del_f)
-#     Mf = f * (theta[0] + theta[1]) * 4.92549094830932e-6
-#     del_Mf = np.diff(Mf)
+def test_phase_phenomD():
+    theta = np.array([20.0, 19.99, -0.95, -0.95])
+    Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
+    Mf0 = 0.003
+    Mf1 = 0.11
+    f_l = Mf0 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
+    f_u = Mf1 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
+    del_f = 0.001
+    inclination = np.pi / 2
+    psi = 0.0
+    phi_ref = 0.0
+    dist_mpc = 1.0
+    f = np.arange(f_l, f_u, del_f)
+    Mf = f * (theta[0] + theta[1]) * 4.92549094830932e-6
+    del_Mf = np.diff(Mf)
 
-#     # Calculate the frequency regions
-#     coeffs = IMRPhenomD_utils.get_coeffs(theta)
-#     _, _, f3, f4, _, _ = IMRPhenomD_utils.get_transition_frequencies(
-#         theta, coeffs[5], coeffs[6]
-#     )
-#     theta_ripple = np.array(
-#         [Mc, eta, theta[2], theta[3], dist_mpc, 0.0, 0.0, inclination, psi]
-#     )
+    # Calculate the frequency regions
+    coeffs = IMRPhenomD_utils.get_coeffs(theta)
+    _, _, f3, f4, _, _ = IMRPhenomD_utils.get_transition_frequencies(
+        theta, coeffs[5], coeffs[6]
+    )
+    theta_ripple = np.array(
+        [Mc, eta, theta[2], theta[3], dist_mpc, 0.0, 0.0, inclination, psi]
+    )
 
-#     # Amp = IMRPhenomD.Amp(f, theta)
-#     hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(f, theta_ripple)
+    # Amp = IMRPhenomD.Amp(f, theta)
+    hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(f, theta_ripple)
 
-#     f_ref = f_l
-#     m1_kg = theta[0] * lal.MSUN_SI
-#     m2_kg = theta[1] * lal.MSUN_SI
-#     distance = dist_mpc * 1e6 * lal.PC_SI
-#     approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomD")
+    f_ref = f_l
+    m1_kg = theta[0] * lal.MSUN_SI
+    m2_kg = theta[1] * lal.MSUN_SI
+    distance = dist_mpc * 1e6 * lal.PC_SI
+    approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomD")
 
-#     hp, hc = lalsim.SimInspiralChooseFDWaveform(
-#         m1_kg,
-#         m2_kg,
-#         0.0,
-#         0.0,
-#         theta[2],
-#         0.0,
-#         0.0,
-#         theta[3],
-#         distance,
-#         inclination,
-#         phi_ref,
-#         0,
-#         0.0,
-#         0.0,
-#         del_f,
-#         f_l,
-#         f_u,
-#         f_ref,
-#         None,
-#         approximant,
-#     )
-#     freq = np.arange(len(hp.data.data)) * del_f
-#     f_mask = (freq >= f_l) & (freq < f_u)
+    hp, hc = lalsim.SimInspiralChooseFDWaveform(
+        m1_kg,
+        m2_kg,
+        0.0,
+        0.0,
+        theta[2],
+        0.0,
+        0.0,
+        theta[3],
+        distance,
+        inclination,
+        phi_ref,
+        0,
+        0.0,
+        0.0,
+        del_f,
+        f_l,
+        f_u,
+        f_ref,
+        None,
+        approximant,
+    )
+    freq = np.arange(len(hp.data.data)) * del_f
+    f_mask = (freq >= f_l) & (freq < f_u)
+    print(f, freq[f_mask])
 
-#     plt.figure(figsize=(7, 5))
-#     plt.plot(
-#         sptilde.sample_frequencies[f_mask]
-#         * ((theta[0] + theta[1]) * 4.92549094830932e-6),
-#         phase_pycbc[f_mask],
-#         label="pycbc",
-#     )
-#     delta_t = 0.0
-#     plt.plot(
-#         Mf, , label="ripple", alpha=0.3
-#     )
-#     plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-#     plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-#     plt.axvline(
-#         x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
-#     )
-#     plt.legend()
-#     plt.xlabel(r"Mf")
-#     plt.ylabel(r"$\Phi$")
-#     plt.savefig("../figures/test_phase.pdf", bbox_inches="tight")
+    plt.figure(figsize=(7, 5))
+    plt.plot(
+        freq[f_mask] * ((theta[0] + theta[1]) * 4.92549094830932e-6),
+        np.unwrap(np.angle(hp.data.data))[f_mask],
+        label="lalsuite",
+    )
 
-#     # plt.figure(figsize=(7, 5))
-#     # plt.plot(
-#     #     sptilde.sample_frequencies[f_mask]
-#     #     * ((theta[0] + theta[1]) * 4.92549094830932e-6),
-#     #     normalised_ripple_phase[:-1] - phase_pycbc[f_mask],
-#     #     label="phase difference",
-#     # )
-#     # plt.plot(Mf, -2 * pi * f * delta_t)
-#     # plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-#     # plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-#     # plt.axvline(
-#     #     x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
-#     # )
-#     # plt.legend()
-#     # plt.xlabel(r"Mf")
-#     # plt.ylabel(r"$\Phi_1 - \Phi_2$")
-#     # plt.savefig("../figures/test_phasedifference.pdf", bbox_inches="tight")
+    plt.plot(Mf, np.unwrap(np.angle(hp_ripple)), label="ripple", alpha=0.3)
+    # plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
+    # plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
+    # plt.axvline(
+    #     x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
+    # )
+    plt.legend()
+    plt.xlabel(r"Mf")
+    plt.ylabel(r"$\Phi$")
+    plt.savefig("../figures/test_phase.pdf", bbox_inches="tight")
 
-#     phase_deriv = np.gradient(phase, del_Mf[0])
-#     plt.figure(figsize=(6, 5))
-#     plt.loglog(Mf, -phase_deriv, label="PhenomD")
-#     plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-#     plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-#     plt.axvline(
-#         x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
-#     )
-#     plt.legend()
-#     plt.xlabel(r"Mf")
-#     plt.ylabel(r"$\Phi^{\prime}$")
-#     plt.savefig(
-#         "../figures/test_phase_derivative_full_fig5check.pdf", bbox_inches="tight"
-#     )
+    ratio = np.unwrap(np.angle(hp_ripple)) / np.unwrap(np.angle(hp.data.data))[f_mask]
+    plt.figure(figsize=(7, 5))
+    plt.plot(
+        freq[f_mask] * ((theta[0] + theta[1]) * 4.92549094830932e-6),
+        ratio,
+        label="ratio",
+    )
+    plt.legend()
+    plt.xlabel(r"Mf")
+    plt.ylabel(r"$\Phi$")
+    plt.savefig("../figures/test_phase_ratio.pdf", bbox_inches="tight")
 
-#     return None
+    # plt.figure(figsize=(7, 5))
+    # plt.plot(
+    #     sptilde.sample_frequencies[f_mask]
+    #     * ((theta[0] + theta[1]) * 4.92549094830932e-6),
+    #     normalised_ripple_phase[:-1] - phase_pycbc[f_mask],
+    #     label="phase difference",
+    # )
+    # plt.plot(Mf, -2 * pi * f * delta_t)
+    # plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
+    # plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
+    # plt.axvline(
+    #     x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
+    # )
+    # plt.legend()
+    # plt.xlabel(r"Mf")
+    # plt.ylabel(r"$\Phi_1 - \Phi_2$")
+    # plt.savefig("../figures/test_phasedifference.pdf", bbox_inches="tight")
+
+    phase_deriv_lal = np.gradient(np.unwrap(np.angle(hp.data.data))[f_mask], del_Mf[0])
+    phase_deriv = np.gradient(np.unwrap(np.angle(hp_ripple)), del_Mf[0])
+    plt.figure(figsize=(6, 5))
+    plt.loglog(Mf, phase_deriv, label="ripple")
+    plt.loglog(
+        freq[f_mask] * ((theta[0] + theta[1]) * 4.92549094830932e-6),
+        phase_deriv_lal,
+        label="lalsuite",
+    )
+    # plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
+    # plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
+    # plt.axvline(
+    #     x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
+    # )
+    plt.legend()
+    plt.xlabel(r"Mf")
+    plt.ylabel(r"$\Phi^{\prime}$")
+    plt.savefig("../figures/test_phase_derivative_full.pdf", bbox_inches="tight")
+
+    return None
 
 
 def test_Amp_phenomD():
@@ -482,8 +496,8 @@ if __name__ == "__main__":
     # stats = pstats.Stats(profiler).sort_stats("cumtime")
     # stats.print_stats()
     # profile_grad()
-    test_Amp_phenomD()
-    # test_phase_phenomD()
+    # test_Amp_phenomD()
+    test_phase_phenomD()
     # test_frequency_calc()
     # plot_waveforms()
     # random_match_waveforms(n=500)
