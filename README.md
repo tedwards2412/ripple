@@ -22,7 +22,7 @@ to get the h_+ and h_x polarizations of the waveform model
 
 We start with some basic imports:
 
-```
+```python
 from math import pi
 import jax.numpy as jnp
 
@@ -33,7 +33,7 @@ from ripple import ms_to_Mc_eta
 
 And now we can just set the parameters and call the waveform!
 
-```
+```python
 # Get a frequency domain waveform
 # source parameters
 
