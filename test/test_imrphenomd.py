@@ -41,10 +41,9 @@ def profile_grad():
 def test_phase_phenomD():
     theta = np.array([20.0, 19.99, -0.95, -0.95])
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
-    Mf0 = 0.003
-    Mf1 = 0.11
-    f_l = Mf0 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
-    f_u = Mf1 / ((theta[0] + theta[1]) * 4.92549094830932e-6)
+    f_l = 32
+    f_u = 1024
+    del_f = 0.0125
     del_f = 0.001
     inclination = np.pi / 2
     psi = 0.0
@@ -100,12 +99,12 @@ def test_phase_phenomD():
 
     plt.figure(figsize=(7, 5))
     plt.plot(
-        freq[f_mask] * ((theta[0] + theta[1]) * 4.92549094830932e-6),
+        freq[f_mask],
         np.unwrap(np.angle(hp.data.data))[f_mask],
         label="lalsuite",
     )
 
-    plt.plot(Mf, np.unwrap(np.angle(hp_ripple)), label="ripple", alpha=0.3)
+    plt.plot(f, np.unwrap(np.angle(hp_ripple)), label="ripple", alpha=0.3)
     # plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
     # plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
     # plt.axvline(
@@ -116,10 +115,12 @@ def test_phase_phenomD():
     plt.ylabel(r"$\Phi$")
     plt.savefig("../figures/test_phase.pdf", bbox_inches="tight")
 
+    print(np.unwrap(np.angle(hp_ripple)), np.unwrap(np.angle(hp.data.data))[f_mask])
+
     ratio = np.unwrap(np.angle(hp_ripple)) / np.unwrap(np.angle(hp.data.data))[f_mask]
     plt.figure(figsize=(7, 5))
     plt.plot(
-        freq[f_mask] * ((theta[0] + theta[1]) * 4.92549094830932e-6),
+        freq[f_mask],
         ratio,
         label="ratio",
     )
@@ -497,8 +498,8 @@ if __name__ == "__main__":
     # stats.print_stats()
     # profile_grad()
     # test_Amp_phenomD()
-    test_phase_phenomD()
+    # test_phase_phenomD()
     # test_frequency_calc()
-    # plot_waveforms()
-    # random_match_waveforms(n=500)
+    plot_waveforms()
+    random_match_waveforms(n=500)
     None
