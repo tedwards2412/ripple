@@ -39,7 +39,7 @@ def profile_grad():
 
 
 def test_phase_phenomD():
-    theta = np.array([15.0, 14.99, -0.95, -0.95])
+    theta = np.array([15.0, 14.99, 0.99, 0.99])
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     f_l = 32
     f_u = 1024

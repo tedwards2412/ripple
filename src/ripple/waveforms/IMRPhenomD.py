@@ -591,6 +591,33 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
 
 
 @jax.jit
+def _gen_IMRPhenomD(
+    f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array
+):
+    M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
+
+    # Shift phase so that peak amplitude matches t = 0
+    _, _, _, f4, f_RD, f_damp = get_transition_frequencies(
+        theta_intrinsic, coeffs[5], coeffs[6]
+    )
+    t0 = jax.grad(get_IIb_raw_phase)(f4 * M_s, theta_intrinsic, coeffs, f_RD, f_damp)
+
+    # Lets call the amplitude and phase now
+    Psi = Phase(f, theta_intrinsic)
+    Mf_ref = f[0] * M_s
+    Psi -= t0 * ((f * M_s) - Mf_ref)
+    ext_phase_contrib = (
+        2.0 * pi * f * theta_extrinsic[1] - theta_extrinsic[2] - pi / 4.0
+    )
+
+    Psi += ext_phase_contrib
+    A = Amp(f, theta_intrinsic, D=theta_extrinsic[0])
+
+    h0 = A * jnp.exp(1j * -Psi)
+    return h0
+
+
+@jax.jit
 def gen_IMRPhenomD(f: Array, params: Array):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
@@ -612,24 +639,11 @@ def gen_IMRPhenomD(f: Array, params: Array):
     """
     # Lets make this easier by starting in Mchirp and eta space
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
-    M_s = (m1 + m2) * gt
-    theta = jnp.array([m1, m2, params[2], params[3]])
+    theta_intrinsic = jnp.array([m1, m2, params[2], params[3]])
+    theta_extrinsic = jnp.array([params[4], params[5], params[6]])
 
-    # Shift phase so that peak amplitude matches t = 0
-    coeffs = get_coeffs(theta)
-    _, _, _, f4, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
-    t0 = jax.grad(get_IIb_raw_phase)(f4 * M_s, theta, coeffs, f_RD, f_damp)
-
-    # Lets call the amplitude and phase now
-    Psi = Phase(f, theta)
-    Mf_ref = f[0] * M_s
-    Psi -= t0 * ((f * M_s) - Mf_ref)
-    ext_phase_contrib = 2.0 * pi * f * params[5] - params[6] - pi / 4.0
-
-    Psi += ext_phase_contrib
-    A = Amp(f, theta, D=params[4])
-
-    h0 = A * jnp.exp(1j * -Psi)
+    coeffs = get_coeffs(theta_intrinsic)
+    h0 = _gen_IMRPhenomD(f, theta_intrinsic, theta_extrinsic, coeffs)
     return h0
 
 
