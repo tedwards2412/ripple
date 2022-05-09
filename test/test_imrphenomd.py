@@ -39,33 +39,37 @@ def profile_grad():
 
 
 def test_phase_phenomD():
-    theta = np.array([20.0, 19.99, -0.95, -0.95])
+    theta = np.array([15.0, 14.99, -0.95, -0.95])
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     f_l = 32
     f_u = 1024
     del_f = 0.0125
-    del_f = 0.001
-    inclination = np.pi / 2
+    # del_f = 0.001
+    inclination = 0.0
     psi = 0.0
     phi_ref = 0.0
     dist_mpc = 1.0
+    tc = 0.0
+    phic = 0.0
+
     f = np.arange(f_l, f_u, del_f)
     Mf = f * (theta[0] + theta[1]) * 4.92549094830932e-6
     del_Mf = np.diff(Mf)
 
     # Calculate the frequency regions
     coeffs = IMRPhenomD_utils.get_coeffs(theta)
-    _, _, f3, f4, _, _ = IMRPhenomD_utils.get_transition_frequencies(
+    f1, f2, _, _, _, _ = IMRPhenomD_utils.get_transition_frequencies(
         theta, coeffs[5], coeffs[6]
     )
     theta_ripple = np.array(
-        [Mc, eta, theta[2], theta[3], dist_mpc, 0.0, 0.0, inclination, psi]
+        [Mc, eta, theta[2], theta[3], dist_mpc, tc, phic, inclination, psi]
     )
 
     # Amp = IMRPhenomD.Amp(f, theta)
     hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(f, theta_ripple)
 
     f_ref = f_l
+    print(Mf[0])
     m1_kg = theta[0] * lal.MSUN_SI
     m2_kg = theta[1] * lal.MSUN_SI
     distance = dist_mpc * 1e6 * lal.PC_SI
@@ -83,7 +87,7 @@ def test_phase_phenomD():
         distance,
         inclination,
         phi_ref,
-        0,
+        0.0,
         0.0,
         0.0,
         del_f,
@@ -93,6 +97,7 @@ def test_phase_phenomD():
         None,
         approximant,
     )
+
     freq = np.arange(len(hp.data.data)) * del_f
     f_mask = (freq >= f_l) & (freq < f_u)
     print(f, freq[f_mask])
@@ -104,48 +109,50 @@ def test_phase_phenomD():
         label="lalsuite",
     )
 
-    plt.plot(f, np.unwrap(np.angle(hp_ripple)), label="ripple", alpha=0.3)
-    # plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-    # plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-    # plt.axvline(
-    #     x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
-    # )
+    plt.plot(
+        f,
+        np.unwrap(np.angle(hp_ripple)) - np.unwrap(np.angle(hp_ripple))[0],
+        label="ripple",
+        alpha=0.3,
+    )
+    plt.axvline(x=f1)
+    plt.axvline(x=f2)
     plt.legend()
     plt.xlabel(r"Mf")
     plt.ylabel(r"$\Phi$")
     plt.savefig("../figures/test_phase.pdf", bbox_inches="tight")
 
-    print(np.unwrap(np.angle(hp_ripple)), np.unwrap(np.angle(hp.data.data))[f_mask])
-
-    ratio = np.unwrap(np.angle(hp_ripple)) / np.unwrap(np.angle(hp.data.data))[f_mask]
-    plt.figure(figsize=(7, 5))
-    plt.plot(
-        freq[f_mask],
-        ratio,
-        label="ratio",
+    print(
+        "Ripple Phase:",
+        np.unwrap(np.angle(hp_ripple)) - np.unwrap(np.angle(hp_ripple))[0],
     )
-    plt.legend()
-    plt.xlabel(r"Mf")
-    plt.ylabel(r"$\Phi$")
-    plt.savefig("../figures/test_phase_ratio.pdf", bbox_inches="tight")
+    print("Lalsuite Phase:", np.unwrap(np.angle(hp.data.data))[f_mask])
 
+    # ratio = np.unwrap(np.angle(hp_ripple)) / np.unwrap(np.angle(hp.data.data))[f_mask]
     # plt.figure(figsize=(7, 5))
     # plt.plot(
-    #     sptilde.sample_frequencies[f_mask]
-    #     * ((theta[0] + theta[1]) * 4.92549094830932e-6),
-    #     normalised_ripple_phase[:-1] - phase_pycbc[f_mask],
-    #     label="phase difference",
-    # )
-    # plt.plot(Mf, -2 * pi * f * delta_t)
-    # plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-    # plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-    # plt.axvline(
-    #     x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
+    #     freq[f_mask],
+    #     ratio,
+    #     label="ratio",
     # )
     # plt.legend()
     # plt.xlabel(r"Mf")
-    # plt.ylabel(r"$\Phi_1 - \Phi_2$")
-    # plt.savefig("../figures/test_phasedifference.pdf", bbox_inches="tight")
+    # plt.ylabel(r"$\Phi$")
+    # plt.savefig("../figures/test_phase_ratio.pdf", bbox_inches="tight")
+
+    plt.figure(figsize=(7, 5))
+    plt.plot(
+        f,
+        np.unwrap(np.angle(hp.data.data))[f_mask]
+        - (np.unwrap(np.angle(hp_ripple)) - np.unwrap(np.angle(hp_ripple))[0]),
+        label="phase difference",
+    )
+    plt.axvline(x=f1)
+    plt.axvline(x=f2)
+    plt.legend()
+    plt.xlabel(r"Mf")
+    plt.ylabel(r"$\Phi_1 - \Phi_2$")
+    plt.savefig("../figures/test_phasedifference.pdf", bbox_inches="tight")
 
     phase_deriv_lal = np.gradient(np.unwrap(np.angle(hp.data.data))[f_mask], del_Mf[0])
     phase_deriv = np.gradient(np.unwrap(np.angle(hp_ripple)), del_Mf[0])
@@ -156,11 +163,6 @@ def test_phase_phenomD():
         phase_deriv_lal,
         label="lalsuite",
     )
-    # plt.axvline(x=f1 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-    # plt.axvline(x=f2 * (theta[0] + theta[1]) * 4.92549094830932e-6)
-    # plt.axvline(
-    #     x=f_RD * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C1"
-    # )
     plt.legend()
     plt.xlabel(r"Mf")
     plt.ylabel(r"$\Phi^{\prime}$")
@@ -500,6 +502,6 @@ if __name__ == "__main__":
     # test_Amp_phenomD()
     # test_phase_phenomD()
     # test_frequency_calc()
-    plot_waveforms()
-    random_match_waveforms(n=500)
+    # plot_waveforms()
+    random_match_waveforms(n=1000)
     None

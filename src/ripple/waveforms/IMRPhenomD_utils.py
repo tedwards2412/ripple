@@ -8,39 +8,43 @@ from ..typing import Array
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
 
-def EradRational0815(m1, m2, chi1, chi2):
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M_s = m1_s + m2_s
-    eta_s = m1_s * m2_s / (M_s ** 2.0)
-    eta2 = eta_s * eta_s
-    eta3 = eta2 * eta_s
+def EradRational0815_s(eta, s):
+    eta2 = eta * eta
+    eta3 = eta2 * eta
+    eta4 = eta3 * eta
 
-    m1s = m1_s * m1_s
-    m2s = m2_s * m2_s
-    S = (m1s * chi1 + m2s * chi2) / (m1s + m2s)
     return (
-        eta_s
-        * (
-            0.055974469826360077
-            + 0.5809510763115132 * eta_s
-            - 0.9606726679372312 * eta2
-            + 3.352411249771192 * eta3
+        (
+            0.055974469826360077 * eta
+            + 0.5809510763115132 * eta2
+            - 0.9606726679372312 * eta3
+            + 3.352411249771192 * eta4
         )
         * (
             1.0
             + (
                 -0.0030302335878845507
-                - 2.0066110851351073 * eta_s
+                - 2.0066110851351073 * eta
                 + 7.7050567802399215 * eta2
             )
-            * S
+            * s
         )
     ) / (
         1.0
-        + (-0.6714403054720589 - 1.4756929437702908 * eta_s + 7.304676214885011 * eta2)
-        * S
+        + (-0.6714403054720589 - 1.4756929437702908 * eta + 7.304676214885011 * eta2)
+        * s
     )
+
+
+def EradRational0815(eta, chi1, chi2):
+    Seta = jnp.sqrt(1.0 - 4.0 * eta)
+    m1 = 0.5 * (1.0 + Seta)
+    m2 = 0.5 * (1.0 - Seta)
+    m1s = m1 * m1
+    m2s = m2 * m2
+    s = (m1s * chi1 + m2s * chi2) / (m1s + m2s)
+
+    return EradRational0815_s(eta, s)
 
 
 def get_fRD_fdamp(m1, m2, chi1, chi2):
@@ -69,10 +73,10 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
     )
 
     fRD = jnp.interp(a, QNMData_a, QNMData_fRD) / (
-        1.0 - EradRational0815(m1, m2, chi1, chi2)
+        1.0 - EradRational0815(eta_s, chi1, chi2)
     )
     fdamp = jnp.interp(a, QNMData_a, QNMData_fdamp) / (
-        1.0 - EradRational0815(m1, m2, chi1, chi2)
+        1.0 - EradRational0815(eta_s, chi1, chi2)
     )
 
     return fRD / M_s, fdamp / M_s
@@ -88,7 +92,7 @@ def get_transition_frequencies(
 
     # Phase transition frequencies
     f1 = 0.018 / (M * gt)
-    f2 = f_RD / 2
+    f2 = f_RD / 2.0
 
     # Amplitude transition frequencies
     f3 = 0.014 / (M * gt)
@@ -99,7 +103,7 @@ def get_transition_frequencies(
         f_RD_ + (f_damp_ * (-1 + jnp.sqrt(1 - (gamma2_) ** 2.0)) * gamma3_) / gamma2_
     )
     f4 = jax.lax.cond(
-        gamma2 > 1,
+        gamma2 >= 1,
         f4_gammaneg_gtr_1,
         f4_gammaneg_less_1,
         f_RD,
@@ -148,8 +152,6 @@ def get_coeffs(theta: Array) -> Array:
             + PhenomD_coeff_table[:, 10] * (eta ** 2.0)
         )
     )
-
-    #     return coeff
 
     # FIXME: Change to dictionary lookup
     return coeff
