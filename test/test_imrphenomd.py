@@ -39,10 +39,10 @@ def profile_grad():
 
 
 def test_phase_phenomD():
-    theta = np.array([15.0, 14.99, 0.99, 0.99])
+    theta = np.array([49.0, 48.0, 0.5, 0.5])
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     f_l = 32
-    f_u = 1024
+    f_u = 400
     del_f = 0.0125
     # del_f = 0.001
     inclination = 0.0
@@ -111,7 +111,7 @@ def test_phase_phenomD():
 
     plt.plot(
         f,
-        np.unwrap(np.angle(hp_ripple)) - np.unwrap(np.angle(hp_ripple))[0],
+        np.unwrap(np.angle(hp_ripple)),  # - np.unwrap(np.angle(hp_ripple))[0],
         label="ripple",
         alpha=0.3,
     )
@@ -124,7 +124,7 @@ def test_phase_phenomD():
 
     print(
         "Ripple Phase:",
-        np.unwrap(np.angle(hp_ripple)) - np.unwrap(np.angle(hp_ripple))[0],
+        np.unwrap(np.angle(hp_ripple)),
     )
     print("Lalsuite Phase:", np.unwrap(np.angle(hp.data.data))[f_mask])
 
@@ -143,8 +143,7 @@ def test_phase_phenomD():
     plt.figure(figsize=(7, 5))
     plt.plot(
         f,
-        np.unwrap(np.angle(hp.data.data))[f_mask]
-        - (np.unwrap(np.angle(hp_ripple)) - np.unwrap(np.angle(hp_ripple))[0]),
+        np.unwrap(np.angle(hp.data.data))[f_mask] - np.unwrap(np.angle(hp_ripple)),
         label="phase difference",
     )
     plt.axvline(x=f1)
@@ -157,16 +156,30 @@ def test_phase_phenomD():
     phase_deriv_lal = np.gradient(np.unwrap(np.angle(hp.data.data))[f_mask], del_Mf[0])
     phase_deriv = np.gradient(np.unwrap(np.angle(hp_ripple)), del_Mf[0])
     plt.figure(figsize=(6, 5))
-    plt.loglog(Mf, phase_deriv, label="ripple")
-    plt.loglog(
-        freq[f_mask] * ((theta[0] + theta[1]) * 4.92549094830932e-6),
+    print("testing here", phase_deriv, phase_deriv_lal)
+    plt.plot(f, phase_deriv, label="ripple", alpha=0.3)
+    plt.plot(
+        freq[f_mask],  # * ((theta[0] + theta[1]) * 4.92549094830932e-6),
         phase_deriv_lal,
         label="lalsuite",
+        alpha=0.3,
+        ls="--",
     )
     plt.legend()
-    plt.xlabel(r"Mf")
+    plt.xlabel(r"f")
+    # plt.xlim(100, 120)
+    # plt.ylim(100, 200)
     plt.ylabel(r"$\Phi^{\prime}$")
     plt.savefig("../figures/test_phase_derivative_full.pdf", bbox_inches="tight")
+
+    plt.figure(figsize=(6, 5))
+    plt.plot(f, phase_deriv_lal - phase_deriv, label="difference")
+    plt.legend()
+    plt.xlabel(r"f")
+    # plt.xlim(100, 120)
+    # plt.ylim(-0.00050, -0.00025)
+    plt.ylabel(r"$\Phi^{\prime}_1-\Phi^{\prime}_2$")
+    plt.savefig("../figures/test_phase_derivative_difference.pdf", bbox_inches="tight")
 
     return None
 
@@ -330,20 +343,13 @@ def plot_waveforms():
     )
     freqs = np.arange(len(hp.data.data)) * del_f
     mask_lal = (freqs >= f_l) & (freqs < f_u)
-    # print(freqs[(freqs >= f_l) & (freqs < f_u)])
-    # print(fs)
 
     hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple)
-    # hp_ripple_shifted = hp_ripple * jnp.exp(1j * (2 * jnp.pi * fs * -0.0005))
-    # print(hp_ripple, hc_ripple)
-    # print((1 / 2 * (1 + jnp.cos(inclination) ** 2) * jnp.cos(2 * polarization_angle)))
-    # print(jnp.cos(inclination) * jnp.sin(2 * polarization_angle))
 
     plt.figure(figsize=(15, 5))
     plt.plot(
         freqs[mask_lal], hp.data.data[mask_lal].real, label="hp lalsuite", alpha=0.3
     )
-    # plt.plot(freqs, hc.data.data, label="hc lalsuite", alpha=0.3)
 
     plt.plot(
         fs,
@@ -351,14 +357,13 @@ def plot_waveforms():
         label="hp ripple",
         alpha=0.3,
     )
-    # plt.plot(fs, hc_ripple, label="hc ripple", alpha=0.3)
 
     plt.axvline(x=f3, ls="--")
     plt.axvline(x=f4, ls="--")
     plt.legend()
+    plt.xlim(0, 300)
     plt.xlabel("Frequency")
     plt.ylabel("hf")
-    # plt.xlim(30, 40)
     plt.savefig("../figures/waveform_comparison.pdf", bbox_inches="tight")
 
     pad_low, pad_high = get_eff_pads(fs)
@@ -472,7 +477,7 @@ def random_match_waveforms(n=100):
 
     plt.figure(figsize=(7, 5))
     cm = plt.cm.get_cmap("inferno")
-    sc = plt.scatter(thetas[:, 0], thetas[:, 1], c=matches, cmap=cm)
+    sc = plt.scatter(thetas[:, 0], thetas[:, 1], c=matches, cmap=cm, label="Match")
     plt.colorbar(sc)
     plt.xlabel("m1")
     plt.ylabel("m2")
@@ -480,7 +485,7 @@ def random_match_waveforms(n=100):
 
     plt.figure(figsize=(7, 5))
     cm = plt.cm.get_cmap("inferno")
-    sc = plt.scatter(thetas[:, 2], thetas[:, 3], c=matches, cmap=cm)
+    sc = plt.scatter(thetas[:, 2], thetas[:, 3], c=matches, cmap=cm, label="Match")
     plt.colorbar(sc)
     plt.xlabel("s1")
     plt.ylabel("s2")
@@ -500,8 +505,8 @@ if __name__ == "__main__":
     # stats.print_stats()
     # profile_grad()
     # test_Amp_phenomD()
-    # test_phase_phenomD()
+    test_phase_phenomD()
     # test_frequency_calc()
     # plot_waveforms()
-    random_match_waveforms(n=1000)
+    # random_match_waveforms(n=1000)
     None

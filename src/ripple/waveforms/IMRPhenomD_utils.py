@@ -92,7 +92,7 @@ def get_transition_frequencies(
 
     # Phase transition frequencies
     f1 = 0.018 / (M * gt)
-    f2 = f_RD / 2.0
+    f2 = 0.5 * f_RD
 
     # Amplitude transition frequencies
     f3 = 0.014 / (M * gt)

@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 
 # Tables taken from https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimIMRPhenomD.h
-QNMData_a = jnp.array(
+_QNMData_a = jnp.array(
     [
         -1.0,
         -0.999,
@@ -1009,7 +1009,7 @@ QNMData_a = jnp.array(
     ]
 )
 
-QNMData_fRD = jnp.array(
+_QNMData_fRD = jnp.array(
     [
         0.0464014,
         0.0464110,
@@ -2017,7 +2017,7 @@ QNMData_fRD = jnp.array(
     ]
 )
 
-QNMData_fdamp = jnp.array(
+_QNMData_fdamp = jnp.array(
     [
         0.0140098,
         0.0140102,
@@ -3026,8 +3026,8 @@ QNMData_fdamp = jnp.array(
 )
 
 
-# from scipy.interpolate import CubicSpline
+from scipy.interpolate import CubicSpline
 
-# QNMData_a = jnp.linspace(-1, 1, 5_000)
-# QNMData_fRD = CubicSpline(_QNMData_a, _QNMData_fRD)(QNMData_a)
-# QNMData_fdamp = CubicSpline(_QNMData_a, _QNMData_fdamp)(QNMData_a)
+QNMData_a = jnp.linspace(-1, 1, 10_000)
+QNMData_fRD = CubicSpline(_QNMData_a, _QNMData_fRD)(QNMData_a)
+QNMData_fdamp = CubicSpline(_QNMData_a, _QNMData_fdamp)(QNMData_a)

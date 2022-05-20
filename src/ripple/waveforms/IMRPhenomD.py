@@ -134,7 +134,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     v = (pi * fM_s) ** (1.0 / 3.0)
 
     phi_TF2 = (
-        (phi5 - pi / 4)
+        (phi5 - pi / 4.0)
         + phi0 * ((pi * fM_s) ** -(5.0 / 3.0))
         + phi1 * ((pi * fM_s) ** -(4.0 / 3.0))
         + phi2 * ((pi * fM_s) ** -1.0)
@@ -505,11 +505,9 @@ def Phase(f: Array, theta: Array) -> Array:
     beta0 = phi_Ins_f1 - beta1_correction * (f1 * M_s) - phi_IIa_f1
 
     phi_IIa_func = (
-        lambda fM_s: get_IIa_raw_phase(fM_s, theta, coeffs)
-        + beta0
-        + (beta1_correction * fM_s)
+        lambda fM_s: get_IIa_raw_phase(fM_s, theta, coeffs) + beta1_correction * fM_s
     )
-    phi_IIa = phi_IIa_func(f * M_s)
+    phi_IIa = phi_IIa_func(f * M_s) + beta0
 
     # And finally, we do the same thing to get the phase of the merger-ringdown (region IIb)
     # phi_IIb(f2*M_s) + a0 + a1_correction*(f2*M_s) = phi_IIa(f2*M_s)
@@ -522,7 +520,7 @@ def Phase(f: Array, theta: Array) -> Array:
     )
 
     a1_correction = dphi_IIa_f2 - dphi_IIb_f2
-    a0 = phi_IIa_f2 - a1_correction * (f2 * M_s) - phi_IIb_f2
+    a0 = phi_IIa_f2 + beta0 - a1_correction * (f2 * M_s) - phi_IIb_f2
 
     phi_IIb = (
         get_IIb_raw_phase(f * M_s, theta, coeffs, f_RD, f_damp)
@@ -604,13 +602,12 @@ def _gen_IMRPhenomD(
 
     # Lets call the amplitude and phase now
     Psi = Phase(f, theta_intrinsic)
+    Psi_ref = Psi[0]
     Mf_ref = f[0] * M_s
-    Psi -= t0 * ((f * M_s) - Mf_ref)
-    ext_phase_contrib = (
-        2.0 * pi * f * theta_extrinsic[1] - theta_extrinsic[2] - pi / 4.0
-    )
-
+    Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
+    ext_phase_contrib = 2.0 * pi * f * theta_extrinsic[1] - theta_extrinsic[2]
     Psi += ext_phase_contrib
+
     A = Amp(f, theta_intrinsic, D=theta_extrinsic[0])
 
     h0 = A * jnp.exp(1j * -Psi)
