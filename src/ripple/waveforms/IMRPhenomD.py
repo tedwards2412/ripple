@@ -18,6 +18,9 @@ from ripple import Mc_eta_to_ms
 
 
 def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
+    """
+    Calculate the inspiral phase for the IMRPhenomD waveform.
+    """
     # First lets calculate some of the vairables that will be used below
     # Mass variables
     m1, m2, chi1, chi2 = theta
@@ -602,8 +605,12 @@ def _gen_IMRPhenomD(
 
     # Lets call the amplitude and phase now
     Psi = Phase(f, theta_intrinsic)
-    Psi_ref = Psi[0]
-    Mf_ref = f[0] * M_s
+    if Psi.size > 1:
+        Psi_ref = Psi[0]
+        Mf_ref = f[0] * M_s
+    else:
+        Psi_ref = Psi
+        Mf_ref = f * M_s
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
     ext_phase_contrib = 2.0 * pi * f * theta_extrinsic[1] - theta_extrinsic[2]
     Psi += ext_phase_contrib
