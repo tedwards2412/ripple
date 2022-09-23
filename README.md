@@ -26,7 +26,7 @@ We start with some basic imports:
 from math import pi
 import jax.numpy as jnp
 
-from ripple.waveforms import IMRPhenomD, IMRPhenomD_utils
+from ripple.waveforms import IMRPhenomD
 import matplotlib.pyplot as plt
 from ripple import ms_to_Mc_eta
 ```
@@ -63,6 +63,16 @@ fs = jnp.arange(f_l, f_u, del_f)
 
 # And finally lets generate the waveform!
 hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple)
+
+# Note that we have not internally jitted the functions since this would
+# introduce an annoying overhead each time the use evaluated the function with a different length frequency array
+# We therefore recommend that the user jit the function themselves to accelerate evaluations. For example
+
+import jax
+
+@jax.jit
+def waveform(theta):
+    return IMRPhenomD.gen_IMRPhenomD_polar(fs, theta)
 ```
 
 

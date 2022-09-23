@@ -27,7 +27,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     # First lets construct the phase in the inspiral (region I)
     m1M = m1_s / M_s
@@ -155,7 +155,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
             coeffs[7] * fM_s
             + (3.0 / 4.0) * coeffs[8] * (fM_s ** (4.0 / 3.0))
             + (3.0 / 5.0) * coeffs[9] * (fM_s ** (5.0 / 3.0))
-            + (1.0 / 2.0) * coeffs[10] * (fM_s ** 2.0)
+            + (1.0 / 2.0) * coeffs[10] * (fM_s**2.0)
         )
         / eta
     )
@@ -167,12 +167,12 @@ def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     phi_IIa_raw = (
         coeffs[11] * fM_s
         + coeffs[12] * jnp.log(fM_s)
-        - coeffs[13] * (fM_s ** -3.0) / 3.0
+        - coeffs[13] * (fM_s**-3.0) / 3.0
     ) / eta
 
     return phi_IIa_raw
@@ -183,14 +183,14 @@ def get_IIb_raw_phase(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) ->
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     f_RDM_s = f_RD * M_s
     f_dampM_s = f_damp * M_s
 
     phi_IIb_raw = (
         coeffs[14] * fM_s
-        - coeffs[15] * (fM_s ** -1.0)
+        - coeffs[15] * (fM_s**-1.0)
         + 4.0 * coeffs[16] * (fM_s ** (3.0 / 4.0)) / 3.0
         + coeffs[17] * jnp.arctan((fM_s - coeffs[18] * f_RDM_s) / f_dampM_s)
     ) / eta
@@ -212,7 +212,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
     eta3 = eta * eta2
 
@@ -256,7 +256,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
     A6 = (
         -(
-            (pi ** 2.0)
+            (pi**2.0)
             * (
                 -336
                 * (
@@ -284,7 +284,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
                     + 77616 * chi12 * (2610335 + 995766 * Seta)
                     - 77287373856 * chi22 * Seta
                     + 5841690624 * (chi1 + chi2) * pi
-                    + 21384760320 * (pi ** 2.0)
+                    + 21384760320 * (pi**2.0)
                 )
             )
         )
@@ -301,11 +301,11 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         + A3 * fM_s
         + A4 * (fM_s ** (4.0 / 3.0))
         + A5 * (fM_s ** (5.0 / 3.0))
-        + A6 * (fM_s ** 2.0)
+        + A6 * (fM_s**2.0)
         # Now we add the coefficient terms
         + A7 * (fM_s ** (7.0 / 3.0))
         + A8 * (fM_s ** (8.0 / 3.0))
-        + A9 * (fM_s ** 3.0)
+        + A9 * (fM_s**3.0)
     )
 
     return Amp_Ins
@@ -337,9 +337,9 @@ def get_IIa_Amp(
     Amp_IIa = (
         delta0
         + delta1 * fM_s
-        + delta2 * (fM_s ** 2.0)
-        + delta3 * (fM_s ** 3.0)
-        + delta4 * (fM_s ** 4.0)
+        + delta2 * (fM_s**2.0)
+        + delta3 * (fM_s**3.0)
+        + delta4 * (fM_s**4.0)
     )
 
     return Amp_IIa
@@ -366,7 +366,7 @@ def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array
     return Amp_IIb
 
 
-@jax.jit
+# @jax.jit
 def Phase(f: Array, theta: Array) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
@@ -445,7 +445,7 @@ def Phase(f: Array, theta: Array) -> Array:
     return phase
 
 
-@jax.jit
+# @jax.jit
 def Amp(f: Array, theta: Array, D=1) -> Array:
     """
     Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
@@ -462,7 +462,7 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     coeffs = get_coeffs(theta)
 
@@ -492,10 +492,10 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
 
     # Need to add in an overall scaling of M_s^2 to make the units correct
     dist_s = (D * m_per_Mpc) / C
-    return Amp0 * Amp * (M_s ** 2.0) / dist_s
+    return Amp0 * Amp * (M_s**2.0) / dist_s
 
 
-@jax.jit
+# @jax.jit
 def _gen_IMRPhenomD(
     f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array
 ):
@@ -525,7 +525,7 @@ def _gen_IMRPhenomD(
     return h0
 
 
-@jax.jit
+# @jax.jit
 def gen_IMRPhenomD(f: Array, params: Array):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
@@ -554,7 +554,7 @@ def gen_IMRPhenomD(f: Array, params: Array):
     return h0
 
 
-@jax.jit
+# @jax.jit
 def gen_IMRPhenomD_polar(f: Array, params: Array):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
@@ -572,8 +572,8 @@ def gen_IMRPhenomD_polar(f: Array, params: Array):
 
     # FIXME: Check what happens with the polarization angle here. Does lal just set it to 0?
     # Polarisation angle is set to a certain value, its handled by the detector projection
-    # FIXME: Probably we don't want to have t_c as a true variable here. It should be set
-    # 
+    # FIXME: Probably we don't want to have t_c as a true variable here. It should be set to something
+    #
 
     Returns:
     --------
