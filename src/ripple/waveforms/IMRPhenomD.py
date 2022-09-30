@@ -12,6 +12,7 @@ from .IMRPhenomD_utils import (
     get_transition_frequencies,
 )
 
+from .IMRPhenomD_QNMdata import fM_CUT
 from ..constants import EulerGamma, gt, m_per_Mpc, C
 from ..typing import Array
 from ripple import Mc_eta_to_ms
@@ -482,13 +483,14 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
     Amp = (
         Amp_Ins * jnp.heaviside(f3 - f, 0.5)
         + jnp.heaviside(f - f3, 0.5) * Amp_IIa * jnp.heaviside(f4 - f, 0.5)
-        + Amp_IIb * jnp.heaviside(f - f4, 0.5)
+        + jnp.heaviside(f - f4, 0.5) * Amp_IIb * jnp.heaviside((fM_CUT / M_s) - f, 0.5)
+        + 0.0 * jnp.heaviside(f - (fM_CUT / M_s), 0.5)
     )
 
     # Prefactor
     Amp0 = get_Amp0(f * M_s, eta) * (
         2.0 * jnp.sqrt(5.0 / (64.0 * pi))
-    )  # This second factor is from lalsuite...
+    )  # This second factor is from lalsuite
 
     # Need to add in an overall scaling of M_s^2 to make the units correct
     dist_s = (D * m_per_Mpc) / C
@@ -583,7 +585,7 @@ def gen_IMRPhenomD_polar(f: Array, params: Array):
     l, psi = params[7], params[8]
     h0 = gen_IMRPhenomD(f, params)
 
-    hp = h0 * (1 / 2 * (1 + jnp.cos(l) ** 2) * jnp.cos(2 * psi))
-    hc = h0 * jnp.cos(l) * jnp.sin(2 * psi)
+    hp = h0 * (1 / 2 * (1 + jnp.cos(l) ** 2))  # * jnp.cos(2 * psi))
+    hc = -1j * h0 * jnp.cos(l)  # * jnp.sin(2 * psi)
 
     return hp, hc

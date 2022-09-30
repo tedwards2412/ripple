@@ -5,7 +5,10 @@ import jax
 
 from ..constants import gt
 from ..typing import Array
+
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
+# from .IMRPhenomD_QNMdata import _QNMData_a, _QNMData_fRD, _QNMData_fdamp
+# import jax_cosmo.scipy.interpolate as cosmointerp
 
 
 def EradRational0815_s(eta, s):
@@ -71,6 +74,13 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
             + (-0.8676969352555539 + 2.064046835273906 * eta_s) * S3
         )
     )
+
+    # fRD = cosmointerp.InterpolatedUnivariateSpline(_QNMData_a, _QNMData_fRD)(a) / (
+    #     1.0 - EradRational0815(eta_s, chi1, chi2)
+    # )
+    # fdamp = cosmointerp.InterpolatedUnivariateSpline(_QNMData_a, _QNMData_fdamp)(a) / (
+    #     1.0 - EradRational0815(eta_s, chi1, chi2)
+    # )
 
     fRD = jnp.interp(a, QNMData_a, QNMData_fRD) / (
         1.0 - EradRational0815(eta_s, chi1, chi2)
