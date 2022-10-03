@@ -564,24 +564,18 @@ def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref:float):
     chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
     D: Luminosity distance to source [Mpc]
     tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
-    phic: Phase of coalesence
-    inclination: Inclination angle of the binary
-    polarization_angle: Polarization angle of the binary
-
-    # FIXME: Check what happens with the polarization angle here. Does lal just set it to 0?
-    # Polarisation angle is set to a certain value, its handled by the detector projection
-    # FIXME: Probably we don't want to have t_c as a true variable here. It should be set to something
-    #
+    phic: Phase of coalesence 
+    inclination: Inclination angle of the binary [between 0 and pi]
 
     Returns:
     --------
       hp (array): Strain of the plus polarization
       hc (array): Strain of the cross polarization
     """
-    l, psi = params[7], params[8]
+    iota = params[7]
     h0 = gen_IMRPhenomD(f, params, f_ref)
 
-    hp = h0 * (1 / 2 * (1 + jnp.cos(l) ** 2))  # * jnp.cos(2 * psi))
-    hc = -1j * h0 * jnp.cos(l)  # * jnp.sin(2 * psi)
+    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
+    hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc
