@@ -499,7 +499,7 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
 
 # @jax.jit
 def _gen_IMRPhenomD(
-    f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array
+    f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array, f_ref: float
 ):
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
 
@@ -511,12 +511,8 @@ def _gen_IMRPhenomD(
 
     # Lets call the amplitude and phase now
     Psi = Phase(f, theta_intrinsic)
-    if Psi.size > 1:
-        Psi_ref = Psi[0]
-        Mf_ref = f[0] * M_s
-    else:
-        Psi_ref = Psi
-        Mf_ref = f * M_s
+    Mf_ref = f_ref * M_s
+    Psi_ref = Phase(f_ref,theta_intrinsic)
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
     ext_phase_contrib = 2.0 * pi * f * theta_extrinsic[1] - theta_extrinsic[2]
     Psi += ext_phase_contrib
@@ -528,7 +524,7 @@ def _gen_IMRPhenomD(
 
 
 # @jax.jit
-def gen_IMRPhenomD(f: Array, params: Array):
+def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -552,12 +548,12 @@ def gen_IMRPhenomD(f: Array, params: Array):
     theta_extrinsic = jnp.array([params[4], params[5], params[6]])
 
     coeffs = get_coeffs(theta_intrinsic)
-    h0 = _gen_IMRPhenomD(f, theta_intrinsic, theta_extrinsic, coeffs)
+    h0 = _gen_IMRPhenomD(f, theta_intrinsic, theta_extrinsic, coeffs, f_ref)
     return h0
 
 
 # @jax.jit
-def gen_IMRPhenomD_polar(f: Array, params: Array):
+def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref:float):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -583,7 +579,7 @@ def gen_IMRPhenomD_polar(f: Array, params: Array):
       hc (array): Strain of the cross polarization
     """
     l, psi = params[7], params[8]
-    h0 = gen_IMRPhenomD(f, params)
+    h0 = gen_IMRPhenomD(f, params, f_ref)
 
     hp = h0 * (1 / 2 * (1 + jnp.cos(l) ** 2))  # * jnp.cos(2 * psi))
     hc = -1j * h0 * jnp.cos(l)  # * jnp.sin(2 * psi)
