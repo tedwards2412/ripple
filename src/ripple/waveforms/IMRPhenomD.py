@@ -553,7 +553,7 @@ def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
 
 
 # @jax.jit
-def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref:float):
+def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref: float):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -566,6 +566,8 @@ def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref:float):
     tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
     phic: Phase of coalesence 
     inclination: Inclination angle of the binary [between 0 and pi]
+
+    f_ref: Reference frequency for the waveform
 
     Returns:
     --------
