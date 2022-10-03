@@ -514,7 +514,7 @@ def _gen_IMRPhenomD(
     Mf_ref = f_ref * M_s
     Psi_ref = Phase(f_ref,theta_intrinsic)
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
-    ext_phase_contrib = 2.0 * pi * f * theta_extrinsic[1] - theta_extrinsic[2]
+    ext_phase_contrib = 2.0 * pi * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
     Psi += ext_phase_contrib
 
     A = Amp(f, theta_intrinsic, D=theta_extrinsic[0])
