@@ -499,7 +499,7 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
 
 # @jax.jit
 def _gen_IMRPhenomD(
-    f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array
+    f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array, f_ref: float
 ):
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
 
@@ -511,14 +511,10 @@ def _gen_IMRPhenomD(
 
     # Lets call the amplitude and phase now
     Psi = Phase(f, theta_intrinsic)
-    if Psi.size > 1:
-        Psi_ref = Psi[0]
-        Mf_ref = f[0] * M_s
-    else:
-        Psi_ref = Psi
-        Mf_ref = f * M_s
+    Mf_ref = f_ref * M_s
+    Psi_ref = Phase(f_ref,theta_intrinsic)
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
-    ext_phase_contrib = 2.0 * pi * f * theta_extrinsic[1] - theta_extrinsic[2]
+    ext_phase_contrib = 2.0 * pi * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
     Psi += ext_phase_contrib
 
     A = Amp(f, theta_intrinsic, D=theta_extrinsic[0])
@@ -528,7 +524,7 @@ def _gen_IMRPhenomD(
 
 
 # @jax.jit
-def gen_IMRPhenomD(f: Array, params: Array):
+def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -552,12 +548,12 @@ def gen_IMRPhenomD(f: Array, params: Array):
     theta_extrinsic = jnp.array([params[4], params[5], params[6]])
 
     coeffs = get_coeffs(theta_intrinsic)
-    h0 = _gen_IMRPhenomD(f, theta_intrinsic, theta_extrinsic, coeffs)
+    h0 = _gen_IMRPhenomD(f, theta_intrinsic, theta_extrinsic, coeffs, f_ref)
     return h0
 
 
 # @jax.jit
-def gen_IMRPhenomD_polar(f: Array, params: Array):
+def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref: float):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -568,24 +564,20 @@ def gen_IMRPhenomD_polar(f: Array, params: Array):
     chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
     D: Luminosity distance to source [Mpc]
     tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
-    phic: Phase of coalesence
-    inclination: Inclination angle of the binary
-    polarization_angle: Polarization angle of the binary
+    phic: Phase of coalesence 
+    inclination: Inclination angle of the binary [between 0 and pi]
 
-    # FIXME: Check what happens with the polarization angle here. Does lal just set it to 0?
-    # Polarisation angle is set to a certain value, its handled by the detector projection
-    # FIXME: Probably we don't want to have t_c as a true variable here. It should be set to something
-    #
+    f_ref: Reference frequency for the waveform
 
     Returns:
     --------
       hp (array): Strain of the plus polarization
       hc (array): Strain of the cross polarization
     """
-    l, psi = params[7], params[8]
-    h0 = gen_IMRPhenomD(f, params)
+    iota = params[7]
+    h0 = gen_IMRPhenomD(f, params, f_ref)
 
-    hp = h0 * (1 / 2 * (1 + jnp.cos(l) ** 2))  # * jnp.cos(2 * psi))
-    hc = -1j * h0 * jnp.cos(l)  # * jnp.sin(2 * psi)
+    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
+    hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc

@@ -5,3 +5,5 @@
 *.egg-info
 docs/build/*
 figures/*.pdf
+
+build/*
