@@ -671,17 +671,17 @@ def benchmark_waveform_call():
 
     start = time.time()
     for i in range(n):
-        m1_kg = theta[0, 0] * lal.MSUN_SI
-        m2_kg = theta[0, 1] * lal.MSUN_SI
+        m1_kg = theta[i, 0] * lal.MSUN_SI
+        m2_kg = theta[i, 1] * lal.MSUN_SI
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
             m1_kg,
             m2_kg,
             0.0,
             0.0,
-            theta[0, 2],
+            theta[i, 2],
             0.0,
             0.0,
-            theta[0, 3],
+            theta[i, 3],
             distance,
             inclination,
             phi_ref,
@@ -708,11 +708,12 @@ def benchmark_waveform_call():
         return IMRPhenomD.gen_IMRPhenomD_polar(fs, theta, f_ref)
 
     print("JIT compiling")
-    _ = waveform(theta_ripple[0])
+    waveform(theta_ripple[0])[0].block_until_ready()
     print("Finished JIT compiling")
 
     start = time.time()
-    hp_ripple, hc_ripple = vmap(waveform)(theta_ripple)
+    for t in theta_ripple:
+        waveform(t)[0].block_until_ready()
     end = time.time()
 
     print("Ripple waveform call takes: %.6f ms" % ((end - start) * 1000 / n))
