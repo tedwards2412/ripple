@@ -718,6 +718,15 @@ def benchmark_waveform_call():
 
     print("Ripple waveform call takes: %.6f ms" % ((end - start) * 1000 / n))
 
+    func = vmap(waveform)
+    func(theta_ripple)[0].block_until_ready()
+
+    start = time.time()
+    func(theta_ripple)[0].block_until_ready()
+    end = time.time()
+
+    print("Vmapped ripple waveform call takes: %.6f ms" % ((end - start) * 1000 / n))
+
     # start = time.time()
 
     # @jax.jit
@@ -741,10 +750,10 @@ if __name__ == "__main__":
     # stats = pstats.Stats(profiler).sort_stats("cumtime")
     # stats.print_stats()
     # profile_grad()
-    test_Amp_phenomD()
-    test_phase_phenomD()
-    test_frequency_calc()
-    plot_waveforms()
+    # test_Amp_phenomD()
+    # test_phase_phenomD()
+    # test_frequency_calc()
+    # plot_waveforms()
     benchmark_waveform_call()
     # random_match_waveforms(n=10000)
     None
