@@ -507,11 +507,14 @@ def Amp(
     Amp_IIb = get_IIb_Amp(f * M_s, theta, coeffs, f_RD, f_damp)
 
     # And now we can combine them by multiplying by a set of heaviside functions
+    fcut_above = lambda f: (fM_CUT / M_s)
+    fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
+    fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
     Amp = (
         Amp_Ins * jnp.heaviside(f3 - f, 0.5)
         + jnp.heaviside(f - f3, 0.5) * Amp_IIa * jnp.heaviside(f4 - f, 0.5)
-        + jnp.heaviside(f - f4, 0.5) * Amp_IIb * jnp.heaviside((fM_CUT / M_s) - f, 0.5)
-        + 0.0 * jnp.heaviside(f - (fM_CUT / M_s), 0.5)
+        + jnp.heaviside(f - f4, 0.5) * Amp_IIb * jnp.heaviside(fcut_true - f, 0.0)
+        + 0.0 * jnp.heaviside(f - fcut_true, 1.0)
     )
 
     # Prefactor
@@ -546,6 +549,11 @@ def _gen_IMRPhenomD(
     Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
     Psi += ext_phase_contrib
+    fcut_above = lambda f: (fM_CUT / M_s)
+    fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
+    fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
+    # fcut_true = f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
+    Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(f - fcut_true, 1.0)
 
     A = Amp(f, theta_intrinsic, coeffs, transition_freqs, D=theta_extrinsic[0])
 
