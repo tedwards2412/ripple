@@ -3030,6 +3030,6 @@ _QNMData_fdamp = jnp.array(
 
 from scipy.interpolate import CubicSpline
 
-QNMData_a = jnp.linspace(-1, 1, 50_000_000)
+QNMData_a = jnp.linspace(-1, 1, 500_000)
 QNMData_fRD = CubicSpline(_QNMData_a, _QNMData_fRD)(QNMData_a)
 QNMData_fdamp = CubicSpline(_QNMData_a, _QNMData_fdamp)(QNMData_a)
