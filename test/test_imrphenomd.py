@@ -45,18 +45,22 @@ def profile_grad():
 
 
 def test_phase_phenomD():
-    theta = np.array([5.0, 3.0, 0.0, 0.0])
+    theta = np.array([7.765270965631057720e+01, 4.909567250892310142e+01, 3.969370946508115061e-01, 4.405203497762351095e-01])
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
-    f_l = 30.0
-    f_u = 1000.0
+    # f_l = 30.0
+    # f_u = 1000.0
     # del_f = 0.0005
-    del_f = 0.0125
+    # del_f = 0.0125
     inclination = 0.0
     psi = 0.0
     phi_ref = 0.0
     dist_mpc = 1.0
     tc = 0.0
     phic = 0.0
+
+    f_l = 32
+    f_u = 1024
+    del_f = 0.0125
 
     f_l_idx = round(f_l / del_f)
     f_u_idx = f_u // del_f
@@ -132,8 +136,8 @@ def test_phase_phenomD():
         label="ripple",
         alpha=0.3,
     )
-    plt.axvline(x=f1)
-    plt.axvline(x=f2)
+    # plt.axvline(x=f1)
+    # plt.axvline(x=f2)
     plt.legend()
     plt.xlabel(r"Mf")
     plt.ylabel(r"$\Phi$")
@@ -167,8 +171,8 @@ def test_phase_phenomD():
         (np.unwrap(np.angle(hp.data.data))[f_mask]) - (np.unwrap(np.angle(hp_ripple))),
         label="phase difference",
     )
-    plt.axvline(x=f1)
-    plt.axvline(x=f2)
+    # plt.axvline(x=f1)
+    # plt.axvline(x=f2)
     plt.legend()
     plt.xlabel(r"Mf")
     plt.ylabel(r"$\Phi_1 - \Phi_2$")
@@ -206,14 +210,24 @@ def test_phase_phenomD():
 
 
 def test_Amp_phenomD():
-    theta = np.array([50.0, 30.0, 0.0, 0.0])
+    theta = np.array([7.765270965631057720e+01, 4.909567250892310142e+01, 3.969370946508115061e-01, 4.405203497762351095e-01])
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     # f_l = 32
     # f_u = 1024
     # del_f = 0.0125
     f_l = 32
     f_u = 1024
-    del_f = 0.0005
+    del_f = 0.0125
+
+    f_l_idx = round(f_l / del_f)
+    f_u_idx = f_u // del_f
+    f_l = f_l_idx * del_f
+    f_u = f_u_idx * del_f
+    fs = np.arange(f_l_idx, f_u_idx) * del_f
+
+    # f_l = 32
+    # f_u = 1024
+    # del_f = 0.0005
     psi = 0.0
     phi_ref = 0.0
     dist_mpc = 1.0
@@ -276,8 +290,8 @@ def test_Amp_phenomD():
         label="lalsuite",
     )
     plt.loglog(Mf, abs(hp_ripple), label="ripple")
-    plt.axvline(x=f3 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
-    plt.axvline(x=f4 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
+    # plt.axvline(x=f3 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
+    # plt.axvline(x=f4 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
     plt.legend()
     plt.xlabel(r"Mf")
     plt.ylabel(r"Amplitude")
@@ -289,8 +303,8 @@ def test_Amp_phenomD():
         (abs(hp_ripple) - abs(hp.data.data)[f_mask]),
         label="difference",
     )
-    plt.axvline(x=f3 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
-    plt.axvline(x=f4 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
+    # plt.axvline(x=f3 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
+    # plt.axvline(x=f4 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
     plt.legend()
     plt.xlabel(r"Mf")
     plt.ylabel(r"Amplitude")
@@ -311,8 +325,8 @@ def test_frequency_calc():
 def plot_waveforms():
     # Get a frequency domain waveform
     # source parameters
-    m1_msun = 49.0
-    m2_msun = 48.0
+    m1_msun = 15.0
+    m2_msun = 15.0
     chi1 = [0, 0, 0.5]
     chi2 = [0, 0, 0.5]
     tc = 0.0
@@ -328,9 +342,9 @@ def plot_waveforms():
     )
 
     theta = np.array([m1_msun, m2_msun, chi1[2], chi2[2]])
-    f_l = 20
-    f_u = 1024
-    del_f = 0.01
+    f_l = 32.0
+    f_u = 1024.0
+    del_f = 0.0125
     fs = np.arange(f_l, f_u, del_f)
 
     coeffs = IMRPhenomD_utils.get_coeffs(theta)
@@ -543,6 +557,7 @@ def random_match_waveforms(n=1000):
         )
         freqs = np.arange(len(hp.data.data)) * del_f
 
+
         # fs = np.arange(f_l, f_u, del_f)
         Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
 
@@ -568,6 +583,7 @@ def random_match_waveforms(n=1000):
             thetas.append(theta)
         except:
             print("Arrays are wrong")
+
         # else:
         #     mask_lal = (freqs >= f_l) & (freqs <= f_u)
         #     matches.append(
@@ -630,15 +646,15 @@ def random_match_waveforms(n=1000):
 def benchmark_waveform_call():
     # Get a frequency domain waveform
     f_l = 24
-    f_u = 1024
-    del_f = 0.0125
+    f_u = 512
+    del_f = 0.2
     tc = 0.0
     phic = 0.0
     dist_mpc = 440
     inclination = 0.0
     phi_ref = 0
 
-    n = 100_00
+    n = 10_000
     m1 = np.random.uniform(1.0, 100.0, n)
     m2 = np.random.uniform(1.0, 100.0, n)
     s1 = np.random.uniform(-1.0, 1.0, n)
@@ -750,10 +766,10 @@ if __name__ == "__main__":
     # stats = pstats.Stats(profiler).sort_stats("cumtime")
     # stats.print_stats()
     # profile_grad()
-    # test_Amp_phenomD()
-    # test_phase_phenomD()
+    test_Amp_phenomD()
+    test_phase_phenomD()
     # test_frequency_calc()
     # plot_waveforms()
-    benchmark_waveform_call()
-    # random_match_waveforms(n=10000)
+    # benchmark_waveform_call()
+    # random_match_waveforms(n=1000)
     None
