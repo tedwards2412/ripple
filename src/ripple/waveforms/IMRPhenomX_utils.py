@@ -16,7 +16,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta_s = m1_s * m2_s / (M_s ** 2.0)
+    eta_s = m1_s * m2_s / (M_s**2.0)
     # m1Sq = m1_s * m1_s
     # m2Sq = m2_s * m2_s
 
@@ -38,7 +38,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     dchi = chi1 - chi2
     dchi2 = dchi * dchi
 
-    StotR = (mm1 ** 2.0 * chi1 + mm2 ** 2.0 * chi2) / (mm1 ** 2.0 + mm2 ** 2.0)
+    StotR = (mm1**2.0 * chi1 + mm2**2.0 * chi2) / (mm1**2.0 + mm2**2.0)
     StotR2 = StotR * StotR
     StotR3 = StotR2 * StotR
 
@@ -53,7 +53,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
         )
         / (1 + 7.2388440419467335 * eta_s)
         + (
-            (mm1 ** 2.0 + mm2 ** 2.0) * StotR
+            (mm1**2.0 + mm2**2.0) * StotR
             + (
                 (
                     -0.8561951310209386 * eta_s
@@ -300,7 +300,10 @@ def nospin_CPvalue(NoSpin_coeffs, eta):
         + NoSpin_coeffs[4] * eta4
         + NoSpin_coeffs[5] * eta5
     ) / (
-        1.0 + NoSpin_coeffs[6] * eta + NoSpin_coeffs[7] * eta2 + NoSpin_coeffs[8] * eta3
+        NoSpin_coeffs[6]
+        + NoSpin_coeffs[7] * eta
+        + NoSpin_coeffs[8] * eta2
+        + NoSpin_coeffs[9] * eta3
     )
 
 
@@ -379,6 +382,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            1.0,
             4.460294035404433,
             0.0,
             0.0,
@@ -422,6 +426,7 @@ PhenomX_coeff_table = jnp.array(
             -557253.0066989232,
             0.0,
             0.0,
+            1.0,
             18.53018618227582,
             0.0,
             0.0,
@@ -465,6 +470,7 @@ PhenomX_coeff_table = jnp.array(
             -3.9719980569125614e6,
             8.913612508054944e6,
             0.0,
+            1.0,
             46.83697749859996,
             0.0,
             0.0,
@@ -508,6 +514,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            1.0,
             0.41143032589262585,
             0.0,
             0.0,
@@ -555,7 +562,7 @@ PhenomX_coeff_table = jnp.array(
             -1.237332073800276,
             6.086871214811216,
             0.0,
-            0.0
+            0.0,
             0.006851189888541745,
             0.06099184229137391,
             -0.15500218299268662,
@@ -586,6 +593,54 @@ PhenomX_coeff_table = jnp.array(
             -22.384949087140086,
             1.0,
             -0.6628745847248266,
+            0.0,
+            0.0,
+        ],
+        [  # Coeffs collocation point 1 of the merger ringdown phase
+            0.0,  # No spin
+            -9.460253118496386,
+            +9.429314399633007,
+            +64.69109972468395,
+            0.0,
+            0.0,
+            -0.0670554310666559,
+            -0.09987544893382533,
+            1.0,
+            0.0,
+        ],
+        [  # Coeffs collocation point 2 of the merger ringdown phase
+            0.0,  # No spin
+            -8.506898502692536,
+            +13.936621412517798,
+            0.0,
+            0.0,
+            0.0,
+            -0.40919671232073945,
+            1.0,
+            0.0,
+            0.0,
+        ],
+        [  # Coeffs collocation point 3 of the merger ringdown phase
+            -85.86062966719405,  # No spin
+            -4616.740713893726,
+            -4925.756920247186,
+            +7732.064464348168,
+            +12828.269960300782,
+            -39783.51698102803,
+            1.0,
+            +50.206318806624004,
+            0.0,
+            0.0,
+        ],
+        [  # Coeffs collocation point 4 of the merger ringdown phase
+            0.0,  # No spin
+            7.05731400277692,
+            22.455288821807095,
+            119.43820622871043,
+            0.0,
+            0.0,
+            0.26026709603623255,
+            1.0,
             0.0,
             0.0,
         ],
