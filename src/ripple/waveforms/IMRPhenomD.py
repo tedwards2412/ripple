@@ -553,7 +553,9 @@ def _gen_IMRPhenomD(
     fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
     fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
     # fcut_true = f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
-    Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(f - fcut_true, 1.0)
+    Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(
+        f - fcut_true, 1.0
+    )
 
     A = Amp(f, theta_intrinsic, coeffs, transition_freqs, D=theta_extrinsic[0])
 

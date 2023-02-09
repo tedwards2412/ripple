@@ -45,7 +45,14 @@ def profile_grad():
 
 
 def test_phase_phenomD():
-    theta = np.array([7.765270965631057720e+01, 4.909567250892310142e+01, 3.969370946508115061e-01, 4.405203497762351095e-01])
+    theta = np.array(
+        [
+            7.765270965631057720e01,
+            4.909567250892310142e01,
+            3.969370946508115061e-01,
+            4.405203497762351095e-01,
+        ]
+    )
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     # f_l = 30.0
     # f_u = 1000.0
@@ -210,7 +217,14 @@ def test_phase_phenomD():
 
 
 def test_Amp_phenomD():
-    theta = np.array([7.765270965631057720e+01, 4.909567250892310142e+01, 3.969370946508115061e-01, 4.405203497762351095e-01])
+    theta = np.array(
+        [
+            7.765270965631057720e01,
+            4.909567250892310142e01,
+            3.969370946508115061e-01,
+            4.405203497762351095e-01,
+        ]
+    )
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     # f_l = 32
     # f_u = 1024
@@ -556,7 +570,6 @@ def random_match_waveforms(n=1000):
             approximant,
         )
         freqs = np.arange(len(hp.data.data)) * del_f
-
 
         # fs = np.arange(f_l, f_u, del_f)
         Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
