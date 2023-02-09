@@ -736,22 +736,22 @@ def get_mergerringdown_raw_phase(
     )
     CollocationValuesPhaseRD1 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[10, 0:eqspin_indx], eta)
-        # + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[10, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[10, eqspin_indx:uneqspin_indx], eta, S)
         # + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[10, uneqspin_indx:], eta, S, chia)
     )
     CollocationValuesPhaseRD2 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[11, 0:eqspin_indx], eta)
-        # + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[11, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[11, eqspin_indx:uneqspin_indx], eta, S)
         # + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[11, uneqspin_indx:], eta, S, chia)
     )
     CollocationValuesPhaseRD3 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[12, 0:eqspin_indx], eta)
-        # + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[12, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[12, eqspin_indx:uneqspin_indx], eta, S)
         # + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[12, uneqspin_indx:], eta, S, chia)
     )
     CollocationValuesPhaseRD4 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[13, 0:eqspin_indx], eta)
-        # + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[13, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[13, eqspin_indx:uneqspin_indx], eta, S)
         # + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[13, uneqspin_indx:], eta, S, chia)
     )
 
@@ -834,7 +834,102 @@ def get_mergerringdown_raw_phase(
     # - 0.6628745847248266 * S # 25
     # )
 
-    # idxs = 9 then a 0 then 4 then a 0 then 8 then a 0
+    # # For RD1 eq spin
+    # eqSpin = S * (
+    # (+ 0.04497628581617564*S3 # 3
+
+    # + eta * (17.36495157980372) # 5
+
+    # + eta2*(-191.00932194869588 # 10
+    # - 62.997389062600035*S # 11
+    # + 64.42947340363101*S2) # 12
+
+    # + eta3*(930.3458437154668 # 15
+    # + 808.457330742532*S) # 16
+
+    # + eta4*(-774.3633787391745 # 19
+    # - 2177.554979351284*S # 20
+    # - 1031.846477275069*S2) # 21
+    # )
+    # )/(
+    #     1. # 24
+    #     - 0.7267610313751913*S); # 25
+
+    # # For RD2 eq spin
+    # eqSpin = S * (
+    #     0.046849371468156265*S # 1
+
+    #     + eta*(1.7280582989361533 # 5
+    # + 18.41570325463385*S2 # 7
+    # - 13.743271480938104*S3) # 8
+
+    # + eta2*(73.8367329022058 # 10
+    # - 95.57802408341716*S2 # 12
+    #  + 215.78111099820157*S3) # 13
+
+    #  + eta3*(-27.976989112929353 # 15
+    #  + 6.404060932334562*S # 16
+    #  - 633.1966645925428*S3 # 18
+    #  + 109.04824706217418*S2) # 17
+    #  )/(
+    #     1. # 24
+    #     - 0.6862449113932192*S); # 25
+
+    # # For RD3 eq spin
+    #     eqSpin = (S*
+
+    #     (33.335857451144356 # 0
+    #     - 36.49019206094966*S # 1
+    #     - 3.835967351280833*S2 # 2
+    #     + 2.302712009652155*S3  # 3
+    #     + 1.6533417657003922*S4 # 4
+
+    #    + eta*(-69.19412903018717 # 5
+    #      + 26.580344399838758*S # 6
+    #      - 15.399770764623746*S2 # 7
+    #      + 31.231253209893488*S3 # 8
+    #      + 97.69027029734173*S4) # 9
+
+    #     + eta2*(93.64156367505917 # 10
+    #     - 18.184492163348665*S  # 11
+    #     + 423.48863373726243*S2 # 12
+    #     - 104.36120236420928*S3 # 13
+    #     - 719.8775484010988*S4) # 14
+
+    #     + eta3*(1497.3545918387515 * S # 16
+    #     - 101.72731770500685*S2) # 17
+
+    #      + eta4*(1075.8686153198323 # 19
+    #      - 3443.0233614187396*S # 20
+    #      - 4253.974688619423*S2 #21
+    #      - 608.2901586790335*S3 # 22
+    #      + 5064.173605639933*S4)) # 23
+
+    #     )/(
+    #         -1.3705601055555852 # 24
+    #         + 1.*S # 25
+    #     );
+
+    # # For RD 4 eq spin
+    # eqSpin = S*(
+
+    #     + eta*(-7.9407123129681425 # 5
+    #     + 9.486783128047414*S) # 6
+
+    #     eta2*(134.88158268621922  # 10
+    #     - 56.05992404859163*S) # 11
+
+    #     + eta3*(-316.26970506215554 # 15
+    #     + 90.31815139272628*S) # 16
+
+    #     )/(
+
+    #         1. # 24
+    #         - 0.7162058321905909*S); # 25
+
+    ###############################################################
+    ###############################################################
+    ###############################################################
 
     # CollocationValuesPhaseRD4 = CollocationValuesPhaseRD4 + CollocationValuesPhaseRD3
     # CollocationValuesPhaseRD2 = CollocationValuesPhaseRD2 + CollocationValuesPhaseRD3
