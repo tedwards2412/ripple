@@ -18,7 +18,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s ** 2.0)
     eta2 = eta * eta
     eta3 = eta2 * eta
     delta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -43,7 +43,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     phi1 = 0.0
     phi2 = (3715.0 / 756.0 + (55.0 * eta) / 9.0) * PI ** (2.0 / 3.0)
     phi3 = (
-        -16.0 * PI**2
+        -16.0 * PI ** 2
         + (
             (
                 113.0 * (chi1 + chi2 + chi1 * delta - chi2 * delta)
@@ -77,19 +77,19 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         )
         / 4536.0
     ) * PI ** (5.0 / 3.0)
-    phi6L = (-6848 / 63.0) * PI**2.0
+    phi6L = (-6848 / 63.0) * PI ** 2.0
     phi6 = (
         (
             11583231236531 / 4.69421568e9
             - (5 * eta * (3147553127 + 588 * eta * (-45633 + 102260 * eta)))
             / 3.048192e6
             - (6848 * EulerGamma) / 21.0
-            - (640 * PI**2.0) / 3.0
-            + (2255 * eta * PI**2.0) / 12.0
+            - (640 * PI ** 2.0) / 3.0
+            + (2255 * eta * PI ** 2.0) / 12.0
             - (13696 * jnp.log(2)) / 21.0
             - (6848 * jnp.log(PI)) / 63.0
         )
-        * PI**2.0
+        * PI ** 2.0
         + (
             (
                 5
@@ -101,7 +101,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
             )
             / 3.0
         )
-        * PI**2.0
+        * PI ** 2.0
         + (
             (
                 5
@@ -125,7 +125,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
             )
             / 4032.0
         )
-        * PI**2.0
+        * PI ** 2.0
     )
     phi7 = (
         ((5 * (15419335 + 168 * (75703 - 29618 * eta) * eta) * PI) / 254016.0)
@@ -219,26 +219,29 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     CollocationPointsPhaseIns2 = gpoints4[2] * deltax + xmin
     CollocationPointsPhaseIns3 = gpoints4[3] * deltax + xmin
 
+    eqspin_indx = 9
+    uneqspin_indx = 37
+
     CollocationValuesPhaseIns0 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[0, 0:8], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[0, 8:36], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[0, 36:], eta, S, chia)
+        IMRPhenomX_utils.nospin_CPvalue(coeffs[0, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[0, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[0, uneqspin_indx:], eta, S, chia)
     )
     CollocationValuesPhaseIns1 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[1, 0:8], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[1, 8:36], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[1, 36:], eta, S, chia)
+        IMRPhenomX_utils.nospin_CPvalue(coeffs[1, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[1, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[1, uneqspin_indx:], eta, S, chia)
     )
     CollocationValuesPhaseIns2 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[2, 0:8], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[2, 8:36], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[2, 36:], eta, S, chia)
+        IMRPhenomX_utils.nospin_CPvalue(coeffs[2, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[2, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[2, uneqspin_indx:], eta, S, chia)
     )
 
     CollocationValuesPhaseIns3 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[3, 0:8], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[3, 8:36], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[3, 36:], eta, S, chia)
+        IMRPhenomX_utils.nospin_CPvalue(coeffs[3, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[3, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[3, uneqspin_indx:], eta, S, chia)
     )
 
     # See line 1322 of https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x__internals_8c_source.html
@@ -308,8 +311,8 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         + phi4 * (fM_s ** (4.0 / 3.0))
         + phi5 * (fM_s ** (5.0 / 3.0))
         + phi5L * (fM_s ** (5.0 / 3.0)) * jnp.log(fM_s)
-        + phi6 * (fM_s**2.0)
-        + phi6L * (fM_s**2.0) * jnp.log(fM_s)
+        + phi6 * (fM_s ** 2.0)
+        + phi6L * (fM_s ** 2.0) * jnp.log(fM_s)
         + phi7 * (fM_s ** (7.0 / 3.0))
         + phi8 * (fM_s ** (8.0 / 3.0))
         + phi8L * (fM_s ** (8.0 / 3.0)) * jnp.log(fM_s)
@@ -317,7 +320,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
     phi_Ins = phi_TF2 + (
         sigma1 * (fM_s ** (8.0 / 3.0))
-        + sigma2 * (fM_s**3.0)
+        + sigma2 * (fM_s ** 3.0)
         + sigma3 * (fM_s ** (10.0 / 3.0))
         + sigma4 * (fM_s ** (11.0 / 3.0))
     )
@@ -335,7 +338,7 @@ def get_intermediate_raw_phase(
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s ** 2.0)
     eta2 = eta * eta
     eta3 = eta2 * eta
     delta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -686,7 +689,7 @@ def get_mergerringdown_raw_phase(
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s ** 2.0)
     delta = jnp.sqrt(1.0 - 4.0 * eta)
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
@@ -723,11 +726,62 @@ def get_mergerringdown_raw_phase(
     CollocationPointsPhaseRD4 = gpoints5[4] * deltax + xmin
     # (eta*(0.7207992174994245 - 1.237332073800276*eta + 6.086871214811216*eta2))/(0.006851189888541745 + 0.06099184229137391*eta - 0.15500218299268662*eta2 + 1.*eta3);
 
+    eqspin_indx = 9
+    uneqspin_indx = 37
+
     CollocationValuesPhaseRD0 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[9, 0:8], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[9, 8:36], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[9, 36:], eta, S, chia)
+        IMRPhenomX_utils.nospin_CPvalue(coeffs[9, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[9, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[9, uneqspin_indx:], eta, S, chia)
     )
+    CollocationValuesPhaseRD1 = (
+        IMRPhenomX_utils.nospin_CPvalue(coeffs[10, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[10, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[10, uneqspin_indx:], eta, S, chia)
+    )
+    CollocationValuesPhaseRD2 = (
+        IMRPhenomX_utils.nospin_CPvalue(coeffs[11, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[11, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[11, uneqspin_indx:], eta, S, chia)
+    )
+    CollocationValuesPhaseRD3 = (
+        IMRPhenomX_utils.nospin_CPvalue(coeffs[12, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[12, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[12, uneqspin_indx:], eta, S, chia)
+    )
+    CollocationValuesPhaseRD4 = (
+        IMRPhenomX_utils.nospin_CPvalue(coeffs[13, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[13, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[13, uneqspin_indx:], eta, S, chia)
+    )
+
+    # These are the nonspinning parts from the lalsuite code
+    # For RD1
+    noSpin = (
+        eta * (-9.460253118496386 + 9.429314399633007 * eta + 64.69109972468395 * eta2)
+    ) / (-0.0670554310666559 - 0.09987544893382533 * eta + 1.0 * eta2)
+
+    # For RD2
+    noSpin = (eta * (-8.506898502692536 + 13.936621412517798 * eta)) / (
+        -0.40919671232073945 + 1.0 * eta
+    )
+
+    # For RD3
+    noSpin = (
+        -85.86062966719405
+        - 4616.740713893726 * eta
+        - 4925.756920247186 * eta2
+        + 7732.064464348168 * eta3
+        + 12828.269960300782 * eta4
+        - 39783.51698102803 * eta5
+    ) / (
+        1.0 + 50.206318806624004 * eta
+    )  # For RD2
+
+    # For RD4
+    noSpin = (
+        eta * (7.05731400277692 + 22.455288821807095 * eta + 119.43820622871043 * eta2)
+    ) / (0.26026709603623255 + 1.0 * eta)
 
     # eqSpin = (
     #     (
@@ -770,221 +824,6 @@ def get_mergerringdown_raw_phase(
     # )
 
     # idxs = 9 then a 0 then 4 then a 0 then 8 then a 0
-    # (
-    #     (
-    #         eta
-    #         * (
-    #             0.7207992174994245
-    #             - 1.237332073800276 * eta
-    #             + 6.086871214811216 * eta2
-    #         )
-    #     )
-    #     / (
-    #         0.006851189888541745
-    #         + 0.06099184229137391 * eta
-    #         - 0.15500218299268662 * eta2
-    #         + 1.0 * eta2 * eta
-    #     )
-    # )
-    #     + (
-    #         (
-    #             (
-    #                 0.06519048552628343
-    #                 - 25.25397971063995 * eta
-    #                 - 308.62513664956975 * eta2 * eta2
-    #                 + 58.59408241189781 * eta2
-    #                 + 160.14971486043524 * eta2 * eta
-    #             )
-    #             * totchi
-    #             + eta
-    #             * (
-    #                 -5.215945111216946
-    #                 + 153.95945758807616 * eta
-    #                 - 693.0504179144295 * eta2
-    #                 + 835.1725103648205 * eta2 * eta
-    #             )
-    #             * totchi2
-    #             + (
-    #                 0.20035146870472367
-    #                 - 0.28745205203100666 * eta
-    #                 - 47.56042058800358 * eta2 * eta2
-    #             )
-    #             * totchi2
-    #             * totchi
-    #             + eta
-    #             * (
-    #                 5.7756520242745735
-    #                 - 43.97332874253772 * eta
-    #                 + 338.7263666984089 * eta2 * eta
-    #             )
-    #             * totchi2
-    #             * totchi2
-    #             + (
-    #                 -0.2697933899920511
-    #                 + 4.917070939324979 * eta
-    #                 - 22.384949087140086 * eta2 * eta2
-    #                 - 11.61488280763592 * eta2
-    #             )
-    #             * totchi2
-    #             * totchi2
-    #             * totchi
-    #         )
-    #         / (1.0 - 0.6628745847248266 * totchi)
-    #     )
-    #     + (-23.504907495268824 * dchi * delta * eta2)
-    # )
-    # CollocationValuesPhaseRD1 = (
-    #     (
-    #         (
-    #             eta
-    #             * (
-    #                 -9.460253118496386
-    #                 + 9.429314399633007 * eta
-    #                 + 64.69109972468395 * eta2
-    #             )
-    #         )
-    #         / (-0.0670554310666559 - 0.09987544893382533 * eta + 1.0 * eta2)
-    #     )
-    #     + (
-    #         (
-    #             17.36495157980372 * eta * totchi
-    #             + eta2 * eta * totchi * (930.3458437154668 + 808.457330742532 * totchi)
-    #             + eta2
-    #             * eta2
-    #             * totchi
-    #             * (
-    #                 -774.3633787391745
-    #                 - 2177.554979351284 * totchi
-    #                 - 1031.846477275069 * totchi2
-    #             )
-    #             + eta2
-    #             * totchi
-    #             * (
-    #                 -191.00932194869588
-    #                 - 62.997389062600035 * totchi
-    #                 + 64.42947340363101 * totchi2
-    #             )
-    #             + 0.04497628581617564 * totchi2 * totchi
-    #         )
-    #         / (1.0 - 0.7267610313751913 * totchi)
-    #     )
-    #     + (dchi * delta * (-36.66374091965371 + 91.60477826830407 * eta) * eta2)
-    # )
-    # CollocationValuesPhaseRD2 = (
-    #     (
-    #         (eta * (-8.506898502692536 + 13.936621412517798 * eta))
-    #         / (-0.40919671232073945 + 1.0 * eta)
-    #     )
-    #     + (
-    #         (
-    #             eta
-    #             * (
-    #                 1.7280582989361533 * totchi
-    #                 + 18.41570325463385 * totchi2 * totchi
-    #                 - 13.743271480938104 * totchi2 * totchi2
-    #             )
-    #             + eta2
-    #             * (
-    #                 73.8367329022058 * totchi
-    #                 - 95.57802408341716 * totchi2 * totchi
-    #                 + 215.78111099820157 * totchi2 * totchi2
-    #             )
-    #             + 0.046849371468156265 * totchi2
-    #             + eta2
-    #             * eta
-    #             * totchi
-    #             * (
-    #                 -27.976989112929353
-    #                 + 6.404060932334562 * totchi
-    #                 - 633.1966645925428 * totchi2 * totchi
-    #                 + 109.04824706217418 * totchi2
-    #             )
-    #         )
-    #         / (1.0 - 0.6862449113932192 * totchi)
-    #     )
-    #     + (641.8965762829259 * dchi * delta * eta2 * eta2 * eta)
-    # )
-    # CollocationValuesPhaseRD3 = (
-    #     (
-    #         (
-    #             -85.86062966719405
-    #             - 4616.740713893726 * eta
-    #             - 4925.756920247186 * eta2
-    #             + 7732.064464348168 * eta2 * eta
-    #             + 12828.269960300782 * eta2 * eta2
-    #             - 39783.51698102803 * eta2 * eta2 * eta
-    #         )
-    #         / (1.0 + 50.206318806624004 * eta)
-    #     )
-    #     + (
-    #         (
-    #             totchi
-    #             * (
-    #                 33.335857451144356
-    #                 - 36.49019206094966 * totchi
-    #                 + eta2
-    #                 * eta
-    #                 * (1497.3545918387515 - 101.72731770500685 * totchi)
-    #                 * totchi
-    #                 - 3.835967351280833 * totchi2
-    #                 + 2.302712009652155 * totchi2 * totchi
-    #                 + eta2
-    #                 * (
-    #                     93.64156367505917
-    #                     - 18.184492163348665 * totchi
-    #                     + 423.48863373726243 * totchi2
-    #                     - 104.36120236420928 * totchi2 * totchi
-    #                     - 719.8775484010988 * totchi2 * totchi2
-    #                 )
-    #                 + 1.6533417657003922 * totchi2 * totchi2
-    #                 + eta
-    #                 * (
-    #                     -69.19412903018717
-    #                     + 26.580344399838758 * totchi
-    #                     - 15.399770764623746 * totchi2
-    #                     + 31.231253209893488 * totchi2 * totchi
-    #                     + 97.69027029734173 * totchi2 * totchi2
-    #                 )
-    #                 + eta2
-    #                 * eta2
-    #                 * (
-    #                     1075.8686153198323
-    #                     - 3443.0233614187396 * totchi
-    #                     - 4253.974688619423 * totchi2
-    #                     - 608.2901586790335 * totchi2 * totchi
-    #                     + 5064.173605639933 * totchi2 * totchi2
-    #                 )
-    #             )
-    #         )
-    #         / (-1.3705601055555852 + 1.0 * totchi)
-    #     )
-    #     + (dchi * delta * eta * (22.363215261437862 + 156.08206945239374 * eta))
-    # )
-    # CollocationValuesPhaseRD4 = (
-    #     (
-    #         (
-    #             eta
-    #             * (
-    #                 7.05731400277692
-    #                 + 22.455288821807095 * eta
-    #                 + 119.43820622871043 * eta2
-    #             )
-    #         )
-    #         / (0.26026709603623255 + 1.0 * eta)
-    #     )
-    #     + (
-    #         (
-    #             eta2 * (134.88158268621922 - 56.05992404859163 * totchi) * totchi
-    #             + eta * totchi * (-7.9407123129681425 + 9.486783128047414 * totchi)
-    #             + eta2
-    #             * eta
-    #             * totchi
-    #             * (-316.26970506215554 + 90.31815139272628 * totchi)
-    #         )
-    #         / (1.0 - 0.7162058321905909 * totchi)
-    #     )
-    #     + (43.82713604567481 * dchi * delta * eta2 * eta)
-    # )
 
     # CollocationValuesPhaseRD4 = CollocationValuesPhaseRD4 + CollocationValuesPhaseRD3
     # CollocationValuesPhaseRD2 = CollocationValuesPhaseRD2 + CollocationValuesPhaseRD3
@@ -1101,17 +940,14 @@ def Phase(f: Array, theta: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s ** 2.0)
 
     fM_s = f * M_s
 
     phi_Ins = get_inspiral_phase(fM_s, theta, IMRPhenomX_utils.PhenomX_coeff_table)
     dphaseIN = jax.grad(get_inspiral_phase)(fM_s, theta, coeffs)
     phi_Int = get_intermediate_raw_phase(
-        fM_s,
-        theta,
-        IMRPhenomX_utils.PhenomX_coeff_table,
-        X,
+        fM_s, theta, IMRPhenomX_utils.PhenomX_coeff_table, X,
     )
     # phi_Ins = phi_Ins * phiN * (fM_s ** -(5.0 / 3.0))
 
@@ -1137,7 +973,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s ** 2.0)
     eta2 = eta * eta
     eta3 = eta * eta2
     delta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -1213,7 +1049,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
         )
         + chi2 * (17.0 * PI * delta / 12.0 + 5 * PI * eta / 3.0 - 17 * PI / 12.0)
         - 177520268561.0 / 8583708672.0
-        + (545384828789.0 / 5007163392.0 - 205.0 * PI**2.0 / 48.0) * eta
+        + (545384828789.0 / 5007163392.0 - 205.0 * PI ** 2.0 / 48.0) * eta
         - 3248849057.0 * eta2 / 178827264.0
         + 34473079.0 * eta3 / 6386688.0
     )
@@ -1230,7 +1066,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
         + A3 * fM_s
         + A4 * (fM_s ** (4.0 / 3.0))
         + A5 * (fM_s ** (5.0 / 3.0))
-        + A6 * (fM_s**2.0)
+        + A6 * (fM_s ** 2.0)
         # # Now we add the coefficient terms
         # + A7 * (fM_s ** (7.0 / 3.0))
         # + A8 * (fM_s ** (8.0 / 3.0))
@@ -1278,7 +1114,7 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s ** 2.0)
 
     # And now we can combine them by multiplying by a set of heaviside functions
     # Amp = (

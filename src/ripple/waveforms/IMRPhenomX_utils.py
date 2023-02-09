@@ -16,7 +16,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta_s = m1_s * m2_s / (M_s**2.0)
+    eta_s = m1_s * m2_s / (M_s ** 2.0)
     # m1Sq = m1_s * m1_s
     # m2Sq = m2_s * m2_s
 
@@ -38,7 +38,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     dchi = chi1 - chi2
     dchi2 = dchi * dchi
 
-    StotR = (mm1**2.0 * chi1 + mm2**2.0 * chi2) / (mm1**2.0 + mm2**2.0)
+    StotR = (mm1 ** 2.0 * chi1 + mm2 ** 2.0 * chi2) / (mm1 ** 2.0 + mm2 ** 2.0)
     StotR2 = StotR * StotR
     StotR3 = StotR2 * StotR
 
@@ -53,7 +53,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
         )
         / (1 + 7.2388440419467335 * eta_s)
         + (
-            (mm1**2.0 + mm2**2.0) * StotR
+            (mm1 ** 2.0 + mm2 ** 2.0) * StotR
             + (
                 (
                     -0.8561951310209386 * eta_s
@@ -291,14 +291,16 @@ def nospin_CPvalue(NoSpin_coeffs, eta):
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
+    eta5 = eta4 * eta
     return (
         NoSpin_coeffs[0]
         + NoSpin_coeffs[1] * eta
         + NoSpin_coeffs[2] * eta2
         + NoSpin_coeffs[3] * eta3
         + NoSpin_coeffs[4] * eta4
+        + NoSpin_coeffs[5] * eta5
     ) / (
-        1.0 + NoSpin_coeffs[5] * eta + NoSpin_coeffs[6] * eta2 + NoSpin_coeffs[7] * eta3
+        1.0 + NoSpin_coeffs[6] * eta + NoSpin_coeffs[7] * eta2 + NoSpin_coeffs[8] * eta3
     )
 
 
@@ -376,6 +378,7 @@ PhenomX_coeff_table = jnp.array(
             483033.0998073767,
             0.0,
             0.0,
+            0.0,
             4.460294035404433,
             0.0,
             0.0,
@@ -417,6 +420,7 @@ PhenomX_coeff_table = jnp.array(
             -120297.86185566607,
             1.1694356931282217e6,
             -557253.0066989232,
+            0.0,
             0.0,
             18.53018618227582,
             0.0,
@@ -460,6 +464,7 @@ PhenomX_coeff_table = jnp.array(
             376665.64637025696,
             -3.9719980569125614e6,
             8.913612508054944e6,
+            0.0,
             46.83697749859996,
             0.0,
             0.0,
@@ -500,6 +505,7 @@ PhenomX_coeff_table = jnp.array(
             2439.000000000001,  # No spin
             -31133.52170083207,
             28867.73328134167,
+            0.0,
             0.0,
             0.0,
             0.41143032589262585,
@@ -549,6 +555,7 @@ PhenomX_coeff_table = jnp.array(
             -1.237332073800276,
             6.086871214811216,
             0.0,
+            0.0
             0.006851189888541745,
             0.06099184229137391,
             -0.15500218299268662,
