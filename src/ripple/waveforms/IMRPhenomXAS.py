@@ -732,27 +732,27 @@ def get_mergerringdown_raw_phase(
     CollocationValuesPhaseRD0 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[9, 0:eqspin_indx], eta)
         + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[9, eqspin_indx:uneqspin_indx], eta, S)
-        # + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[9, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[9, uneqspin_indx:], eta, S, chia)
     )
     CollocationValuesPhaseRD1 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[10, 0:eqspin_indx], eta)
         + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[10, eqspin_indx:uneqspin_indx], eta, S)
-        # + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[10, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[10, uneqspin_indx:], eta, S, chia)
     )
     CollocationValuesPhaseRD2 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[11, 0:eqspin_indx], eta)
         + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[11, eqspin_indx:uneqspin_indx], eta, S)
-        # + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[11, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[11, uneqspin_indx:], eta, S, chia)
     )
     CollocationValuesPhaseRD3 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[12, 0:eqspin_indx], eta)
         + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[12, eqspin_indx:uneqspin_indx], eta, S)
-        # + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[12, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[12, uneqspin_indx:], eta, S, chia)
     )
     CollocationValuesPhaseRD4 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[13, 0:eqspin_indx], eta)
         + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[13, eqspin_indx:uneqspin_indx], eta, S)
-        # + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[13, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[13, uneqspin_indx:], eta, S, chia)
     )
 
     # These are the nonspinning parts from the lalsuite code
@@ -926,6 +926,27 @@ def get_mergerringdown_raw_phase(
 
     #         1. # 24
     #         - 0.7162058321905909*S); # 25
+
+    # For RD0 uneq spin
+    # uneqSpin = dchi*delta*eta
+    # * -23.504907495268824 * eta; # 1
+
+    # # For RD 1 uneq spin
+    # dchi*delta*eta * (-36.66374091965371 * eta # 1
+    # + 91.60477826830407*eta2) # 2
+
+    # # For RD 2 uneq spin
+    # uneqSpin = 641.8965762829259 * eta4 # 3
+    # *dchi*delta*eta;
+
+    # # For RD 3 uneq spin
+    # uneqSpin = dchi*delta*eta*
+    # (22.363215261437862 # 0
+    # + 156.08206945239374*eta) # 1
+
+    # # For RD 4 uneq spin
+    # uneqSpin = 43.82713604567481 * eta2 # 2
+    # *dchi*delta*eta;
 
     ###############################################################
     ###############################################################

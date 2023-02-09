@@ -364,12 +364,20 @@ def Eqspin_CPvalue(EqSpin_coeffs, eta, S):
 def Uneqspin_CPvalue(EqSpin_coeffs, eta, S, dchi):
     dchi2 = dchi * dchi
     delta = jnp.sqrt(1.0 - 4.0 * eta)
+    eta2 = eta * eta
+    eta4 = eta2 * eta2
     return (
         dchi
         * delta
         * eta
-        * (EqSpin_coeffs[0] + EqSpin_coeffs[1] * eta + EqSpin_coeffs[2] * S)
-        + EqSpin_coeffs[3] * dchi2 * eta
+        * (
+            EqSpin_coeffs[0]
+            + EqSpin_coeffs[1] * eta
+            + EqSpin_coeffs[2] * eta2  # ADDED
+            + EqSpin_coeffs[3] * eta4  # ADDED
+            + EqSpin_coeffs[4] * S
+        )
+        + EqSpin_coeffs[5] * dchi2 * eta
     )
 
 
@@ -418,6 +426,8 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
         ],
         [  # Coeffs collocation point 1 of the inspiral phase
             -7579.300000000004,  # No spin
@@ -459,6 +469,8 @@ PhenomX_coeff_table = jnp.array(
             -1.130185486082531,
             1.0,
             3843.083992827935,  # UnEq Spin
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -504,6 +516,8 @@ PhenomX_coeff_table = jnp.array(
             1.0,
             -24708.109411857182,  # UnEq Spin
             24703.28267342699,
+            0.0,
+            0.0,
             47752.17032707405,
             -1296.9289110696955,
         ],
@@ -547,6 +561,8 @@ PhenomX_coeff_table = jnp.array(
             1.0,
             0.0,
             194.5554531509207,  # UnEq Spin
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -595,6 +611,12 @@ PhenomX_coeff_table = jnp.array(
             -0.6628745847248266,
             0.0,
             0.0,
+            0.0,  # UnEq Spin
+            -23.504907495268824,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
         ],
         [  # Coeffs collocation point 1 of the merger ringdown phase
             0.0,  # No spin
@@ -633,6 +655,12 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             1.0,
             -0.7267610313751913,
+            0.0,
+            0.0,
+            0.0,  # UnEq Spin
+            -36.66374091965371,
+            91.60477826830407,
+            0.0,
             0.0,
             0.0,
         ],
@@ -675,6 +703,12 @@ PhenomX_coeff_table = jnp.array(
             -0.6862449113932192,
             0.0,
             0.0,
+            0.0,  # UnEq Spin
+            0.0,
+            0.0,
+            641.8965762829259,
+            0.0,
+            0.0,
         ],
         [  # Coeffs collocation point 3 of the merger ringdown phase
             -85.86062966719405,  # No spin
@@ -715,6 +749,12 @@ PhenomX_coeff_table = jnp.array(
             1.0,
             0.0,
             0.0,
+            22.363215261437862,  # UnEq Spin
+            156.08206945239374,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
         ],
         [  # Coeffs collocation point 4 of the merger ringdown phase
             0.0,  # No spin
@@ -753,6 +793,12 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             1.0,
             -0.7162058321905909,
+            0.0,
+            0.0,
+            0.0,  # UnEq Spin
+            0.0,
+            43.82713604567481,
+            0.0,
             0.0,
             0.0,
         ],
