@@ -16,7 +16,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta_s = m1_s * m2_s / (M_s ** 2.0)
+    eta_s = m1_s * m2_s / (M_s**2.0)
     # m1Sq = m1_s * m1_s
     # m2Sq = m2_s * m2_s
 
@@ -38,7 +38,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     dchi = chi1 - chi2
     dchi2 = dchi * dchi
 
-    StotR = (mm1 ** 2.0 * chi1 + mm2 ** 2.0 * chi2) / (mm1 ** 2.0 + mm2 ** 2.0)
+    StotR = (mm1**2.0 * chi1 + mm2**2.0 * chi2) / (mm1**2.0 + mm2**2.0)
     StotR2 = StotR * StotR
     StotR3 = StotR2 * StotR
 
@@ -53,7 +53,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
         )
         / (1 + 7.2388440419467335 * eta_s)
         + (
-            (mm1 ** 2.0 + mm2 ** 2.0) * StotR
+            (mm1**2.0 + mm2**2.0) * StotR
             + (
                 (
                     -0.8561951310209386 * eta_s
@@ -305,6 +305,7 @@ def nospin_CPvalue(NoSpin_coeffs, eta):
 def Eqspin_CPvalue(EqSpin_coeffs, eta, S):
     eta2 = eta * eta
     eta3 = eta2 * eta
+    eta4 = eta3 * eta
     S2 = S * S
     S3 = S2 * S
     S4 = S3 * S
@@ -320,27 +321,37 @@ def Eqspin_CPvalue(EqSpin_coeffs, eta, S):
             + EqSpin_coeffs[6] * S
             + EqSpin_coeffs[7] * S2
             + EqSpin_coeffs[8] * S3
+            + EqSpin_coeffs[9] * S4
         )
         + eta2
         * (
-            EqSpin_coeffs[9]
-            + EqSpin_coeffs[10] * S
-            + EqSpin_coeffs[11] * S2
-            + EqSpin_coeffs[12] * S3
+            EqSpin_coeffs[10]
+            + EqSpin_coeffs[11] * S
+            + EqSpin_coeffs[12] * S2
+            + EqSpin_coeffs[13] * S3
+            + EqSpin_coeffs[14] * S4
         )
         + eta3
         * (
-            EqSpin_coeffs[13]
-            + EqSpin_coeffs[14] * S
-            + EqSpin_coeffs[15] * S2
-            + EqSpin_coeffs[16] * S3
+            EqSpin_coeffs[15]
+            + EqSpin_coeffs[16] * S
+            + EqSpin_coeffs[17] * S2
+            + EqSpin_coeffs[18] * S3
+        )
+        + eta4
+        * (
+            EqSpin_coeffs[19]
+            + EqSpin_coeffs[20] * S
+            + EqSpin_coeffs[21] * S2
+            + EqSpin_coeffs[22] * S3
+            + EqSpin_coeffs[23] * S4
         )
     )
     denominator = (
-        EqSpin_coeffs[17]
-        + EqSpin_coeffs[18] * S
-        + EqSpin_coeffs[19] * S2
-        + EqSpin_coeffs[20] * S3
+        EqSpin_coeffs[24]
+        + EqSpin_coeffs[25] * S
+        + EqSpin_coeffs[26] * S2
+        + EqSpin_coeffs[27] * S3
     )
     return numerator / denominator
 
@@ -377,10 +388,17 @@ PhenomX_coeff_table = jnp.array(
             62190.404951852535,
             18298.307770807573,
             -303141.1945565486,
+            0.0,
             -148368.4954044637,
             -758386.5685734496,
             -137991.37032619823,
             1.0765877367729193e6,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -412,13 +430,20 @@ PhenomX_coeff_table = jnp.array(
             157036.45676788126,
             126736.43159783827,
             0.0,
+            0.0,
             150022.21343386435,
             -50166.382087278434,
             -399712.22891153296,
             0.0,
+            0.0,
             -593633.5370110178,
             -325423.99477314285,
             +847483.2999508682,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             0.0,
             -1.5232497464826662,
             -3.062957826830017,
@@ -447,13 +472,20 @@ PhenomX_coeff_table = jnp.array(
             1.235279439281927e6,
             -174952.69161683554,
             0.0,
+            0.0,
             -1.9826323844247842e6,
             208349.45742548333,
             895372.155565861,
             0.0,
+            0.0,
             4.662143741417853e6,
             -584728.050612325,
             -1.6894189124921719e6,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             0.0,
             -9.675704197652225,
             3.5804521763363075,
@@ -482,12 +514,19 @@ PhenomX_coeff_table = jnp.array(
             -25843.06175439942,
             0.0,
             0.0,
+            0.0,
             229284.04542668918,
             117410.37432997991,
             0.0,
             0.0,
+            0.0,
             -375818.0132734753,
             -386247.80765802023,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             0.0,
             0.0,
             -3.7385208695213668,
@@ -514,7 +553,34 @@ PhenomX_coeff_table = jnp.array(
             0.06099184229137391,
             -0.15500218299268662,
             1.0,
+            0.06519048552628343,  # Eq spin
+            0.0,
+            0.20035146870472367,
+            0.0,
+            -0.2697933899920511,
+            -25.25397971063995,
+            -5.215945111216946,
+            -0.28745205203100666,
+            5.7756520242745735,
+            +4.917070939324979,
+            +58.59408241189781,
+            +153.95945758807616,
+            0.0,
+            -43.97332874253772,
+            -11.61488280763592,
+            +160.14971486043524,
+            -693.0504179144295,
+            0.0,
+            0.0,
+            -308.62513664956975,
+            +835.1725103648205,
+            -47.56042058800358,
+            +338.7263666984089,
+            -22.384949087140086,
+            1.0,
+            -0.6628745847248266,
+            0.0,
+            0.0,
         ],
     ]
 )
-

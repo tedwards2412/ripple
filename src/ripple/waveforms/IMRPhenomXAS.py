@@ -18,7 +18,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
     eta3 = eta2 * eta
     delta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -43,7 +43,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     phi1 = 0.0
     phi2 = (3715.0 / 756.0 + (55.0 * eta) / 9.0) * PI ** (2.0 / 3.0)
     phi3 = (
-        -16.0 * PI ** 2
+        -16.0 * PI**2
         + (
             (
                 113.0 * (chi1 + chi2 + chi1 * delta - chi2 * delta)
@@ -77,19 +77,19 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         )
         / 4536.0
     ) * PI ** (5.0 / 3.0)
-    phi6L = (-6848 / 63.0) * PI ** 2.0
+    phi6L = (-6848 / 63.0) * PI**2.0
     phi6 = (
         (
             11583231236531 / 4.69421568e9
             - (5 * eta * (3147553127 + 588 * eta * (-45633 + 102260 * eta)))
             / 3.048192e6
             - (6848 * EulerGamma) / 21.0
-            - (640 * PI ** 2.0) / 3.0
-            + (2255 * eta * PI ** 2.0) / 12.0
+            - (640 * PI**2.0) / 3.0
+            + (2255 * eta * PI**2.0) / 12.0
             - (13696 * jnp.log(2)) / 21.0
             - (6848 * jnp.log(PI)) / 63.0
         )
-        * PI ** 2.0
+        * PI**2.0
         + (
             (
                 5
@@ -101,7 +101,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
             )
             / 3.0
         )
-        * PI ** 2.0
+        * PI**2.0
         + (
             (
                 5
@@ -125,7 +125,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
             )
             / 4032.0
         )
-        * PI ** 2.0
+        * PI**2.0
     )
     phi7 = (
         ((5 * (15419335 + 168 * (75703 - 29618 * eta) * eta) * PI) / 254016.0)
@@ -221,24 +221,24 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
     CollocationValuesPhaseIns0 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[0, 0:8], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[0, 8:29], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[0, 29:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[0, 8:36], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[0, 36:], eta, S, chia)
     )
     CollocationValuesPhaseIns1 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[1, 0:8], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[1, 8:29], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[1, 29:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[1, 8:36], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[1, 36:], eta, S, chia)
     )
     CollocationValuesPhaseIns2 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[2, 0:8], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[2, 8:28], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[2, 29:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[2, 8:36], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[2, 36:], eta, S, chia)
     )
 
     CollocationValuesPhaseIns3 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[3, 0:8], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[3, 8:29], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[3, 29:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[3, 8:36], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[3, 36:], eta, S, chia)
     )
 
     # See line 1322 of https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x__internals_8c_source.html
@@ -308,8 +308,8 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         + phi4 * (fM_s ** (4.0 / 3.0))
         + phi5 * (fM_s ** (5.0 / 3.0))
         + phi5L * (fM_s ** (5.0 / 3.0)) * jnp.log(fM_s)
-        + phi6 * (fM_s ** 2.0)
-        + phi6L * (fM_s ** 2.0) * jnp.log(fM_s)
+        + phi6 * (fM_s**2.0)
+        + phi6L * (fM_s**2.0) * jnp.log(fM_s)
         + phi7 * (fM_s ** (7.0 / 3.0))
         + phi8 * (fM_s ** (8.0 / 3.0))
         + phi8L * (fM_s ** (8.0 / 3.0)) * jnp.log(fM_s)
@@ -317,7 +317,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
     phi_Ins = phi_TF2 + (
         sigma1 * (fM_s ** (8.0 / 3.0))
-        + sigma2 * (fM_s ** 3.0)
+        + sigma2 * (fM_s**3.0)
         + sigma3 * (fM_s ** (10.0 / 3.0))
         + sigma4 * (fM_s ** (11.0 / 3.0))
     )
@@ -335,7 +335,7 @@ def get_intermediate_raw_phase(
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
     eta3 = eta2 * eta
     delta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -686,7 +686,13 @@ def get_mergerringdown_raw_phase(
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
+    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    mm1 = 0.5 * (1.0 + delta)
+    mm2 = 0.5 * (1.0 - delta)
+    chi_eff = mm1 * chi1 + mm2 * chi2
+    S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
+    chia = chi1 - chi2
 
     #######################################################################
     #######################################################################
@@ -719,9 +725,51 @@ def get_mergerringdown_raw_phase(
 
     CollocationValuesPhaseRD0 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[9, 0:8], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[0, 8:29], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[0, 29:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[9, 8:36], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[9, 36:], eta, S, chia)
     )
+
+    # eqSpin = (
+    #     (
+    #         0.06519048552628343  # 0
+    #         - 25.25397971063995 * eta  # 5
+    #         - 308.62513664956975 * eta4  # 19
+    #         + 58.59408241189781 * eta2  # 10
+    #         + 160.14971486043524 * eta3  # 15
+    #     )
+
+    #     * (
+    #         -5.215945111216946 * eta  # 6
+    #         + 153.95945758807616 * eta2 # 11
+    #         - 693.0504179144295 * eta3  # 16
+    #         + 835.1725103648205 * eta4  # 20
+    #     )
+    #     * S
+
+    #     + (
+    #         0.20035146870472367  # 2
+    #         - 0.28745205203100666 * eta  # 7
+    #         - 47.56042058800358 * eta4)  # 21
+    #     * S2
+
+    #     * (
+    #         5.7756520242745735 * eta  # 8
+    #         - 43.97332874253772 * eta2  # 13
+    #         + 338.7263666984089 * eta4)  # 22
+    #     * S3
+
+    #     + (
+    #         -0.2697933899920511  # 4
+    #         + 4.917070939324979 * eta  # 9
+    #         - 22.384949087140086 * eta4  # 23
+    #         - 11.61488280763592 * eta2  # 14
+    #     )
+    #     * S4
+    # ) / (1.0 # 24
+    # - 0.6628745847248266 * S # 25
+    # )
+
+    # idxs = 9 then a 0 then 4 then a 0 then 8 then a 0
     # (
     #     (
     #         eta
@@ -1053,14 +1101,17 @@ def Phase(f: Array, theta: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     fM_s = f * M_s
 
     phi_Ins = get_inspiral_phase(fM_s, theta, IMRPhenomX_utils.PhenomX_coeff_table)
     dphaseIN = jax.grad(get_inspiral_phase)(fM_s, theta, coeffs)
     phi_Int = get_intermediate_raw_phase(
-        fM_s, theta, IMRPhenomX_utils.PhenomX_coeff_table, X,
+        fM_s,
+        theta,
+        IMRPhenomX_utils.PhenomX_coeff_table,
+        X,
     )
     # phi_Ins = phi_Ins * phiN * (fM_s ** -(5.0 / 3.0))
 
@@ -1086,7 +1137,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
     eta3 = eta * eta2
     delta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -1162,7 +1213,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
         )
         + chi2 * (17.0 * PI * delta / 12.0 + 5 * PI * eta / 3.0 - 17 * PI / 12.0)
         - 177520268561.0 / 8583708672.0
-        + (545384828789.0 / 5007163392.0 - 205.0 * PI ** 2.0 / 48.0) * eta
+        + (545384828789.0 / 5007163392.0 - 205.0 * PI**2.0 / 48.0) * eta
         - 3248849057.0 * eta2 / 178827264.0
         + 34473079.0 * eta3 / 6386688.0
     )
@@ -1179,7 +1230,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
         + A3 * fM_s
         + A4 * (fM_s ** (4.0 / 3.0))
         + A5 * (fM_s ** (5.0 / 3.0))
-        + A6 * (fM_s ** 2.0)
+        + A6 * (fM_s**2.0)
         # # Now we add the coefficient terms
         # + A7 * (fM_s ** (7.0 / 3.0))
         # + A8 * (fM_s ** (8.0 / 3.0))
@@ -1227,7 +1278,7 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     # And now we can combine them by multiplying by a set of heaviside functions
     # Amp = (
