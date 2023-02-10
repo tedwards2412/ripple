@@ -16,7 +16,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta_s = m1_s * m2_s / (M_s**2.0)
+    eta_s = m1_s * m2_s / (M_s ** 2.0)
     # m1Sq = m1_s * m1_s
     # m2Sq = m2_s * m2_s
 
@@ -38,7 +38,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     dchi = chi1 - chi2
     dchi2 = dchi * dchi
 
-    StotR = (mm1**2.0 * chi1 + mm2**2.0 * chi2) / (mm1**2.0 + mm2**2.0)
+    StotR = (mm1 ** 2.0 * chi1 + mm2 ** 2.0 * chi2) / (mm1 ** 2.0 + mm2 ** 2.0)
     StotR2 = StotR * StotR
     StotR3 = StotR2 * StotR
 
@@ -53,7 +53,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
         )
         / (1 + 7.2388440419467335 * eta_s)
         + (
-            (mm1**2.0 + mm2**2.0) * StotR
+            (mm1 ** 2.0 + mm2 ** 2.0) * StotR
             + (
                 (
                     -0.8561951310209386 * eta_s
@@ -567,11 +567,236 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
         ],
-        [],  # Coeffs collocation point 0 of the intermediate phase
-        [],  # Coeffs collocation point 1 of the intermediate phase
-        [],  # Coeffs collocation point 2 of the intermediate phase
-        [],  # Coeffs collocation point 3 of the intermediate phase
-        [],  # Coeffs collocation point 4 of the intermediate phase
+        [  # Coeffs collocation point 0 of the intermediate phase
+            0.0,  # No Spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # UnEq Spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
+        [  # Coeffs collocation point 1 of the intermediate phase
+            0.0,  # No Spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # UnEq Spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
+        [  # Coeffs collocation point 2 of the intermediate phase
+            0.0,  # No Spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # UnEq Spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
+        [  # Coeffs collocation point 3 of the intermediate phase
+            0.0,  # No Spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # UnEq Spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
+        [  # Coeffs collocation point 4 of the intermediate phase
+            0.0,  # No Spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # UnEq Spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
         [  # Coeffs collocation point 0 of the merger ringdown phase
             0.0,  # No spin
             0.7207992174994245,

@@ -26,8 +26,8 @@ def test_phase_phenomXAS():
     inclination = np.pi / 2.0
     phi_ref = 0
 
-    f_l = 15
-    f_u = 100
+    f_l = 400
+    f_u = 1000
     del_f = 0.0125
 
     f_l_idx = round(f_l / del_f)
@@ -44,7 +44,10 @@ def test_phase_phenomXAS():
     theta_ripple = np.array([theta[0], theta[1], theta[2], theta[3]])
 
     f_ref = f_l
-    phase_ripple = IMRPhenomXAS.get_inspiral_phase(
+    # phase_ripple = IMRPhenomXAS.get_inspiral_phase(
+    #     Mf, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
+    # )
+    phase_ripple = IMRPhenomXAS.get_mergerringdown_raw_phase(
         Mf, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
     )
 
