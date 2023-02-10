@@ -6,13 +6,11 @@ A small `jax` package for differentiable and fast gravitational wave data analys
 
 ### Installation
 
-Ripple is still in its development stage and therefore has not been made available installable directly through pip yet. Instead,
-one can install using 
+Ripple is still in development so should be used. Currently IMRPhenomD is tested extensively, but more waveforms will be added as they are developed.
+Ripple can be installed using 
 
 ```
-git clone git@github.com:tedwards2412/ripple.git
-cd ripple
-pip3 install .
+pip3 install ripplegw
 ```
 
 ### Generating a waveform and its derivative
@@ -23,11 +21,9 @@ to get the h_+ and h_x polarizations of the waveform model
 We start with some basic imports:
 
 ```python
-from math import pi
 import jax.numpy as jnp
 
 from ripple.waveforms import IMRPhenomD
-import matplotlib.pyplot as plt
 from ripple import ms_to_Mc_eta
 ```
 
@@ -45,7 +41,6 @@ tc = 0.0 # Time of coalescence in seconds
 phic = 0.0 # Time of coalescence
 dist_mpc = 440 # Distance to source in Mpc
 inclination = 0.0 # Inclination Angle
-polarization_angle = 0.2 # Polarization angle
 
 # The PhenomD waveform model is parameterized with the chirp mass and symmetric mass ratio
 Mc, eta = ms_to_Mc_eta(jnp.array([m1_msun, m2_msun]))
@@ -53,20 +48,21 @@ Mc, eta = ms_to_Mc_eta(jnp.array([m1_msun, m2_msun]))
 # These are the parametrs that go into the waveform generator
 # Note that JAX does not give index errors, so if you pass in the
 # the wrong array it will behave strangely
-theta_ripple = jnp.array([Mc, eta, chi1, chi2, dist_mpc, tc, phic, inclination, polarization_angle])
+theta_ripple = jnp.array([Mc, eta, chi1, chi2, dist_mpc, tc, phic, inclination])
 
 # Now we need to generate the frequency grid
 f_l = 24
 f_u = 512
 del_f = 0.01
 fs = jnp.arange(f_l, f_u, del_f)
+f_ref = f_l
 
 # And finally lets generate the waveform!
-hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple)
+hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
 
 # Note that we have not internally jitted the functions since this would
-# introduce an annoying overhead each time the use evaluated the function with a different length frequency array
-# We therefore recommend that the user jit the function themselves to accelerate evaluations. For example
+# introduce an annoying overhead each time the user evaluated the function with a different length frequency array
+# We therefore recommend that the user jit the function themselves to accelerate evaluations. For example:
 
 import jax
 
