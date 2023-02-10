@@ -9,7 +9,7 @@ from ripple.waveforms import IMRPhenomXAS, IMRPhenomX_utils
 import matplotlib.pyplot as plt
 from ripple.constants import gt
 
-plt.style.use("../plot_style.mplstyle")
+# plt.style.use("../plot_style.mplstyle")
 import numpy as np
 import cProfile
 import lalsimulation as lalsim
@@ -85,7 +85,9 @@ def test_phase_phenomXAS():
 
     plt.figure(figsize=(7, 5))
     plt.plot(
-        freq[f_mask], np.unwrap(np.angle(h0_lalsuite)), label="lalsuite",
+        freq[f_mask],
+        np.unwrap(np.angle(h0_lalsuite)),
+        label="lalsuite",
     )
 
     plt.plot(
@@ -102,7 +104,8 @@ def test_phase_phenomXAS():
     plt.savefig("../figures/inspiral_phase_PhenomX.pdf", bbox_inches="tight")
 
     print(
-        "Ripple Phase:", phase_ripple,
+        "Ripple Phase:",
+        phase_ripple,
     )
     print("Lalsuite Phase:", np.unwrap(np.angle(h0_lalsuite)))
 
@@ -113,7 +116,9 @@ def test_phase_phenomXAS():
 
     plt.figure(figsize=(7, 5))
     plt.plot(
-        f, (np.unwrap(np.angle(h0_lalsuite))) - phase_ripple, label="phase difference",
+        f,
+        (np.unwrap(np.angle(h0_lalsuite))) - phase_ripple,
+        label="phase difference",
     )
     # plt.axvline(x=f1)
     # plt.axvline(x=f2)
