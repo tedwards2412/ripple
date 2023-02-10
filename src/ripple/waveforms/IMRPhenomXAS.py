@@ -724,7 +724,6 @@ def get_mergerringdown_raw_phase(
     CollocationPointsPhaseRD2 = gpoints5[2] * deltax + xmin
     CollocationPointsPhaseRD3 = fRD
     CollocationPointsPhaseRD4 = gpoints5[4] * deltax + xmin
-    # (eta*(0.7207992174994245 - 1.237332073800276*eta + 6.086871214811216*eta2))/(0.006851189888541745 + 0.06099184229137391*eta - 0.15500218299268662*eta2 + 1.*eta3);
 
     eqspin_indx = 10
     uneqspin_indx = 38
@@ -754,6 +753,9 @@ def get_mergerringdown_raw_phase(
         + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[13, eqspin_indx:uneqspin_indx], eta, S)
         + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[13, uneqspin_indx:], eta, S, chia)
     )
+
+    # RD0 no spin
+    # (eta*(0.7207992174994245 - 1.237332073800276*eta + 6.086871214811216*eta2))/(0.006851189888541745 + 0.06099184229137391*eta - 0.15500218299268662*eta2 + 1.*eta3);
 
     # These are the nonspinning parts from the lalsuite code
     # For RD1 no spin
