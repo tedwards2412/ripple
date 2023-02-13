@@ -260,7 +260,7 @@ def gen_h0(f, theta, f_ref):
     # m2 = (M - jnp.sqrt(M**2 - 4 * (eta * M**2))) / 2
 
     # c_l = 299792458.0  # speed of light in ms-1
-    Msun = 1.0 / 5.02785e-31
+    # Msun = 1.0 / 5.02785e-31
     # G_N = 6.6743e-11 * Msun
 
     grad_phase_fcut = jax.vmap(grad_phase)(f)
