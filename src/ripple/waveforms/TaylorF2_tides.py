@@ -11,14 +11,16 @@ from ripple import Mc_eta_to_ms
 def Phif3hPN_TLN(f, theta):
     """
     Computes the phase of the TaylorF2 waveform + TLN parameters. Sets time and phase of coealence to be zero.
-    Parameters: 
+    Parameters:
     f (array): Frequency at which to output the phase [Hz]
     M (float): Total Mass [Msun]
     eta (float): m1*m2/(m1+m2)**2
     chi_1 (float): Spin of object 1 in z direction
     chi_2 (float): Spin of object 2 in z direction
-    
-    Returns: 
+    Love1 (float): Love number of object 1
+    Love2 (float): Love number of object 2
+
+    Returns:
     phase (array): Phase of the GW as a function of frequency
     """
     M, eta, chi_1, chi_2, Love1, Love2 = theta
@@ -37,8 +39,8 @@ def Phif3hPN_TLN(f, theta):
     lambda_a = 0.5 * (lambda_1 - lambda_2)
     delta = jnp.sqrt(1.0 - 4.0 * eta)
 
-    m1 = (M + jnp.sqrt(M ** 2 - 4 * (eta * M ** 2))) / 2
-    m2 = (M - jnp.sqrt(M ** 2 - 4 * (eta * M ** 2))) / 2
+    m1 = (M + jnp.sqrt(M**2 - 4 * (eta * M**2))) / 2
+    m2 = (M - jnp.sqrt(M**2 - 4 * (eta * M**2))) / 2
 
     v = (PI * M * (f + 1e-100) * gt) ** (1.0 / 3.0)
     v2 = v * v
@@ -49,8 +51,8 @@ def Phif3hPN_TLN(f, theta):
     v7 = v3 * v4
     v10 = v5 * v5
     v12 = v10 * v2
-    eta2 = eta ** 2
-    eta3 = eta ** 3
+    eta2 = eta**2
+    eta3 = eta**3
 
     ## ------------------------- Non spinning part of the waveform
     ## Background GR
@@ -66,10 +68,10 @@ def Phif3hPN_TLN(f, theta):
     psi_NS_3PN = (
         (
             11583231236531.0 / 4694215680.0
-            - 640.0 * PI ** 2 / 3.0
+            - 640.0 * PI**2 / 3.0
             - 6848.0 * EulerGamma / 21.0
         )
-        + (2255.0 * PI ** 2 / 12.0 - 15737765635.0 / 3048192.0) * eta
+        + (2255.0 * PI**2 / 12.0 - 15737765635.0 / 3048192.0) * eta
         + 76055.0 * eta2 / 1728.0
         - 127825.0 * eta3 / 1296.0
         - 6848.0 * jnp.log(4.0 * v) / 21.0
@@ -83,8 +85,8 @@ def Phif3hPN_TLN(f, theta):
     ## Tidal Love Numbers
     Lambda_t = (
         16.0
-        * ((m1 + 12 * m2) * m1 ** 4 * Love1 + (m2 + 12 * m1) * m2 ** 4 * Love2)
-        / (13.0 * M ** 5.0)
+        * ((m1 + 12 * m2) * m1**4 * Love1 + (m2 + 12 * m1) * m2**4 * Love2)
+        / (13.0 * M**5.0)
     )
 
     psi_TLN_5PN = -(39.0 * Lambda_t / 2.0) * v10
@@ -98,12 +100,12 @@ def Phif3hPN_TLN(f, theta):
     psi_S_2PN = (
         -(5.0 / 8.0)
         * (1.0 + 156.0 * eta + 80.0 * delta * k_a + 80.0 * (1.0 - 2.0 * eta) * k_s)
-        * (chi_s ** 2)
+        * (chi_s**2)
     )
     psi_S_2PN -= (
         (5.0 / 8.0)
         * (1.0 - 160.0 * eta + 80.0 * delta * k_a + 80.0 * (1.0 - 2.0 * eta) * k_s)
-        * (chi_a ** 2)
+        * (chi_a**2)
     )
     psi_S_2PN -= (
         (5.0 / 4.0)
@@ -192,7 +194,7 @@ def Phif3hPN_TLN(f, theta):
             + (3110.0 - 10310.0 * eta / 3.0) * k_s
             - 1320.0 * (1.0 - eta) * lambda_s
         )
-    ) * (chi_s ** 2 * chi_a)
+    ) * (chi_s**2 * chi_a)
     psi_S_35PN += (
         265.0 / 8.0
         - 6500.0 * eta / 3.0
@@ -201,7 +203,7 @@ def Phif3hPN_TLN(f, theta):
         - 1320.0 * (1.0 - 3 * eta) * lambda_s
         + delta
         * ((3110.0 - 8530.0 * eta / 3.0) * k_a - 1320.0 * (1.0 - eta) * lambda_a)
-    ) * (chi_a ** 2 * chi_s)
+    ) * (chi_a**2 * chi_s)
     psi_S_35PN *= v7
 
     psi_NS = (
@@ -223,35 +225,25 @@ def Phif3hPN_TLN(f, theta):
     )  # Note that when called with hf3hPN_TLN, we need to include - sign for correct time domain direction
 
 
-def h0(f, theta, f_ref):
+def gen_h0(f, theta, f_ref):
     """
     Computes the Taylor F2 Frequency domain strain waveform with non-standard spin induced quadrupole moment/tidal deformability for object two
     Note that this waveform assumes object 1 is a BH therefore uses the chi*M relation to find C
     Note that this waveform also assumes that object one is the more massive. Therefore the more massive object is always considered a BH
-    Parameters: 
+    Parameters:
     f (array): Frequency at which to output the phase [Hz]
     M (float): Total Mass [Msun]
     eta (float): m1*m2/(m1+m2)**2
-    s1x (float): Spin of object 1 in x direction
-    s1y (float): Spin of object 1 in y direction
     s1z (float): Spin of object 1 in z direction
-    s2x (float): Spin of object 2 in x direction
-    s2y (float): Spin of object 2 in y direction
     s2z (float): Spin of object 2 in z direction
     Deff (float): Distance [Mpc]
-    kappa_1 (float): Kappa parameter for object 1
-    kappa_2 (float): Kappa parameter for object 2
-    lambda_1 (float): Dimensionful tidal Deformability for object 1
-    lambda_2 (float): Dimensionful tidal Deformability for object 2
-    C_1 (float): Compactness of object 1. If set to one it will default to the BH value
-    C_2 (float): Compactness of object 2. If set to one it will default to the BH value
-  
-    Returns: 
-    Strain (array): 
+
+    Returns:
+    Strain (array):
     """
-    M, eta, _, _, _, _, tc, phic, Deff = theta
+    M, eta, _, _, _, _, Deff, tc, phic = theta
     pre = 3.6686934875530996e-19  # (GN*Msun/c^3)^(5/6)/Hz^(7/6)*c/Mpc/sec
-    Mchirp = M * eta ** 0.6
+    Mchirp = M * eta**0.6
     A0 = (
         Mchirp ** (5.0 / 6.0)
         / (f + 1e-100) ** (7.0 / 6.0)
@@ -260,59 +252,37 @@ def h0(f, theta, f_ref):
         * jnp.sqrt(5.0 / 24.0)
     )
 
-    Phi = Phif3hPN_TLN(f, theta[:-1])
+    Phase_ = lambda f_: Phif3hPN_TLN(f_, theta[:-3])
+    grad_phase = jax.grad(Phase_)
+    Phi = Phase_(f)
 
-    m1 = (M + jnp.sqrt(M ** 2 - 4 * (eta * M ** 2))) / 2
-    m2 = (M - jnp.sqrt(M ** 2 - 4 * (eta * M ** 2))) / 2
+    # m1 = (M + jnp.sqrt(M**2 - 4 * (eta * M**2))) / 2
+    # m2 = (M - jnp.sqrt(M**2 - 4 * (eta * M**2))) / 2
 
-    c_l = 299792458.0  # speed of light in ms-1
+    # c_l = 299792458.0  # speed of light in ms-1
     Msun = 1.0 / 5.02785e-31
-    G_N = 6.6743e-11 * Msun
+    # G_N = 6.6743e-11 * Msun
 
-    # grad_phase = jnp.gradient(Phi, f)
-    # f_phasecutoff = f[jnp.argmax(grad_phase)]
-    # f_ISCO = 4.4e3 * (1 / M)  # Hz
-    # f_touch = (
-    #     (c_l ** 3 / G_N)
-    #     * (1.0 / PI)
-    #     * jnp.sqrt((m1 + m2) / (m1 / C_1 + m2 / C_2) ** 3)
-    # )  # Fix units to give Hz
-    # f_cutoff = min(f_ISCO, f_touch, f_phasecutoff)
-    # # print('cutoff frequency', f_ISCO, f_touch, f_phasecutoff, f_cutoff)
-    # # print(f_ISCO, f_touch, f_phasecutoff, f_cutoff)
-    # # if f_cutoff <= f[0]:
-    # #     raise RuntimeError("Frequency cut off below minimum input frequency")
+    grad_phase_fcut = jax.vmap(grad_phase)(f)
+    f_phasecutoff = f[jnp.argmax(grad_phase_fcut)]
+    f_ISCO = 4.4e3 * (1 / M)  # Hz
+    f_cutoff = min(f_ISCO, f_phasecutoff)
+    if f_cutoff <= f[0]:
+        raise RuntimeError("Frequency cut off below minimum input frequency")
 
-    # # # Appends zero value after cutoff
-    # # Phi[f > f_cutoff] = 0.0
-    # # A0[f > f_cutoff] = 0.0
+    t0 = grad_phase(f_cutoff)
 
-    # # Try to append final value of phase after cutoff, instead of setting to zero
-    # f_cutoff_ind = jnp.argmax(f > f_cutoff) - 1
-    # Phi[f > f_cutoff] = Phi[f_cutoff_ind]
-    # A0[f > f_cutoff] = 0.0
+    # Lets call the amplitude and phase now
+    Phi_ref = Phase_(f_ref)
+    Phi -= t0 * (f - f_ref) + Phi_ref
 
-    # t0 = jax.grad(get_IIb_raw_phase)(f4 * M_s, theta_intrinsic, coeffs, f_RD, f_damp)
+    ext_phase_contrib = 2.0 * PI * f * tc - 2 * phic
+    Phi += ext_phase_contrib
 
-    # # Lets call the amplitude and phase now
-    # Psi = Phase(f, theta_intrinsic, coeffs, transition_freqs)
-    # Mf_ref = f_ref * M_s
-    # Psi_ref = Phase(f_ref, theta_intrinsic, coeffs, transition_freqs)
-    # Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
+    Phi = Phi * jnp.heaviside(f_cutoff - f, 0.0)
+    Amp = pre * A0 * jnp.heaviside(f_cutoff - f, 0.0)
 
-    #  ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
-    # Psi += ext_phase_contrib
-    # fcut_above = lambda f: (fM_CUT / M_s)
-    # fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
-    # fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
-    # # fcut_true = f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
-    # Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(
-    #     f - fcut_true, 1.0
-    # )
-
-    # A = Amp(f, theta_intrinsic, coeffs, transition_freqs, D=theta_extrinsic[0])
-
-    return pre * A0 * jnp.exp(-1.0j * Phi)
+    return Amp * jnp.exp(1.0j * Phi)
 
 
 def gen_taylorF2_tidal_polar(f: Array, params: Array, f_ref: float):
@@ -337,7 +307,7 @@ def gen_taylorF2_tidal_polar(f: Array, params: Array, f_ref: float):
       hc (array): Strain of the cross polarization
     """
     iota = params[7]
-    h0 = h0(f, params, f_ref)
+    h0 = gen_h0(f, params[:-1], f_ref)
 
     hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
     hc = -1j * h0 * jnp.cos(iota)
