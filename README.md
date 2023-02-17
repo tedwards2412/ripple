@@ -6,7 +6,7 @@ A small `jax` package for differentiable and fast gravitational wave data analys
 
 ### Installation
 
-Ripple is still in development so should be used. Currently IMRPhenomD is tested extensively, but more waveforms will be added as they are developed.
+Ripple is still in development so should be used carefully. Currently IMRPhenomD is tested extensively, but more waveforms will be added as they are developed.
 Ripple can be installed using 
 
 ```
