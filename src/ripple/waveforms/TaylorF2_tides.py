@@ -13,7 +13,7 @@ def Phif3hPN_TLN(f, theta):
     Computes the phase of the TaylorF2 waveform + TLN parameters. Sets time and phase of coealence to be zero.
     Parameters:
     f (array): Frequency at which to output the phase [Hz]
-    M (float): Total Mass [Msun]
+    Mc (float): Chrip Mass [Msun]
     eta (float): m1*m2/(m1+m2)**2
     chi_1 (float): Spin of object 1 in z direction
     chi_2 (float): Spin of object 2 in z direction
@@ -23,7 +23,8 @@ def Phif3hPN_TLN(f, theta):
     Returns:
     phase (array): Phase of the GW as a function of frequency
     """
-    M, eta, chi_1, chi_2, Love1, Love2 = theta
+    Mc, eta, chi_1, chi_2, Love1, Love2 = theta
+    M = Mc / (eta ** (3 / 5))
     vlso = 1.0 / jnp.sqrt(6.0)
     lambda_1 = 1.0
     lambda_2 = 1.0
@@ -225,6 +226,17 @@ def Phif3hPN_TLN(f, theta):
     )  # Note that when called with hf3hPN_TLN, we need to include - sign for correct time domain direction
 
 
+def Amp_merger(f, f_cutoff, Amp_Ins_end):
+    # Amp_m = Amp_Ins_end * (1 - (1 / (1 + np.exp(-(f - 1.2 * f_cutoff)))))
+    Amp_m = (
+        (1.0 - (1.0 / (1.0 + jnp.exp(-(f - 1.2 * f_cutoff)))))
+        * (Amp_Ins_end / f_cutoff ** (-7.0 / 6.0))
+        * (f ** (-7.0 / 6.0))
+    )
+
+    return Amp_m
+
+
 def gen_h0(f, theta, f_ref):
     """
     Computes the Taylor F2 Frequency domain strain waveform with non-standard spin induced quadrupole moment/tidal deformability for object two
@@ -232,7 +244,7 @@ def gen_h0(f, theta, f_ref):
     Note that this waveform also assumes that object one is the more massive. Therefore the more massive object is always considered a BH
     Parameters:
     f (array): Frequency at which to output the phase [Hz]
-    M (float): Total Mass [Msun]
+    Mc (float): Chirp Mass [Msun]
     eta (float): m1*m2/(m1+m2)**2
     s1z (float): Spin of object 1 in z direction
     s2z (float): Spin of object 2 in z direction
@@ -241,7 +253,8 @@ def gen_h0(f, theta, f_ref):
     Returns:
     Strain (array):
     """
-    M, eta, _, _, _, _, Deff, tc, phic = theta
+    Mc, eta, _, _, _, _, Deff, tc, phic = theta
+    M = Mc / (eta ** (3 / 5))
     pre = 3.6686934875530996e-19  # (GN*Msun/c^3)^(5/6)/Hz^(7/6)*c/Mpc/sec
     Mchirp = M * eta**0.6
     A0 = (
@@ -266,9 +279,9 @@ def gen_h0(f, theta, f_ref):
     grad_phase_fcut = jax.vmap(grad_phase)(f)
     f_phasecutoff = f[jnp.argmax(grad_phase_fcut)]
     f_ISCO = 4.4e3 * (1 / M)  # Hz
-    f_cutoff = min(f_ISCO, f_phasecutoff)
-    if f_cutoff <= f[0]:
-        raise RuntimeError("Frequency cut off below minimum input frequency")
+    f_cutoff = jnp.min(jnp.array([f_ISCO, f_phasecutoff]))
+    # if f_cutoff <= f[0]:
+    #     raise RuntimeError("Frequency cut off below minimum input frequency")
 
     t0 = grad_phase(f_cutoff)
 
@@ -279,10 +292,14 @@ def gen_h0(f, theta, f_ref):
     ext_phase_contrib = 2.0 * PI * f * tc - 2 * phic
     Phi += ext_phase_contrib
 
-    Phi = Phi * jnp.heaviside(f_cutoff - f, 0.0)
-    Amp = pre * A0 * jnp.heaviside(f_cutoff - f, 0.0)
+    Phi = Phi * jnp.heaviside(f_cutoff - f, 1.0)
+    Amp_m = Amp_merger(f, f_cutoff, A0[jnp.argmax(grad_phase_fcut)])
 
-    return Amp * jnp.exp(1.0j * Phi)
+    Amp = A0 * jnp.heaviside(f_cutoff - f, 0.5) + Amp_m * jnp.heaviside(
+        f - f_cutoff, 0.5
+    )
+
+    return Amp * pre * jnp.exp(-1.0j * Phi)
 
 
 def gen_taylorF2_tidal_polar(f: Array, params: Array, f_ref: float):
@@ -294,6 +311,8 @@ def gen_taylorF2_tidal_polar(f: Array, params: Array, f_ref: float):
     eta: Symmetric mass ratio [between 0.0 and 0.25]
     chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
     chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+    L1:
+    L2:
     D: Luminosity distance to source [Mpc]
     tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
     phic: Phase of coalesence
@@ -306,7 +325,7 @@ def gen_taylorF2_tidal_polar(f: Array, params: Array, f_ref: float):
       hp (array): Strain of the plus polarization
       hc (array): Strain of the cross polarization
     """
-    iota = params[7]
+    iota = params[9]
     h0 = gen_h0(f, params[:-1], f_ref)
 
     hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
