@@ -16,7 +16,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta_s = m1_s * m2_s / (M_s ** 2.0)
+    eta_s = m1_s * m2_s / (M_s**2.0)
     # m1Sq = m1_s * m1_s
     # m2Sq = m2_s * m2_s
 
@@ -38,7 +38,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     dchi = chi1 - chi2
     dchi2 = dchi * dchi
 
-    StotR = (mm1 ** 2.0 * chi1 + mm2 ** 2.0 * chi2) / (mm1 ** 2.0 + mm2 ** 2.0)
+    StotR = (mm1**2.0 * chi1 + mm2**2.0 * chi2) / (mm1**2.0 + mm2**2.0)
     StotR2 = StotR * StotR
     StotR3 = StotR2 * StotR
 
@@ -53,7 +53,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
         )
         / (1 + 7.2388440419467335 * eta_s)
         + (
-            (mm1 ** 2.0 + mm2 ** 2.0) * StotR
+            (mm1**2.0 + mm2**2.0) * StotR
             + (
                 (
                     -0.8561951310209386 * eta_s
@@ -342,21 +342,22 @@ def Eqspin_CPvalue(EqSpin_coeffs, eta, S):
             + EqSpin_coeffs[16] * S
             + EqSpin_coeffs[17] * S2
             + EqSpin_coeffs[18] * S3
+            + EqSpin_coeffs[19] * S4
         )
         + eta4
         * (
-            EqSpin_coeffs[19]
-            + EqSpin_coeffs[20] * S
-            + EqSpin_coeffs[21] * S2
-            + EqSpin_coeffs[22] * S3
-            + EqSpin_coeffs[23] * S4
+            EqSpin_coeffs[20]
+            + EqSpin_coeffs[21] * S
+            + EqSpin_coeffs[22] * S2
+            + EqSpin_coeffs[23] * S3
+            + EqSpin_coeffs[24] * S4
         )
     )
     denominator = (
-        EqSpin_coeffs[24]
-        + EqSpin_coeffs[25] * S
-        + EqSpin_coeffs[26] * S2
-        + EqSpin_coeffs[27] * S3
+        EqSpin_coeffs[25]
+        + EqSpin_coeffs[26] * S
+        + EqSpin_coeffs[27] * S2
+        + EqSpin_coeffs[28] * S3
     )
     return numerator / denominator
 
@@ -365,7 +366,9 @@ def Uneqspin_CPvalue(EqSpin_coeffs, eta, S, dchi):
     dchi2 = dchi * dchi
     delta = jnp.sqrt(1.0 - 4.0 * eta)
     eta2 = eta * eta
-    eta4 = eta2 * eta2
+    eta3 = eta2 * eta
+    eta4 = eta3 * eta
+    eta5 = eta4 * eta
     return (
         dchi
         * delta
@@ -373,17 +376,20 @@ def Uneqspin_CPvalue(EqSpin_coeffs, eta, S, dchi):
         * (
             EqSpin_coeffs[0]
             + EqSpin_coeffs[1] * eta
-            + EqSpin_coeffs[2] * eta2  # ADDED
-            + EqSpin_coeffs[3] * eta4  # ADDED
-            + EqSpin_coeffs[4] * S
+            + EqSpin_coeffs[2] * eta2
+            + EqSpin_coeffs[3] * eta4
+            + EqSpin_coeffs[4] * eta5  # Added
+            + EqSpin_coeffs[5] * S
+            + EqSpin_coeffs[6] * S * eta2  # Added
+            + EqSpin_coeffs[7] * S * eta3  # Added
         )
-        + EqSpin_coeffs[5] * dchi2 * eta
+        + EqSpin_coeffs[8] * dchi2 * eta
     )
 
 
 PhenomX_coeff_table = jnp.array(
     [
-        [  # Coeffs collocation point 0 of the inspiral phase
+        [  # Coeffs collocation point 0 of the inspiral phase (ind 0)
             -17294.000000000007,  # No spin
             -19943.076428555978,
             483033.0998073767,
@@ -418,6 +424,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
             2.0412979553629143,
             1.0,
             0.0,
@@ -428,8 +435,11 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
+            0.0,
         ],
-        [  # Coeffs collocation point 1 of the inspiral phase
+        [  # Coeffs collocation point 1 of the inspiral phase (ind 1)
             -7579.300000000004,  # No spin
             -120297.86185566607,
             1.1694356931282217e6,
@@ -464,6 +474,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
             -1.5232497464826662,
             -3.062957826830017,
             -1.130185486082531,
@@ -474,8 +485,11 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
+            0.0,
         ],
-        [  # Coeffs collocation point 2 of the inspiral phase
+        [  # Coeffs collocation point 2 of the inspiral phase (ind 2)
             15415.000000000007,  # No spin
             873401.6255736464,
             376665.64637025696,
@@ -510,6 +524,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
             -9.675704197652225,
             3.5804521763363075,
             2.5298346636273306,
@@ -518,10 +533,13 @@ PhenomX_coeff_table = jnp.array(
             24703.28267342699,
             0.0,
             0.0,
+            0.0,
             47752.17032707405,
+            0.0,
+            0.0,
             -1296.9289110696955,
         ],
-        [  # Coeffs collocation point 3 of the inspiral phase
+        [  # Coeffs collocation point 3 of the inspiral phase (ind 3)
             2439.000000000001,  # No spin
             -31133.52170083207,
             28867.73328134167,
@@ -556,6 +574,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
             -3.7385208695213668,
             0.25294420589064653,
             1.0,
@@ -566,9 +585,39 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
+            0.0,
         ],
-        [  # Coeffs collocation point 0 of the intermediate phase
+        [  # Coeffs collocation point 0 of the intermediate phase (ind 4)
             0.0,  # No Spin
+            0.9951733419499662,
+            101.21991715215253,
+            632.4731389009143,
+            0.0,
+            0.0,
+            0.00016803066316882238,
+            0.11412314719189287,
+            1.8413983770369362,
+            1.0,
+            18.694178521101332,  # Eq spin
+            16.89845522539974,
+            0.0,
+            0.3612417066833153,
+            0.0,
+            -697.6773920613674,
+            0.0,
+            -147.53381808989846,
+            0.0,
+            0.0,
+            0.0,
+            4941.31613710257,
+            0.0,
+            0.0,
+            0.0,
+            3531.552143264721,
+            -14302.70838220423,
+            178.85850322465944,
             0.0,
             0.0,
             0.0,
@@ -576,20 +625,49 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            2.965640445745779,
+            -2.7706595614504725,
+            1.0,
             0.0,
-            0.0,
-            0.0,  # Eq spin
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            0.0,  # UnEq Spin
+            356.74395864902294,
             0.0,
             0.0,
             0.0,
             0.0,
             0.0,
+            1693.326644293169,
+            0.0,
+        ],
+        [  # Coeffs collocation point 1 of the intermediate phase (ind 5)
+            0.0,  # No Spin
+            -5.126358906504587,
+            -227.46830225846668,
+            688.3609087244353,
+            -751.4184178636324,
+            0.0,
+            -0.004551938711031158,
+            -0.7811680872741462,
+            1.0,
+            0.0,
+            0.1549280856660919,  # Eq spin
+            -0.9539250460041732,
+            -2.84311102369862,
+            0.0,
+            0.0,
+            73.79645135116367,
+            0.0,
+            -8.13494176717772,
+            0.0,
+            0.0,
+            0.0,
+            -539.4071941841604,
+            0.0,
+            0.0,
+            0.0,
+            -936.3740515136005,
+            1862.9097047992134,
+            224.77581754671272,
             0.0,
             0.0,
             0.0,
@@ -597,207 +675,121 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            -1.5308507364054487,
+            1.0,
             0.0,
             0.0,
             0.0,  # UnEq Spin
             0.0,
             0.0,
             0.0,
+            2993.3598520496153,
+            0.0,
+            0.0,
             0.0,
             0.0,
         ],
-        [  # Coeffs collocation point 1 of the intermediate phase
-            0.0,  # No Spin
+        [  # Coeffs collocation point 1 of the intermediate phase (ind 5)
+            -82.54500000000004,  # No Spin
+            -5.58197349185435e6,
+            -3.5225742421184325e8,
+            1.4667258334378073e9,
+            0.0,  #
+            0.0,  #
+            1.0,
+            66757.12830903867,
+            5.385164380400193e6,
+            2.5176585751772933e6,
+            19.416719811164853,  # Eq spin
+            -36.066611959079935,
+            -0.8612656616290079,
+            5.95010003393006,
+            4.984750041013893,
+            207.69898051583655,
+            -132.88417400679026,
+            -17.671713040498304,
+            29.071788188638315,
+            37.462217031512786,
+            170.97203068800542,
+            -107.41099349364234,
+            0.0,
+            -647.8103976942541,
+            0.0,
+            -1365.1499998427248,
+            1152.425940764218,
+            415.7134909564443,
+            1897.5444343138167,
+            -866.283566780576,
             0.0,
             0.0,
             0.0,
             0.0,
             0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,  # Eq spin
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            -1.1492259468169692,
+            1.0,
             0.0,
             0.0,
             0.0,  # UnEq Spin
             0.0,
+            7343.130973149263,
+            -20486.813161100774,
             0.0,
             0.0,
+            515.9898508588834,
             0.0,
             0.0,
         ],
-        [  # Coeffs collocation point 2 of the intermediate phase
-            0.0,  # No Spin
+        [  # Coeffs collocation point 2 of the intermediate phase (ind 6)
+            0.4248820426833804,  # No Spin
+            -906.746595921514,
+            -282820.39946006844,
+            -967049.2793750163,
+            670077.5414916876,
+            0.0,
+            1.0,
+            1670.9440812294847,
+            19783.077247023448,
+            0.0,
+            0.22814271667259703,  # Eq spin
+            1.1366593671801855,
+            0.4818323187946999,
+            0.0,
+            0.0,
+            12.840649528989287,
+            0.0,
+            -61.17248283184154,
+            941.6974723887743,
+            0.0,
+            -711.8532052499075,
+            269.9234918621958,
             0.0,
             0.0,
             0.0,
+            3499.432393555856,
+            -877.8811492839261,
+            -4974.189172654984,
             0.0,
             0.0,
+            -4939.642457025497,
+            -227.7672020783411,
+            8745.201037897836,
             0.0,
             0.0,
-            0.0,
-            0.0,
-            0.0,  # Eq spin
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            -1.2442293719740283,
+            1.0,
             0.0,
             0.0,
             0.0,  # UnEq Spin
             0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-        ],
-        [  # Coeffs collocation point 3 of the intermediate phase
-            0.0,  # No Spin
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,  # Eq spin
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,  # UnEq Spin
+            -514.8494071830514,
+            1493.3851099678195,
             0.0,
             0.0,
             0.0,
             0.0,
             0.0,
         ],
-        [  # Coeffs collocation point 4 of the intermediate phase
-            0.0,  # No Spin
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,  # Eq spin
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,  # UnEq Spin
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-        ],
-        [  # Coeffs collocation point 0 of the merger ringdown phase
+        [  # Coeffs collocation point 0 of the merger ringdown phase (ind 7)
             0.0,  # No spin
             0.7207992174994245,
             -1.237332073800276,
@@ -827,6 +819,7 @@ PhenomX_coeff_table = jnp.array(
             -693.0504179144295,
             0.0,
             0.0,
+            0.0,
             -308.62513664956975,
             +835.1725103648205,
             -47.56042058800358,
@@ -842,8 +835,11 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
+            0.0,
         ],
-        [  # Coeffs collocation point 1 of the merger ringdown phase
+        [  # Coeffs collocation point 1 of the merger ringdown phase (ind 8)
             0.0,  # No spin
             -9.460253118496386,
             +9.429314399633007,
@@ -873,6 +869,7 @@ PhenomX_coeff_table = jnp.array(
             +808.457330742532,
             0.0,
             0.0,
+            0.0,
             -774.3633787391745,
             -2177.554979351284,
             -1031.846477275069,
@@ -888,8 +885,11 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
+            0.0,
         ],
-        [  # Coeffs collocation point 2 of the merger ringdown phase
+        [  # Coeffs collocation point 2 of the merger ringdown phase (ind 9)
             0.0,  # No spin
             -8.506898502692536,
             +13.936621412517798,
@@ -924,6 +924,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
             1.0,
             -0.6862449113932192,
             0.0,
@@ -934,8 +935,11 @@ PhenomX_coeff_table = jnp.array(
             641.8965762829259,
             0.0,
             0.0,
+            0.0,
+            0.0,
+            0.0,
         ],
-        [  # Coeffs collocation point 3 of the merger ringdown phase
+        [  # Coeffs collocation point 3 of the merger ringdown phase (ind 10)
             -85.86062966719405,  # No spin
             -4616.740713893726,
             -4925.756920247186,
@@ -965,6 +969,7 @@ PhenomX_coeff_table = jnp.array(
             1497.3545918387515,
             -101.72731770500685,
             0.0,
+            0.0,
             1075.8686153198323,
             -3443.0233614187396,
             -4253.974688619423,
@@ -980,8 +985,11 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
+            0.0,
+            0.0,
         ],
-        [  # Coeffs collocation point 4 of the merger ringdown phase
+        [  # Coeffs collocation point 4 of the merger ringdown phase (ind 11)
             0.0,  # No spin
             7.05731400277692,
             22.455288821807095,
@@ -1016,6 +1024,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
             1.0,
             -0.7162058321905909,
             0.0,
@@ -1023,6 +1032,9 @@ PhenomX_coeff_table = jnp.array(
             0.0,  # UnEq Spin
             0.0,
             43.82713604567481,
+            0.0,
+            0.0,
+            0.0,
             0.0,
             0.0,
             0.0,
