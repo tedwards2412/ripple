@@ -26,7 +26,7 @@ def test_phase_phenomXAS():
     inclination = np.pi / 2.0
     phi_ref = 0
 
-    f_l = 400
+    f_l = 20
     f_u = 1000
     del_f = 0.0125
 

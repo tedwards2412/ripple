@@ -516,11 +516,11 @@ def get_intermediate_raw_phase(
 
     coeffscoloc = jnp.linalg.solve(A, b)
 
-    b0 = coeffscoloc[:, 0]
-    b1 = coeffscoloc[:, 1] * fRD
-    b2 = coeffscoloc[:, 2] * fRD**2
-    b3 = coeffscoloc[:, 3] * fRD**3
-    b4 = coeffscoloc[:, 4] * fRD**4
+    b0 = coeffscoloc[0]
+    b1 = coeffscoloc[1] * fRD
+    b2 = coeffscoloc[2] * fRD**2
+    b3 = coeffscoloc[3] * fRD**3
+    b4 = coeffscoloc[4] * fRD**4
 
     return (
         b0 * fM_s
@@ -693,6 +693,8 @@ def get_mergerringdown_raw_phase(
     c4ov3 = c4 / 3.0
     cLovfda = cL / fdamp
 
+    # print(c4ov3, fM_s)
+
     phiRD = (
         c0 * fM_s
         + 1.5 * c1 * (fM_s ** (2.0 / 3.0))
@@ -727,56 +729,57 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     fIMmatch = 0.6 * (0.5 * fRD + fISCO)
     fINmatch = fMECO
     deltaf = (fIMmatch - fINmatch) * 0.03
-    fPhaseMatchIN = fINmatch - 1.0 * deltaf
-    fPhaseMatchIM = fIMmatch + 0.5 * deltaf
-    fPhaseInsMin = 0.0026
-    fPhaseInsMax = 1.020 * fMECO
-    fPhaseRDMin = fIMmatch
-    fPhaseRDMax = fRD + 1.25 * fdamp
-    f1 = fPhaseMatchIN
-    f2 = fPhaseMatchIM
+    # fPhaseInsMin = 0.0026
+    # fPhaseInsMax = 1.020 * fMECO
+    # fPhaseRDMin = fIMmatch
+    # fPhaseRDMax = fRD + 1.25 * fdamp
+    f1 = fINmatch - 1.0 * deltaf
+    f2 = fIMmatch + 0.5 * deltaf
 
     phi_Ins = get_inspiral_phase(fM_s, theta, coeffs)
-    dphi_Ins = jax.vmap(jax.grad(get_inspiral_phase), (0, None, None))(
-        fM_s * M_s, theta, coeffs
-    )
+    # dphi_Ins = jax.vmap(jax.grad(get_inspiral_phase), (0, None, None))(
+    # fM_s, theta, coeffs
+    # )
     phi_MRD, cL = get_mergerringdown_raw_phase(fM_s, theta, coeffs)
-    dphi_MRD = jax.vmap(
-        jax.grad(get_mergerringdown_raw_phase, has_aux=True), (0, None, None)
-    )(fM_s, theta, coeffs)
+    print(phi_MRD * jnp.heaviside(fM_s - f2, 0.5))
+    # dphi_MRD = jax.vmap(
+    #     jax.grad(get_mergerringdown_raw_phase, has_aux=True), (0, None, None)
+    # )(fM_s, theta, coeffs)
 
     phi_Ins_match_f1, dphi_Ins_match_f1 = jax.value_and_grad(get_inspiral_phase)(
-        f1 * M_s, theta, coeffs
+        f1, theta, coeffs
     )
-    phi_Ins_match_f2, dphi_Ins_match_f2 = jax.value_and_grad(get_inspiral_phase)(
-        f2 * M_s, theta, coeffs
-    )
-    phi_MRD_match_f1, dphi_MRD_match_f1 = jax.value_and_grad(
-        get_mergerringdown_raw_phase, has_aux=True
-    )(f1 * M_s, theta, coeffs)
+    # phi_Ins_match_f2, dphi_Ins_match_f2 = jax.value_and_grad(get_inspiral_phase)(
+    #     f2, theta, coeffs
+    # )
+    # phi_MRD_match_f1, dphi_MRD_match_f1 = jax.value_and_grad(
+    #     get_mergerringdown_raw_phase, has_aux=True
+    # )(f1 * M_s, theta, coeffs)
     phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
         get_mergerringdown_raw_phase, has_aux=True
-    )(f2 * M_s, theta, coeffs)
+    )(f2, theta, coeffs)
     phi_Int = get_intermediate_raw_phase(
         fM_s, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
     )
     phi_Int_match_f1 = get_intermediate_raw_phase(
-        f1 * M_s, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
+        f1, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
     )
     phi_Int_match_f2 = get_intermediate_raw_phase(
-        f2 * M_s, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
+        f2, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
     )
 
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1
-    beta0 = phi_Int_match_f2 + alpha0 - phi_MRD_match_f2
+    beta0 = phi_Int_match_f2 + alpha0 - phi_MRD_match_f2[0]
 
     phi_Int_corrected = phi_Int + alpha0
     phi_MRD_corrected = phi_MRD + beta0
 
     phase = (
-        phi_Ins * jnp.heaviside(f1 - f, 0.5)
-        + jnp.heaviside(f - f1, 0.5) * phi_Int_corrected * jnp.heaviside(f2 - f, 0.5)
-        + phi_MRD_corrected * jnp.heaviside(f - f2, 0.5)
+        phi_Ins * jnp.heaviside(f1 - fM_s, 0.5)
+        + jnp.heaviside(fM_s - f1, 0.5)
+        * phi_Int_corrected
+        * jnp.heaviside(f2 - fM_s, 0.5)
+        + phi_MRD_corrected * jnp.heaviside(fM_s - f2, 0.5)
     )
 
     return phase
