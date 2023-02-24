@@ -464,7 +464,6 @@ def get_intermediate_raw_phase(
     )
 
     A = jnp.array([A0, A1, A2, A3, A4]).T
-    # ff0 = (4 * pPhase->cL) / (4.0*pWF->fDAMP*pWF->fDAMP + (ff - pWF->fRING)*(ff - pWF->fRING)
     b = jnp.array(
         [
             CollocationValuesPhaseInt0
@@ -705,7 +704,7 @@ def get_mergerringdown_raw_phase(
     return phiRD
 
 
-@jax.jit
+# @jax.jit
 def Phase(f: Array, theta: Array) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
@@ -881,7 +880,7 @@ def get_mergerringdown_Amp(
     return None
 
 
-@jax.jit
+# @jax.jit
 def Amp(f: Array, theta: Array, D=1) -> Array:
     """
     Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
@@ -918,7 +917,7 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
     return None
 
 
-@jax.jit
+# @jax.jit
 def _gen_IMRPhenomXAS(
     f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array
 ):
@@ -930,7 +929,7 @@ def _gen_IMRPhenomXAS(
     return h0
 
 
-@jax.jit
+# @jax.jit
 def gen_IMRPhenomXAS(f: Array, params: Array):
     """
     Generate PhenomXAS frequency domain waveform following 2001.11412.
