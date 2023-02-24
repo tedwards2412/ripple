@@ -701,11 +701,11 @@ def get_mergerringdown_raw_phase(
         + (cLovfda * jnp.arctan((fM_s - fRD) / fdamp))
     )
 
-    return phiRD
+    return phiRD, cL
 
 
 # @jax.jit
-def Phase(f: Array, theta: Array) -> Array:
+def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
     Sets time and phase of coealence to be zero.
@@ -716,32 +716,70 @@ def Phase(f: Array, theta: Array) -> Array:
     """
     # First lets calculate some of the vairables that will be used below
     # Mass variables
-    m1, m2, _, _ = theta
+    m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
     fM_s = f * M_s
+    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
+    fIMmatch = 0.6 * (0.5 * fRD + fISCO)
+    fINmatch = fMECO
+    deltaf = (fIMmatch - fINmatch) * 0.03
+    fPhaseMatchIN = fINmatch - 1.0 * deltaf
+    fPhaseMatchIM = fIMmatch + 0.5 * deltaf
+    fPhaseInsMin = 0.0026
+    fPhaseInsMax = 1.020 * fMECO
+    fPhaseRDMin = fIMmatch
+    fPhaseRDMax = fRD + 1.25 * fdamp
+    f1 = fPhaseMatchIN
+    f2 = fPhaseMatchIM
 
-    phi_Ins = get_inspiral_phase(fM_s, theta, IMRPhenomX_utils.PhenomX_coeff_table)
-    dphaseIN = jax.grad(get_inspiral_phase)(fM_s, theta, coeffs)
-    phi_Int = get_intermediate_raw_phase(
-        fM_s,
-        theta,
-        IMRPhenomX_utils.PhenomX_coeff_table,
-        X,
+    phi_Ins = get_inspiral_phase(fM_s, theta, coeffs)
+    dphi_Ins = jax.vmap(jax.grad(get_inspiral_phase), (0, None, None))(
+        fM_s * M_s, theta, coeffs
     )
-    # phi_Ins = phi_Ins * phiN * (fM_s ** -(5.0 / 3.0))
+    phi_MRD, cL = get_mergerringdown_raw_phase(fM_s, theta, coeffs)
+    dphi_MRD = jax.vmap(
+        jax.grad(get_mergerringdown_raw_phase, has_aux=True), (0, None, None)
+    )(fM_s, theta, coeffs)
 
-    # And now we can combine them by multiplying by a set of heaviside functions
-    # phase = (
-    #     phi_Ins * jnp.heaviside(f1 - f, 0.5)
-    #     + jnp.heaviside(f - f1, 0.5) * phi_Inter * jnp.heaviside(f2 - f, 0.5)
-    #     + phi_MR * jnp.heaviside(f - f2, 0.5)
-    # )
+    phi_Ins_match_f1, dphi_Ins_match_f1 = jax.value_and_grad(get_inspiral_phase)(
+        f1 * M_s, theta, coeffs
+    )
+    phi_Ins_match_f2, dphi_Ins_match_f2 = jax.value_and_grad(get_inspiral_phase)(
+        f2 * M_s, theta, coeffs
+    )
+    phi_MRD_match_f1, dphi_MRD_match_f1 = jax.value_and_grad(
+        get_mergerringdown_raw_phase, has_aux=True
+    )(f1 * M_s, theta, coeffs)
+    phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
+        get_mergerringdown_raw_phase, has_aux=True
+    )(f2 * M_s, theta, coeffs)
+    phi_Int = get_intermediate_raw_phase(
+        fM_s, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
+    )
+    phi_Int_match_f1 = get_intermediate_raw_phase(
+        f1 * M_s, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
+    )
+    phi_Int_match_f2 = get_intermediate_raw_phase(
+        f2 * M_s, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
+    )
 
-    return None
+    alpha0 = phi_Ins_match_f1 - phi_Int_match_f1
+    beta0 = phi_Int_match_f2 + alpha0 - phi_MRD_match_f2
+
+    phi_Int_corrected = phi_Int + alpha0
+    phi_MRD_corrected = phi_MRD + beta0
+
+    phase = (
+        phi_Ins * jnp.heaviside(f1 - f, 0.5)
+        + jnp.heaviside(f - f1, 0.5) * phi_Int_corrected * jnp.heaviside(f2 - f, 0.5)
+        + phi_MRD_corrected * jnp.heaviside(f - f2, 0.5)
+    )
+
+    return phase
 
 
 def get_Amp0(fM_s: Array, eta: float) -> Array:
@@ -923,7 +961,7 @@ def _gen_IMRPhenomXAS(
 ):
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
     # Lets call the amplitude and phase now
-    Psi = Phase(f, theta_intrinsic)
+    Psi = Phase(f, theta_intrinsic, coeffs)
     A = Amp(f, theta_intrinsic, D=theta_extrinsic[0])
     h0 = A * jnp.exp(1j * -Psi)
     return h0

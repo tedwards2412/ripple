@@ -5,7 +5,7 @@ import time
 import jax
 from jax import grad, vmap
 
-from ripple.waveforms import IMRPhenomXAS, IMRPhenomX_utils
+from ripple.waveforms import IMRPhenomXAS, IMRPhenomX_utils, IMRPhenomD
 import matplotlib.pyplot as plt
 from ripple.constants import gt
 
@@ -47,8 +47,11 @@ def test_phase_phenomXAS():
     # phase_ripple = IMRPhenomXAS.get_inspiral_phase(
     #     Mf, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
     # )
-    phase_ripple = IMRPhenomXAS.get_mergerringdown_raw_phase(
-        Mf, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
+    # phase_ripple = IMRPhenomXAS.get_mergerringdown_raw_phase(
+    #     Mf, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
+    # )
+    phase_ripple = IMRPhenomXAS.Phase(
+        f, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
     )
 
     m1_kg = theta[0] * lal.MSUN_SI
