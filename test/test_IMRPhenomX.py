@@ -38,6 +38,7 @@ def test_phase_phenomXAS():
 
     # f = np.arange(f_l, f_u, del_f)
     Mf = f * (theta[0] + theta[1]) * 4.92549094830932e-6
+    M_s = (theta[0] + theta[1]) * 4.92549094830932e-6
     # del_Mf = np.diff(Mf)
 
     # Calculate the frequency regions
@@ -53,6 +54,21 @@ def test_phase_phenomXAS():
     phase_ripple = IMRPhenomXAS.Phase(
         f, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
     )
+
+    ################ Just for display ##################
+    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(
+        theta[0], theta[1], theta[2], theta[3]
+    )
+    fIMmatch = 0.6 * (0.5 * fRD + fISCO)
+    fINmatch = fMECO
+    deltaf = (fIMmatch - fINmatch) * 0.03
+    # fPhaseInsMin = 0.0026
+    # fPhaseInsMax = 1.020 * fMECO
+    # fPhaseRDMin = fIMmatch
+    # fPhaseRDMax = fRD + 1.25 * fdamp
+    f1 = (fINmatch - 1.0 * deltaf) / M_s
+    f2 = (fIMmatch + 0.5 * deltaf) / M_s
+    ####################################################
 
     m1_kg = theta[0] * lal.MSUN_SI
     m2_kg = theta[1] * lal.MSUN_SI
@@ -99,8 +115,8 @@ def test_phase_phenomXAS():
         label="ripple",
         alpha=0.3,
     )
-    # plt.axvline(x=f1)
-    # plt.axvline(x=f2)
+    plt.axvline(x=f1)
+    plt.axvline(x=f2)
     plt.legend()
     plt.xlabel(r"f")
     plt.ylabel(r"$\Phi$")
@@ -123,8 +139,8 @@ def test_phase_phenomXAS():
         (np.unwrap(np.angle(h0_lalsuite))) - phase_ripple,
         label="phase difference",
     )
-    # plt.axvline(x=f1)
-    # plt.axvline(x=f2)
+    plt.axvline(x=f1)
+    plt.axvline(x=f2)
     plt.legend()
     plt.xlabel(r"f")
     plt.ylabel(r"$\Phi_1 - \Phi_2$")
