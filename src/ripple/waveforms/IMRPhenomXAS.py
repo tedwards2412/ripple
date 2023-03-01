@@ -326,7 +326,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
     # FIXME: The phase seems to be off by a factor proportional to f^(-1/3)
     # which corresponds to the phi4 term
-    phiN = -(3.0 * jnp.pi ** (-5.0 / 3.0)) / 128.0 / eta
+    phiN = -(3.0 * jnp.pi ** (-5.0 / 3.0)) / 128.0
     return phi_Ins * phiN * (fM_s ** -(5.0 / 3.0))
 
 
@@ -737,27 +737,18 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     f2 = fIMmatch + 0.5 * deltaf
 
     phi_Ins = get_inspiral_phase(fM_s, theta, coeffs)
-    # dphi_Ins = jax.vmap(jax.grad(get_inspiral_phase), (0, None, None))(
-    # fM_s, theta, coeffs
-    # )
     phi_MRD, cL = get_mergerringdown_raw_phase(fM_s, theta, coeffs)
-    print(phi_MRD * jnp.heaviside(fM_s - f2, 0.5))
-    # dphi_MRD = jax.vmap(
-    #     jax.grad(get_mergerringdown_raw_phase, has_aux=True), (0, None, None)
-    # )(fM_s, theta, coeffs)
 
+    # Get the matching points
     phi_Ins_match_f1, dphi_Ins_match_f1 = jax.value_and_grad(get_inspiral_phase)(
         f1, theta, coeffs
     )
-    # phi_Ins_match_f2, dphi_Ins_match_f2 = jax.value_and_grad(get_inspiral_phase)(
-    #     f2, theta, coeffs
-    # )
-    # phi_MRD_match_f1, dphi_MRD_match_f1 = jax.value_and_grad(
-    #     get_mergerringdown_raw_phase, has_aux=True
-    # )(f1 * M_s, theta, coeffs)
     phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
         get_mergerringdown_raw_phase, has_aux=True
     )(f2, theta, coeffs)
+    print("dPhase In:", dphi_MRD_match_f2)
+
+    # Now find the intermediate phase
     phi_Int = get_intermediate_raw_phase(
         fM_s, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
     )
@@ -774,7 +765,7 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     phi_Int_corrected = phi_Int + alpha0
     phi_MRD_corrected = phi_MRD + beta0
 
-    phase = (
+    phase = (1 / eta) * (
         phi_Ins * jnp.heaviside(f1 - fM_s, 0.5)
         + jnp.heaviside(fM_s - f1, 0.5)
         * phi_Int_corrected

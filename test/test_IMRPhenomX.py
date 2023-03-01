@@ -120,6 +120,7 @@ def test_phase_phenomXAS():
     plt.legend()
     plt.xlabel(r"f")
     plt.ylabel(r"$\Phi$")
+    plt.xlim(f1 - 10, f1 + 10)
     plt.savefig("../figures/inspiral_phase_PhenomX.pdf", bbox_inches="tight")
 
     print(
