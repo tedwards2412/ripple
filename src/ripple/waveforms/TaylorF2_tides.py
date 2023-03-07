@@ -257,9 +257,9 @@ def gen_h0(f, theta, f_ref):
     M = Mc / (eta ** (3 / 5))
     pre = 3.6686934875530996e-19  # (GN*Msun/c^3)^(5/6)/Hz^(7/6)*c/Mpc/sec
     Mchirp = M * eta**0.6
-    A0 = (
+    A0 = lambda f_: (
         Mchirp ** (5.0 / 6.0)
-        / (f + 1e-100) ** (7.0 / 6.0)
+        / (f_ + 1e-100) ** (7.0 / 6.0)
         / Deff
         / PI ** (2.0 / 3.0)
         * jnp.sqrt(5.0 / 24.0)
@@ -269,19 +269,10 @@ def gen_h0(f, theta, f_ref):
     grad_phase = jax.grad(Phase_)
     Phi = Phase_(f)
 
-    # m1 = (M + jnp.sqrt(M**2 - 4 * (eta * M**2))) / 2
-    # m2 = (M - jnp.sqrt(M**2 - 4 * (eta * M**2))) / 2
-
-    # c_l = 299792458.0  # speed of light in ms-1
-    # Msun = 1.0 / 5.02785e-31
-    # G_N = 6.6743e-11 * Msun
-
     grad_phase_fcut = jax.vmap(grad_phase)(f)
     f_phasecutoff = f[jnp.argmax(grad_phase_fcut)]
     f_ISCO = 4.4e3 * (1 / M)  # Hz
     f_cutoff = jnp.min(jnp.array([f_ISCO, f_phasecutoff]))
-    # if f_cutoff <= f[0]:
-    #     raise RuntimeError("Frequency cut off below minimum input frequency")
 
     t0 = grad_phase(f_cutoff)
 
@@ -293,9 +284,9 @@ def gen_h0(f, theta, f_ref):
     Phi += ext_phase_contrib
 
     Phi = Phi * jnp.heaviside(f_cutoff - f, 1.0)
-    Amp_m = Amp_merger(f, f_cutoff, A0[jnp.argmax(grad_phase_fcut)])
+    Amp_m = Amp_merger(f, f_cutoff, A0(f_cutoff))
 
-    Amp = A0 * jnp.heaviside(f_cutoff - f, 0.5) + Amp_m * jnp.heaviside(
+    Amp = A0(f) * jnp.heaviside(f_cutoff - f, 0.5) + Amp_m * jnp.heaviside(
         f - f_cutoff, 0.5
     )
 
