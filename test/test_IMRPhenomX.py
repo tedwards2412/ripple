@@ -120,7 +120,7 @@ def test_phase_phenomXAS():
     plt.legend()
     plt.xlabel(r"f")
     plt.ylabel(r"$\Phi$")
-    plt.xlim(f1 - 10, f1 + 10)
+    # plt.xlim(f1 - 10, f1 + 10)
     plt.savefig("../figures/inspiral_phase_PhenomX.pdf", bbox_inches="tight")
 
     print(
@@ -147,11 +147,10 @@ def test_phase_phenomXAS():
     plt.ylabel(r"$\Phi_1 - \Phi_2$")
     plt.savefig("../figures/test_phasedifference_PhenomX.pdf", bbox_inches="tight")
 
-    # phase_deriv_lal = np.gradient(np.unwrap(np.angle(hp.data.data))[f_mask], del_Mf[0])
-    # phase_deriv = np.gradient(np.unwrap(np.angle(hp_ripple)), del_Mf[0])
-    # plt.figure(figsize=(6, 5))
-    # print("testing here", phase_deriv, phase_deriv_lal)
-    # plt.plot(f, phase_deriv, label="ripple", alpha=0.3)
+    # phase_deriv_lal = np.gradient(np.unwrap(np.angle(hp.data.data))[f_mask], Mf)
+    phase_deriv = np.gradient(phase_ripple, Mf)
+    plt.figure(figsize=(6, 5))
+    plt.plot(f, phase_deriv, label="ripple", alpha=0.3)
     # plt.plot(
     #     freq[f_mask],  # * ((theta[0] + theta[1]) * 4.92549094830932e-6),
     #     phase_deriv_lal,
@@ -159,12 +158,12 @@ def test_phase_phenomXAS():
     #     alpha=0.3,
     #     ls="--",
     # )
-    # plt.legend()
-    # plt.xlabel(r"f")
+    plt.legend()
+    plt.xlabel(r"Mf")
     # plt.xlim(100, 120)
     # plt.ylim(100, 200)
-    # plt.ylabel(r"$\Phi^{\prime}$")
-    # plt.savefig("../figures/test_phase_derivative_full.pdf", bbox_inches="tight")
+    plt.ylabel(r"$\Phi^{\prime}$")
+    plt.savefig("../figures/test_phase_derivative_phenomX.pdf", bbox_inches="tight")
 
     plt.figure(figsize=(6, 5))
     diff = (np.unwrap(np.angle(h0_lalsuite))) - phase_ripple

@@ -693,8 +693,6 @@ def get_mergerringdown_raw_phase(
     c4ov3 = c4 / 3.0
     cLovfda = cL / fdamp
 
-    # print(c4ov3, fM_s)
-
     phiRD = (
         c0 * fM_s
         + 1.5 * c1 * (fM_s ** (2.0 / 3.0))
@@ -703,7 +701,7 @@ def get_mergerringdown_raw_phase(
         + (cLovfda * jnp.arctan((fM_s - fRD) / fdamp))
     )
 
-    return phiRD, cL
+    return phiRD, (cL, CollocationValuesPhaseRD0)
 
 
 # @jax.jit
@@ -733,44 +731,52 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     # fPhaseInsMax = 1.020 * fMECO
     # fPhaseRDMin = fIMmatch
     # fPhaseRDMax = fRD + 1.25 * fdamp
-    f1 = fINmatch - 1.0 * deltaf
-    f2 = fIMmatch + 0.5 * deltaf
+    f1_Ms = fINmatch - 1.0 * deltaf
+    f2_Ms = fIMmatch + 0.5 * deltaf
 
     phi_Ins = get_inspiral_phase(fM_s, theta, coeffs)
-    phi_MRD, cL = get_mergerringdown_raw_phase(fM_s, theta, coeffs)
+    phi_MRD, (cL, CollocationValuesPhaseRD0) = get_mergerringdown_raw_phase(
+        fM_s, theta, coeffs
+    )
 
     # Get the matching points
     phi_Ins_match_f1, dphi_Ins_match_f1 = jax.value_and_grad(get_inspiral_phase)(
-        f1, theta, coeffs
+        f1_Ms, theta, coeffs
     )
     phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
         get_mergerringdown_raw_phase, has_aux=True
-    )(f2, theta, coeffs)
-    print("dPhase In:", dphi_MRD_match_f2)
+    )(f2_Ms, theta, coeffs)
+    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(f2_Ms, theta, coeffs)
 
     # Now find the intermediate phase
-    phi_Int = get_intermediate_raw_phase(
-        fM_s, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
-    )
-    phi_Int_match_f1 = get_intermediate_raw_phase(
-        f1, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
-    )
-    phi_Int_match_f2 = get_intermediate_raw_phase(
-        f2, theta, coeffs, dphi_Ins_match_f1, dphi_MRD_match_f2, cL
+    phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
+        get_intermediate_raw_phase
+    )(f1_Ms, theta, coeffs, dphi_Ins_match_f1, CollocationValuesPhaseRD0, cL)
+    alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
+    alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
+
+    phi_Int_func = (
+        lambda fM_s_: get_intermediate_raw_phase(
+            fM_s_, theta, coeffs, dphi_Ins_match_f1, CollocationValuesPhaseRD0, cL
+        )
+        + alpha1 * fM_s_
+        + alpha0
     )
 
-    alpha0 = phi_Ins_match_f1 - phi_Int_match_f1
-    beta0 = phi_Int_match_f2 + alpha0 - phi_MRD_match_f2[0]
+    phi_Int_match_f2, dphi_Int_match_f2 = jax.value_and_grad(phi_Int_func)(f2_Ms)
 
-    phi_Int_corrected = phi_Int + alpha0
-    phi_MRD_corrected = phi_MRD + beta0
+    beta1 = dphi_Int_match_f2 - dphi_MRD_match_f2
+    beta0 = phi_Int_match_f2 - phi_MRD_match_f2 - beta1 * f2_Ms
+
+    phi_Int_corrected = phi_Int_func(fM_s)
+    phi_MRD_corrected = phi_MRD + beta0 + beta1 * fM_s
 
     phase = (1 / eta) * (
-        phi_Ins * jnp.heaviside(f1 - fM_s, 0.5)
-        + jnp.heaviside(fM_s - f1, 0.5)
+        phi_Ins * jnp.heaviside(f1_Ms - fM_s, 0.5)
+        + jnp.heaviside(fM_s - f1_Ms, 0.5)
         * phi_Int_corrected
-        * jnp.heaviside(f2 - fM_s, 0.5)
-        + phi_MRD_corrected * jnp.heaviside(fM_s - f2, 0.5)
+        * jnp.heaviside(f2_Ms - fM_s, 0.5)
+        + phi_MRD_corrected * jnp.heaviside(fM_s - f2_Ms, 0.5)
     )
 
     return phase
