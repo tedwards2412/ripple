@@ -406,9 +406,9 @@ def get_intermediate_raw_phase(
     )
 
     CollocationValuesPhaseRD3 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[13, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[13, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[13, uneqspin_indx:], eta, S, chia)
+        IMRPhenomX_utils.nospin_CPvalue(coeffs[11, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[11, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[11, uneqspin_indx:], eta, S, chia)
     )
 
     CollocationValuesPhaseInt1 = (
@@ -521,6 +521,20 @@ def get_intermediate_raw_phase(
     b2 = coeffscoloc[2] * fRD**2
     b3 = coeffscoloc[3] * fRD**3
     b4 = coeffscoloc[4] * fRD**4
+    print("frequencies:", (fM_s**-3.0))
+    # print(b0 * fM_s)
+    print(
+        "current test",
+        +b1 * jnp.log(fM_s)
+        - b2 * (fM_s**-1.0)
+        - b3 * (fM_s**-2.0) / 2.0
+        - (b4 * (fM_s**-3.0) / 3.0),
+    )
+    # print(b2)
+    # print(-b2 * (fM_s**-1.0))
+    # print(-b3 * (fM_s**-2.0) / 2.0)
+    print(-(b4 * (fM_s**-3.0) / 3.0))
+    print(+(2.0 * cL * jnp.arctan((fM_s - fRD) / (2.0 * fdamp**2))))
 
     return (
         b0 * fM_s
@@ -528,7 +542,7 @@ def get_intermediate_raw_phase(
         - b2 * (fM_s**-1.0)
         - b3 * (fM_s**-2.0) / 2.0
         - (b4 * (fM_s**-3.0) / 3.0)
-        + (2.0 * cL * jnp.arctan((fM_s - fRD) / (2.0 * fdamp))) / fdamp
+        + (2.0 * cL * jnp.arctan((fM_s - fRD) / (2.0 * fdamp**2)))
     )
 
 

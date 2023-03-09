@@ -689,7 +689,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
         ],
-        [  # Coeffs collocation point 1 of the intermediate phase (ind 5)
+        [  # Coeffs collocation point 1 of the intermediate phase (ind 6)
             -82.54500000000004,  # No Spin
             -5.58197349185435e6,
             -3.5225742421184325e8,
@@ -739,7 +739,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
         ],
-        [  # Coeffs collocation point 2 of the intermediate phase (ind 6)
+        [  # Coeffs collocation point 2 of the intermediate phase (ind 7)
             0.4248820426833804,  # No Spin
             -906.746595921514,
             -282820.39946006844,
@@ -789,7 +789,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
         ],
-        [  # Coeffs collocation point 0 of the merger ringdown phase (ind 7)
+        [  # Coeffs collocation point 0 of the merger ringdown phase (ind 8)
             0.0,  # No spin
             0.7207992174994245,
             -1.237332073800276,
@@ -839,7 +839,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
         ],
-        [  # Coeffs collocation point 1 of the merger ringdown phase (ind 8)
+        [  # Coeffs collocation point 1 of the merger ringdown phase (ind 9)
             0.0,  # No spin
             -9.460253118496386,
             +9.429314399633007,
@@ -889,7 +889,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
         ],
-        [  # Coeffs collocation point 2 of the merger ringdown phase (ind 9)
+        [  # Coeffs collocation point 2 of the merger ringdown phase (ind 10)
             0.0,  # No spin
             -8.506898502692536,
             +13.936621412517798,
@@ -939,7 +939,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
         ],
-        [  # Coeffs collocation point 3 of the merger ringdown phase (ind 10)
+        [  # Coeffs collocation point 3 of the merger ringdown phase (ind 11)
             -85.86062966719405,  # No spin
             -4616.740713893726,
             -4925.756920247186,
@@ -989,7 +989,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
         ],
-        [  # Coeffs collocation point 4 of the merger ringdown phase (ind 11)
+        [  # Coeffs collocation point 4 of the merger ringdown phase (ind 12)
             0.0,  # No spin
             7.05731400277692,
             22.455288821807095,

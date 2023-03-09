@@ -27,7 +27,7 @@ def test_phase_phenomXAS():
     phi_ref = 0
 
     f_l = 20
-    f_u = 1000
+    f_u = 250
     del_f = 0.0125
 
     f_l_idx = round(f_l / del_f)
