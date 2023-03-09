@@ -378,10 +378,10 @@ def Uneqspin_CPvalue(EqSpin_coeffs, eta, S, dchi):
             + EqSpin_coeffs[1] * eta
             + EqSpin_coeffs[2] * eta2
             + EqSpin_coeffs[3] * eta4
-            + EqSpin_coeffs[4] * eta5  # Added
+            + EqSpin_coeffs[4] * eta5
             + EqSpin_coeffs[5] * S
-            + EqSpin_coeffs[6] * S * eta2  # Added
-            + EqSpin_coeffs[7] * S * eta3  # Added
+            + EqSpin_coeffs[6] * S * eta2
+            + EqSpin_coeffs[7] * S * eta3
         )
         + EqSpin_coeffs[8] * dchi2 * eta
     )

@@ -20,13 +20,14 @@ import lal
 def test_phase_phenomXAS():
     theta = np.array([20, 19.0, 0.0, 0.0])
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
+    print(Mc, eta)
     tc = 0.0
     phic = 0.0
     dist_mpc = 440
     inclination = np.pi / 2.0
     phi_ref = 0
 
-    f_l = 20
+    f_l = 120
     f_u = 250
     del_f = 0.0125
 
