@@ -247,13 +247,13 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     CollocationValuesPhaseIns0 = CollocationValuesPhaseIns0 + CollocationValuesPhaseIns2
     CollocationValuesPhaseIns1 = CollocationValuesPhaseIns1 + CollocationValuesPhaseIns2
     CollocationValuesPhaseIns3 = CollocationValuesPhaseIns3 + CollocationValuesPhaseIns2
-    print(
-        "CollocationValuesPhaseIns",
-        CollocationValuesPhaseIns0,
-        CollocationValuesPhaseIns1,
-        CollocationValuesPhaseIns2,
-        CollocationValuesPhaseIns3,
-    )
+    # print(
+    #     "CollocationValuesPhaseIns",
+    #     CollocationValuesPhaseIns0,
+    #     CollocationValuesPhaseIns1,
+    #     CollocationValuesPhaseIns2,
+    #     CollocationValuesPhaseIns3,
+    # )
 
     A0 = jnp.array(
         [
@@ -288,7 +288,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         ]
     )
 
-    A = jnp.array([A0, A1, A2, A3]).T
+    A = jnp.array([A0, A1, A2, A3])
     b = jnp.array(
         [
             CollocationValuesPhaseIns0,
@@ -303,7 +303,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     a1 = coeffscoloc[1]
     a2 = coeffscoloc[2]
     a3 = coeffscoloc[3]
-    print("as", a0, a1, a2, a3)
+    # print("as", a0, a1, a2, a3)
 
     sigma1 = (-5.0 / 3.0) * a0
     sigma2 = (-5.0 / 4.0) * a1
@@ -471,7 +471,7 @@ def get_intermediate_raw_phase(
         ]
     )
 
-    A = jnp.array([A0, A1, A2, A3, A4]).T
+    A = jnp.array([A0, A1, A2, A3, A4])
     b = jnp.array(
         [
             CollocationValuesPhaseInt0
@@ -529,7 +529,7 @@ def get_intermediate_raw_phase(
     b2 = coeffscoloc[2] * fRD**2
     b3 = coeffscoloc[3] * fRD**3
     b4 = coeffscoloc[4] * fRD**4
-    print("FRD", fRD)
+    # print("FRD", fRD)
     # print("frequencies:", (fM_s**-3.0))
     # print(b0 * fM_s)
     # print(
@@ -545,17 +545,17 @@ def get_intermediate_raw_phase(
     # print(-(b4 * (fM_s**-3.0) / 3.0))
     # print(+(2.0 * cL * jnp.arctan((fM_s - fRD) / (2.0 * fdamp**2))))
     #  b0coloc*infreqs + b1coloc*np.log(infreqs) - b2coloc/infreqs - b3coloc/(infreqs*infreqs)/2. - (b4coloc/(infreqs*infreqs*infreqs)/3.) + (2. * cLcoloc * np.arctan((infreqs - fring) / (2. * fdamp)))/fdamp
-    print(
-        "Intermediate phase",
-        (
-            b0 * fM_s
-            + b1 * jnp.log(fM_s)
-            - b2 * (fM_s**-1.0)
-            - b3 * (fM_s**-2.0) / 2.0
-            - (b4 * (fM_s**-3.0) / 3.0)
-            + (2.0 * cL * jnp.arctan((fM_s - fRD) / (2.0 * fdamp**2)))
-        ),
-    )
+    # print(
+    #     "Intermediate phase",
+    #     (
+    #         b0 * fM_s
+    #         + b1 * jnp.log(fM_s)
+    #         - b2 * (fM_s**-1.0)
+    #         - b3 * (fM_s**-2.0) / 2.0
+    #         - (b4 * (fM_s**-3.0) / 3.0)
+    #         + (2.0 * cL * jnp.arctan((fM_s - fRD) / (2.0 * fdamp**2)))
+    #     ),
+    # )
 
     return (
         b0 * fM_s
@@ -706,7 +706,7 @@ def get_mergerringdown_raw_phase(
         ]
     )
 
-    A = jnp.array([A0, A1, A2, A3, A4]).T
+    A = jnp.array([A0, A1, A2, A3, A4])
     b = jnp.array(
         [
             CollocationValuesPhaseRD0,
