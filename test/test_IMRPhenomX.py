@@ -18,7 +18,7 @@ import lal
 
 
 def test_phase_phenomXAS():
-    theta = np.array([20, 19.0, 0.0, 0.0])
+    theta = np.array([20, 19.0, 0.9, 0.9])
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     print(Mc, eta)
     tc = 0.0
@@ -28,7 +28,7 @@ def test_phase_phenomXAS():
     phi_ref = 0
 
     f_l = 10
-    f_u = 1024
+    f_u = 60
     del_f = 0.0125
 
     f_l_idx = round(f_l / del_f)
@@ -170,12 +170,13 @@ def test_phase_phenomXAS():
     diff = (np.unwrap(np.angle(h0_lalsuite))) - phase_ripple
     plt.plot(Mf, np.gradient(diff, np.diff(f)[0]), label="difference")
     test_scaling = Mf ** (-1 / 3)
-
-    plt.plot(
-        Mf,
-        (test_scaling) + (np.gradient(diff, np.diff(f)[0])[0] - test_scaling[0]),
-        label="test_scaling 4/3",
-    )
+    plt.axvline(x=M_s * f1)
+    plt.axvline(x=M_s * f2)
+    # plt.plot(
+    #     Mf,
+    #     (test_scaling) + (np.gradient(diff, np.diff(f)[0])[0] - test_scaling[0]),
+    #     label="test_scaling 4/3",
+    # )
     plt.legend()
     plt.xlabel(r"f")
     # plt.xlim(100, 120)

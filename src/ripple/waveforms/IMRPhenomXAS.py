@@ -237,6 +237,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[2, uneqspin_indx:], eta, S, chia)
     )
 
+    # NOTE: This CollocationValuesPhaseIns3 disagrees slightly with the value in WF4py at non-zero spin
     CollocationValuesPhaseIns3 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[3, 0:eqspin_indx], eta)
         + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[3, eqspin_indx:uneqspin_indx], eta, S)
@@ -247,13 +248,6 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     CollocationValuesPhaseIns0 = CollocationValuesPhaseIns0 + CollocationValuesPhaseIns2
     CollocationValuesPhaseIns1 = CollocationValuesPhaseIns1 + CollocationValuesPhaseIns2
     CollocationValuesPhaseIns3 = CollocationValuesPhaseIns3 + CollocationValuesPhaseIns2
-    # print(
-    #     "CollocationValuesPhaseIns",
-    #     CollocationValuesPhaseIns0,
-    #     CollocationValuesPhaseIns1,
-    #     CollocationValuesPhaseIns2,
-    #     CollocationValuesPhaseIns3,
-    # )
 
     A0 = jnp.array(
         [
@@ -303,7 +297,6 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     a1 = coeffscoloc[1]
     a2 = coeffscoloc[2]
     a3 = coeffscoloc[3]
-    # print("as", a0, a1, a2, a3)
 
     sigma1 = (-5.0 / 3.0) * a0
     sigma2 = (-5.0 / 4.0) * a1
@@ -332,9 +325,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         + sigma4 * (fM_s ** (11.0 / 3.0))
     )
 
-    # FIXME: The phase seems to be off by a factor proportional to f^(-1/3)
-    # which corresponds to the phi4 term
-    phiN = -(3.0 * jnp.pi ** (-5.0 / 3.0)) / 128.0
+    phiN = -(3.0 * PI ** (-5.0 / 3.0)) / 128.0
     return phi_Ins * phiN * (fM_s ** -(5.0 / 3.0))
 
 
