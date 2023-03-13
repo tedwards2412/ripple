@@ -381,6 +381,7 @@ def get_intermediate_raw_phase(
     CollocationValuesPhaseInt0 = dPhaseIN
     CollocationValuesPhaseInt4 = dPhaseRD
 
+    # This is different to WF4py and driving the difference in CollocationValuesPhaseInt1
     v2IMmRDv4 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[4, 0:eqspin_indx], eta)
         + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[4, eqspin_indx:uneqspin_indx], eta, S)
@@ -398,6 +399,7 @@ def get_intermediate_raw_phase(
         + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[6, uneqspin_indx:], eta, S, chia)
     )
 
+    # This is different to WF4py and driving the difference in CollocationValuesPhaseInt3
     d43 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[7, 0:eqspin_indx], eta)
         + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[7, eqspin_indx:uneqspin_indx], eta, S)
@@ -520,33 +522,6 @@ def get_intermediate_raw_phase(
     b2 = coeffscoloc[2] * fRD**2
     b3 = coeffscoloc[3] * fRD**3
     b4 = coeffscoloc[4] * fRD**4
-    # print("FRD", fRD)
-    # print("frequencies:", (fM_s**-3.0))
-    # print(b0 * fM_s)
-    # print(
-    #     "current test",
-    #     +b1 * jnp.log(fM_s)
-    #     - b2 * (fM_s**-1.0)
-    #     - b3 * (fM_s**-2.0) / 2.0
-    #     - (b4 * (fM_s**-3.0) / 3.0),
-    # )
-    # print(b2)
-    # print(-b2 * (fM_s**-1.0))
-    # print(-b3 * (fM_s**-2.0) / 2.0)
-    # print(-(b4 * (fM_s**-3.0) / 3.0))
-    # print(+(2.0 * cL * jnp.arctan((fM_s - fRD) / (2.0 * fdamp**2))))
-    #  b0coloc*infreqs + b1coloc*np.log(infreqs) - b2coloc/infreqs - b3coloc/(infreqs*infreqs)/2. - (b4coloc/(infreqs*infreqs*infreqs)/3.) + (2. * cLcoloc * np.arctan((infreqs - fring) / (2. * fdamp)))/fdamp
-    # print(
-    #     "Intermediate phase",
-    #     (
-    #         b0 * fM_s
-    #         + b1 * jnp.log(fM_s)
-    #         - b2 * (fM_s**-1.0)
-    #         - b3 * (fM_s**-2.0) / 2.0
-    #         - (b4 * (fM_s**-3.0) / 3.0)
-    #         + (2.0 * cL * jnp.arctan((fM_s - fRD) / (2.0 * fdamp**2)))
-    #     ),
-    # )
 
     return (
         b0 * fM_s
@@ -554,7 +529,7 @@ def get_intermediate_raw_phase(
         - b2 * (fM_s**-1.0)
         - b3 * (fM_s**-2.0) / 2.0
         - (b4 * (fM_s**-3.0) / 3.0)
-        + (2.0 * cL * jnp.arctan((fM_s - fRD) / (2.0 * fdamp**2)))
+        + (2.0 * cL * jnp.arctan(((fM_s - fRD)) / (2.0 * fdamp))) / fdamp
     )
 
 

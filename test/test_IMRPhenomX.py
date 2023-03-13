@@ -9,6 +9,8 @@ from ripple.waveforms import IMRPhenomXAS, IMRPhenomX_utils, IMRPhenomD
 import matplotlib.pyplot as plt
 from ripple.constants import gt
 
+from WF4Py import waveforms
+
 # plt.style.use("../plot_style.mplstyle")
 import numpy as np
 import cProfile
@@ -18,7 +20,17 @@ import lal
 
 
 def test_phase_phenomXAS():
-    theta = np.array([20, 19.0, 0.9, 0.9])
+    theta = np.array([20, 19.0, 0.9, 0.5])
+    events = {
+        "Mc": np.array([16.969038560664817]),
+        "dL": np.array([1000.0]),
+        "iota": np.array([0.0]),
+        "eta": np.array([0.24983563445101906]),
+        "chi1z": np.array([theta[2]]),
+        "chi2z": np.array([theta[3]]),
+        "Lambda1": np.array([0.0]),
+        "Lambda2": np.array([0.0]),
+    }
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     print(Mc, eta)
     tc = 0.0
@@ -28,7 +40,7 @@ def test_phase_phenomXAS():
     phi_ref = 0
 
     f_l = 10
-    f_u = 60
+    f_u = 1024
     del_f = 0.0125
 
     f_l_idx = round(f_l / del_f)
@@ -55,6 +67,7 @@ def test_phase_phenomXAS():
     phase_ripple = IMRPhenomXAS.Phase(
         f, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
     )
+    phase_wf4py = waveforms.IMRPhenomXAS().Phi(f, **events) - 2 * np.pi
 
     ################ Just for display ##################
     fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(
@@ -110,10 +123,16 @@ def test_phase_phenomXAS():
         label="lalsuite",
     )
 
+    # plt.plot(
+    #     f,
+    #     phase_ripple,
+    #     label="ripple",
+    #     alpha=0.3,
+    # )
     plt.plot(
         f,
-        phase_ripple + f * 13 - (phase_ripple + f * 13)[0],
-        label="ripple",
+        phase_wf4py,
+        label="wf4py",
         alpha=0.3,
     )
     plt.axvline(x=f1)
@@ -136,10 +155,15 @@ def test_phase_phenomXAS():
     # )
 
     plt.figure(figsize=(7, 5))
+    # plt.plot(
+    #     f,
+    #     (np.unwrap(np.angle(h0_lalsuite))) - phase_ripple,
+    #     label="phase difference",
+    # )
     plt.plot(
         f,
-        (np.unwrap(np.angle(h0_lalsuite))) - phase_ripple,
-        label="phase difference",
+        (np.unwrap(np.angle(h0_lalsuite))) - phase_wf4py,
+        label="wf4py phase difference",
     )
     plt.axvline(x=f1)
     plt.axvline(x=f2)
@@ -150,8 +174,10 @@ def test_phase_phenomXAS():
 
     # phase_deriv_lal = np.gradient(np.unwrap(np.angle(hp.data.data))[f_mask], Mf)
     phase_deriv = np.gradient(phase_ripple, Mf)
+    phase_deriv_wf4py = np.gradient(phase_wf4py, Mf)
     plt.figure(figsize=(6, 5))
-    plt.plot(f, phase_deriv, label="ripple", alpha=0.3)
+    # plt.plot(f, phase_deriv, label="ripple", alpha=0.3)
+    plt.plot(f, phase_deriv_wf4py, label="wf4py", alpha=0.3)
     # plt.plot(
     #     freq[f_mask],  # * ((theta[0] + theta[1]) * 4.92549094830932e-6),
     #     phase_deriv_lal,
@@ -167,8 +193,10 @@ def test_phase_phenomXAS():
     plt.savefig("../figures/test_phase_derivative_phenomX.pdf", bbox_inches="tight")
 
     plt.figure(figsize=(6, 5))
-    diff = (np.unwrap(np.angle(h0_lalsuite))) - phase_ripple
-    plt.plot(Mf, np.gradient(diff, np.diff(f)[0]), label="difference")
+    # diff = (np.unwrap(np.angle(h0_lalsuite))) - phase_ripple
+    # plt.plot(Mf, np.gradient(diff, np.diff(f)[0]), label="difference")
+    diff_wf4py = (np.unwrap(np.angle(h0_lalsuite))) - phase_wf4py
+    plt.plot(Mf, np.gradient(diff_wf4py, np.diff(f)[0]), label="wf4py")
     test_scaling = Mf ** (-1 / 3)
     plt.axvline(x=M_s * f1)
     plt.axvline(x=M_s * f2)

@@ -377,13 +377,14 @@ def Uneqspin_CPvalue(EqSpin_coeffs, eta, S, dchi):
             EqSpin_coeffs[0]
             + EqSpin_coeffs[1] * eta
             + EqSpin_coeffs[2] * eta2
-            + EqSpin_coeffs[3] * eta4
-            + EqSpin_coeffs[4] * eta5
-            + EqSpin_coeffs[5] * S
-            + EqSpin_coeffs[6] * S * eta2
-            + EqSpin_coeffs[7] * S * eta3
+            + EqSpin_coeffs[3] * eta3
+            + EqSpin_coeffs[4] * eta4
+            + EqSpin_coeffs[5] * eta5
+            + EqSpin_coeffs[6] * S
+            + EqSpin_coeffs[7] * S * eta2
+            + EqSpin_coeffs[8] * S * eta3
         )
-        + EqSpin_coeffs[8] * dchi2 * eta
+        + EqSpin_coeffs[9] * dchi2 * eta
     )
 
 
@@ -430,6 +431,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             12017.062595934838,  # UnEq Spin
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -488,6 +490,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
         ],
         [  # Coeffs collocation point 2 of the inspiral phase (ind 2)
             15415.000000000007,  # No spin
@@ -531,6 +534,7 @@ PhenomX_coeff_table = jnp.array(
             1.0,
             -24708.109411857182,  # UnEq Spin
             24703.28267342699,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -588,6 +592,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
         ],
         [  # Coeffs collocation point 0 of the intermediate phase (ind 4)
             0.0,  # No Spin
@@ -602,8 +607,8 @@ PhenomX_coeff_table = jnp.array(
             1.0,
             18.694178521101332,  # Eq spin
             16.89845522539974,
-            0.0,
             0.3612417066833153,
+            0.0,
             0.0,
             -697.6773920613674,
             0.0,
@@ -631,6 +636,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,  # UnEq Spin
             356.74395864902294,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -680,6 +686,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,  # UnEq Spin
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -735,6 +742,7 @@ PhenomX_coeff_table = jnp.array(
             -20486.813161100774,
             0.0,
             0.0,
+            0.0,
             515.9898508588834,
             0.0,
             0.0,
@@ -758,11 +766,11 @@ PhenomX_coeff_table = jnp.array(
             12.840649528989287,
             0.0,
             -61.17248283184154,
-            941.6974723887743,
+            0.0,
             0.0,
             -711.8532052499075,
             269.9234918621958,
-            0.0,
+            941.6974723887743,
             0.0,
             0.0,
             3499.432393555856,
@@ -783,6 +791,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             -514.8494071830514,
             1493.3851099678195,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -831,6 +840,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,  # UnEq Spin
             -23.504907495268824,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -888,6 +898,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
         ],
         [  # Coeffs collocation point 2 of the merger ringdown phase (ind 10)
             0.0,  # No spin
@@ -930,6 +941,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,  # UnEq Spin
+            0.0,
             0.0,
             0.0,
             641.8965762829259,
@@ -988,6 +1000,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,
             0.0,
             0.0,
+            0.0,
         ],
         [  # Coeffs collocation point 4 of the merger ringdown phase (ind 12)
             0.0,  # No spin
@@ -1032,6 +1045,7 @@ PhenomX_coeff_table = jnp.array(
             0.0,  # UnEq Spin
             0.0,
             43.82713604567481,
+            0.0,
             0.0,
             0.0,
             0.0,
