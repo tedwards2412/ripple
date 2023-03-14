@@ -240,13 +240,13 @@ def test_gen_phenomXAS(
     f_l = f_l_idx * del_f
     f_u = f_u_idx * del_f
     f = np.arange(f_l_idx, f_u_idx) * del_f
+    f_ref = f_l
 
     Mf = f * (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
 
-    f_ref = f_l
-    phase_ripple, t0 = IMRPhenomXAS._gen_IMRPhenomXAS(
-        f, theta_intrinsic, IMRPhenomX_utils.PhenomX_coeff_table
+    phase_ripple = IMRPhenomXAS._gen_IMRPhenomXAS(
+        f, theta_intrinsic, theta_extrinsic, IMRPhenomX_utils.PhenomX_coeff_table
     )
 
     ################ Just for display ##################
@@ -304,7 +304,7 @@ def test_gen_phenomXAS(
     )
     plt.plot(
         f,
-        phase_ripple + alpha * f + beta,
+        phase_ripple,
         label="ripple",
         alpha=0.3,
     )
@@ -319,7 +319,7 @@ def test_gen_phenomXAS(
     plt.figure(figsize=(7, 5))
     plt.plot(
         freq[f_mask],
-        np.unwrap(np.angle(h0_lalsuite)) - phase_ripple - alpha * f - beta,
+        np.unwrap(np.angle(h0_lalsuite)) - phase_ripple,
         label="difference",
     )
 
@@ -329,22 +329,6 @@ def test_gen_phenomXAS(
     plt.xlabel(r"f")
     plt.ylabel(r"$\Delta\Phi$")
     plt.savefig("../figures/gen_diff_phase_PhenomX.pdf", bbox_inches="tight")
-
-    print(len(f))
-    plt.figure(figsize=(7, 5))
-    plt.plot(
-        f[10000:],
-        -t0[10000:],
-        label="difference",
-    )
-    plt.axhline(alpha / M_s)
-
-    plt.axvline(x=f1)
-    plt.axvline(x=f2)
-    plt.legend()
-    plt.xlabel(r"f")
-    plt.ylabel(r"$\alpha$")
-    plt.savefig("../figures/gen_alpha.pdf", bbox_inches="tight")
 
     print(
         "Ripple Phase:",

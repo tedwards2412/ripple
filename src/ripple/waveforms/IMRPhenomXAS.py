@@ -954,21 +954,105 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
 
 # @jax.jit
 # Removed theta_extrinsic and only return the phase for now
-def _gen_IMRPhenomXAS(f: Array, theta_intrinsic: Array, coeffs: Array):
-    Psi = Phase(f, theta_intrinsic, coeffs)
+def _gen_IMRPhenomXAS(
+    f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array
+):
+    f_ref = jnp.amin(f, axis=0)
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-
+    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    mm1 = 0.5 * (1.0 + delta)
+    mm2 = 0.5 * (1.0 - delta)
+    chi_eff = mm1 * chi1 + mm2 * chi2
+    S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
+    chia = chi1 - chi2
     fM_s = f * M_s
     fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
-    t0 = jax.vmap(
-        jax.grad(get_mergerringdown_raw_phase, has_aux=True), (0, None, None)
-    )(fM_s, theta_intrinsic, coeffs)[0]
-    # Psi -= t0[0] * (f * M_s)
-    return Psi, t0
+    Psi = Phase(f, theta_intrinsic, coeffs)
+
+    lina = 0.0
+    linb = (
+        (
+            3155.1635543201924
+            + 1257.9949740608242 * eta
+            - 32243.28428870599 * eta**2
+            + 347213.65466875216 * eta**3
+            - 1.9223851649491738e6 * eta**4
+            + 5.3035911346921865e6 * eta**5
+            - 5.789128656876938e6 * eta**6
+        )
+        + (
+            (
+                -24.181508118588667
+                + 115.49264174560281 * eta
+                - 380.19778216022763 * eta**2
+            )
+            * S
+            + (
+                24.72585609641552
+                - 328.3762360751952 * eta
+                + 725.6024119989094 * eta**2
+            )
+            * S**2
+            + (
+                23.404604124552
+                - 646.3410199799737 * eta
+                + 1941.8836639529036 * eta**2
+            )
+            * S**3
+            + (
+                -12.814828278938885
+                - 325.92980012408367 * eta
+                + 1320.102640190539 * eta**2
+            )
+            * S**4
+        )
+        + (-148.17317525117338 * chia * delta * eta**2)
+    )
+    dphi22Ref = jax.grad(Phase)((fRD - fdamp) / M_s, theta_intrinsic, coeffs) / M_s
+    psi4tostrain = (
+        (
+            13.39320482758057
+            - 175.42481512989315 * eta
+            + 2097.425116152503 * eta**2
+            - 9862.84178637907 * eta**3
+            + 16026.897939722587 * eta**4
+        )
+        + (
+            (4.7895602776763 - 163.04871764530466 * eta + 609.5575850476959 * eta**2)
+            * S
+            + (
+                1.3934428041390161
+                - 97.51812681228478 * eta
+                + 376.9200932531847 * eta**2
+            )
+            * S**2
+            + (
+                15.649521097877374
+                + 137.33317057388916 * eta
+                - 755.9566456906406 * eta**2
+            )
+            * S**3
+            + (
+                13.097315867845788
+                + 149.30405703643288 * eta
+                - 764.5242164872267 * eta**2
+            )
+            * S**4
+        )
+        + (105.37711654943146 * chia * delta * eta**2)
+    )
+    linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
+    phifRef = (
+        -(Phase(f_ref, theta_intrinsic, coeffs) + linb * (f_ref * M_s) + lina)
+        + PI / 4.0
+        + PI
+    )
+    ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - theta_extrinsic[2]
+    return Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
 
 
 # @jax.jit
