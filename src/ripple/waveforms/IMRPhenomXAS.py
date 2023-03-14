@@ -728,10 +728,6 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     fIMmatch = 0.6 * (0.5 * fRD + fISCO)
     fINmatch = fMECO
     deltaf = (fIMmatch - fINmatch) * 0.03
-    # fPhaseInsMin = 0.0026
-    # fPhaseInsMax = 1.020 * fMECO
-    # fPhaseRDMin = fIMmatch
-    # fPhaseRDMax = fRD + 1.25 * fdamp
     f1_Ms = fINmatch - 1.0 * deltaf
     f2_Ms = fIMmatch + 0.5 * deltaf
 
@@ -957,15 +953,22 @@ def Amp(f: Array, theta: Array, D=1) -> Array:
 
 
 # @jax.jit
-def _gen_IMRPhenomXAS(
-    f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array
-):
-    M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
-    # Lets call the amplitude and phase now
+# Removed theta_extrinsic and only return the phase for now
+def _gen_IMRPhenomXAS(f: Array, theta_intrinsic: Array, coeffs: Array):
     Psi = Phase(f, theta_intrinsic, coeffs)
-    A = Amp(f, theta_intrinsic, D=theta_extrinsic[0])
-    h0 = A * jnp.exp(1j * -Psi)
-    return h0
+    m1, m2, chi1, chi2 = theta_intrinsic
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+
+    fM_s = f * M_s
+    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
+    t0 = jax.vmap(
+        jax.grad(get_mergerringdown_raw_phase, has_aux=True), (0, None, None)
+    )(fM_s, theta_intrinsic, coeffs)[0]
+    # Psi -= t0[0] * (f * M_s)
+    return Psi, t0
 
 
 # @jax.jit

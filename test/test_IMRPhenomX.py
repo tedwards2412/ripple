@@ -217,6 +217,143 @@ def test_phase_phenomXAS():
     return None
 
 
+def test_gen_phenomXAS(
+    theta_intrinsic=jnp.array([25.0, 19.0, 0.0, 0.0]),
+    f_l=20,
+    f_u=1024,
+    del_f=0.0125,
+):
+    Mc, eta = ms_to_Mc_eta(jnp.array([theta_intrinsic[0], theta_intrinsic[1]]))
+    print(f"Chirp Mass = {Mc:.2f} Msol, eta = {eta:.2f}")
+    theta_intrinsic_lal = np.array(
+        [theta_intrinsic[0], theta_intrinsic[1], theta_intrinsic[2], theta_intrinsic[3]]
+    )
+    dist_mpc = 440.0
+    tc = 0.0
+    phic = 0.0
+    inclination = np.pi / 2.0
+    phi_ref = 0.0
+    theta_extrinsic = jnp.array([dist_mpc, tc, phic])
+
+    f_l_idx = round(f_l / del_f)
+    f_u_idx = f_u // del_f
+    f_l = f_l_idx * del_f
+    f_u = f_u_idx * del_f
+    f = np.arange(f_l_idx, f_u_idx) * del_f
+
+    Mf = f * (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
+    M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
+
+    f_ref = f_l
+    phase_ripple, t0 = IMRPhenomXAS._gen_IMRPhenomXAS(
+        f, theta_intrinsic, IMRPhenomX_utils.PhenomX_coeff_table
+    )
+
+    ################ Just for display ##################
+    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(
+        theta_intrinsic[0], theta_intrinsic[1], theta_intrinsic[2], theta_intrinsic[3]
+    )
+    fIMmatch = 0.6 * (0.5 * fRD + fISCO)
+    fINmatch = fMECO
+    deltaf = (fIMmatch - fINmatch) * 0.03
+
+    f1 = (fINmatch - 1.0 * deltaf) / M_s
+    f2 = (fIMmatch + 0.5 * deltaf) / M_s
+
+    m1_kg = theta_intrinsic_lal[0] * lal.MSUN_SI
+    m2_kg = theta_intrinsic_lal[1] * lal.MSUN_SI
+    distance = dist_mpc * 1e6 * lal.PC_SI
+    approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomXAS")
+
+    hp, hc = lalsim.SimInspiralChooseFDWaveform(
+        m1_kg,
+        m2_kg,
+        0.0,
+        0.0,
+        theta_intrinsic_lal[2],
+        0.0,
+        0.0,
+        theta_intrinsic_lal[3],
+        distance,
+        inclination,
+        phi_ref,
+        0.0,
+        0.0,
+        0.0,
+        del_f,
+        f_l,
+        f_u,
+        f_ref,
+        None,
+        approximant,
+    )
+
+    freq = np.arange(len(hp.data.data)) * del_f
+    f_mask = (freq >= f_l) & (freq < f_u)
+    h0_lalsuite = 2.0 * hp.data.data[f_mask]
+
+    difference = np.unwrap(np.angle(h0_lalsuite)) - phase_ripple
+    alpha = (difference[-1] - difference[0]) / (f[-1] - f[0])
+    beta = difference[0] - alpha * f[0]
+
+    plt.figure(figsize=(7, 5))
+    plt.plot(
+        freq[f_mask],
+        np.unwrap(np.angle(h0_lalsuite)),
+        label="lalsuite",
+    )
+    plt.plot(
+        f,
+        phase_ripple + alpha * f + beta,
+        label="ripple",
+        alpha=0.3,
+    )
+
+    plt.axvline(x=f1)
+    plt.axvline(x=f2)
+    plt.legend()
+    plt.xlabel(r"f")
+    plt.ylabel(r"$\Phi$")
+    plt.savefig("../figures/gen_inspiral_phase_PhenomX.pdf", bbox_inches="tight")
+
+    plt.figure(figsize=(7, 5))
+    plt.plot(
+        freq[f_mask],
+        np.unwrap(np.angle(h0_lalsuite)) - phase_ripple - alpha * f - beta,
+        label="difference",
+    )
+
+    plt.axvline(x=f1)
+    plt.axvline(x=f2)
+    plt.legend()
+    plt.xlabel(r"f")
+    plt.ylabel(r"$\Delta\Phi$")
+    plt.savefig("../figures/gen_diff_phase_PhenomX.pdf", bbox_inches="tight")
+
+    print(len(f))
+    plt.figure(figsize=(7, 5))
+    plt.plot(
+        f[10000:],
+        -t0[10000:],
+        label="difference",
+    )
+    plt.axhline(alpha / M_s)
+
+    plt.axvline(x=f1)
+    plt.axvline(x=f2)
+    plt.legend()
+    plt.xlabel(r"f")
+    plt.ylabel(r"$\alpha$")
+    plt.savefig("../figures/gen_alpha.pdf", bbox_inches="tight")
+
+    print(
+        "Ripple Phase:",
+        phase_ripple,
+    )
+    print("Lalsuite Phase:", np.unwrap(np.angle(h0_lalsuite)))
+    return None
+
+
 if __name__ == "__main__":
-    test_phase_phenomXAS()
-    None
+    # test_phase_phenomXAS()
+    test_gen_phenomXAS()
