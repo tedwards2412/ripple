@@ -276,6 +276,13 @@ def gen_h0(f, theta, f_ref):
 
     t0 = grad_phase(f_cutoff)
 
+    beta0 = Phase_(f_cutoff) - t0 * f_cutoff
+    Phi_m = t0 * f + beta0
+
+    Phi = Phi * jnp.heaviside(f_cutoff - f, 0.5) + Phi_m * jnp.heaviside(
+        f - f_cutoff, 0.5
+    )
+
     # Lets call the amplitude and phase now
     Phi_ref = Phase_(f_ref)
     Phi -= t0 * (f - f_ref) + Phi_ref
@@ -283,7 +290,6 @@ def gen_h0(f, theta, f_ref):
     ext_phase_contrib = 2.0 * PI * f * tc - 2 * phic
     Phi += ext_phase_contrib
 
-    Phi = Phi * jnp.heaviside(f_cutoff - f, 1.0)
     Amp_m = Amp_merger(f, f_cutoff, A0(f_cutoff))
 
     Amp = A0(f) * jnp.heaviside(f_cutoff - f, 0.5) + Amp_m * jnp.heaviside(
