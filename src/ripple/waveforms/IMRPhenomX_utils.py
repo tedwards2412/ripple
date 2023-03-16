@@ -287,6 +287,83 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
     return fRD, fdamp, fMECO, fISCO
 
 
+def calc_phaseatpeak(eta, S, chia, delta):
+    lina = 0.0
+
+    linb = (
+        (
+            3155.1635543201924
+            + 1257.9949740608242 * eta
+            - 32243.28428870599 * eta**2
+            + 347213.65466875216 * eta**3
+            - 1.9223851649491738e6 * eta**4
+            + 5.3035911346921865e6 * eta**5
+            - 5.789128656876938e6 * eta**6
+        )
+        + (
+            (
+                -24.181508118588667
+                + 115.49264174560281 * eta
+                - 380.19778216022763 * eta**2
+            )
+            * S
+            + (
+                24.72585609641552
+                - 328.3762360751952 * eta
+                + 725.6024119989094 * eta**2
+            )
+            * S**2
+            + (
+                23.404604124552
+                - 646.3410199799737 * eta
+                + 1941.8836639529036 * eta**2
+            )
+            * S**3
+            + (
+                -12.814828278938885
+                - 325.92980012408367 * eta
+                + 1320.102640190539 * eta**2
+            )
+            * S**4
+        )
+        + (-148.17317525117338 * chia * delta * eta**2)
+    )
+
+    psi4tostrain = (
+        (
+            13.39320482758057
+            - 175.42481512989315 * eta
+            + 2097.425116152503 * eta**2
+            - 9862.84178637907 * eta**3
+            + 16026.897939722587 * eta**4
+        )
+        + (
+            (4.7895602776763 - 163.04871764530466 * eta + 609.5575850476959 * eta**2)
+            * S
+            + (
+                1.3934428041390161
+                - 97.51812681228478 * eta
+                + 376.9200932531847 * eta**2
+            )
+            * S**2
+            + (
+                15.649521097877374
+                + 137.33317057388916 * eta
+                - 755.9566456906406 * eta**2
+            )
+            * S**3
+            + (
+                13.097315867845788
+                + 149.30405703643288 * eta
+                - 764.5242164872267 * eta**2
+            )
+            * S**4
+        )
+        + (105.37711654943146 * chia * delta * eta**2)
+    )
+    return lina, linb, psi4tostrain
+
+
 def nospin_CPvalue(NoSpin_coeffs, eta):
     eta2 = eta * eta
     eta3 = eta2 * eta
@@ -362,15 +439,15 @@ def Eqspin_CPvalue(EqSpin_coeffs, eta, S):
     return numerator / denominator
 
 
-def Uneqspin_CPvalue(EqSpin_coeffs, eta, S, dchi):
-    dchi2 = dchi * dchi
+def Uneqspin_CPvalue(EqSpin_coeffs, eta, S, chia):
+    chia2 = chia * chia
     delta = jnp.sqrt(1.0 - 4.0 * eta)
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
     eta5 = eta4 * eta
     return (
-        dchi
+        chia
         * delta
         * eta
         * (
@@ -384,7 +461,7 @@ def Uneqspin_CPvalue(EqSpin_coeffs, eta, S, dchi):
             + EqSpin_coeffs[7] * S * eta2
             + EqSpin_coeffs[8] * S * eta3
         )
-        + EqSpin_coeffs[9] * dchi2 * eta
+        + EqSpin_coeffs[9] * chia2 * eta
     )
 
 
