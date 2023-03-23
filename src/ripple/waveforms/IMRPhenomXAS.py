@@ -345,6 +345,7 @@ def get_intermediate_raw_phase(
     mm2 = 0.5 * (1.0 - delta)
     chi_eff = mm1 * chi1 + mm2 * chi2
     S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
+    StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
     # Spin variables
     chia = chi1 - chi2
@@ -384,32 +385,44 @@ def get_intermediate_raw_phase(
     # This is different to WF4py and driving the difference in CollocationValuesPhaseInt1
     v2IMmRDv4 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[4, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[4, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[4, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(
+            coeffs[4, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[4, uneqspin_indx:], eta, StotR, chia)
     )
 
     v3IMmRDv4 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[5, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[5, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[5, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(
+            coeffs[5, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[5, uneqspin_indx:], eta, StotR, chia)
     )
     v2IM = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[6, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[6, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[6, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(
+            coeffs[6, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[6, uneqspin_indx:], eta, StotR, chia)
     )
 
     # This is different to WF4py and driving the difference in CollocationValuesPhaseInt3
     d43 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[7, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[7, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[7, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(
+            coeffs[7, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[7, uneqspin_indx:], eta, StotR, chia)
     )
 
     CollocationValuesPhaseRD3 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[11, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[11, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[11, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(
+            coeffs[11, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CPvalue(
+            coeffs[11, uneqspin_indx:], eta, StotR, chia
+        )
     )
 
     CollocationValuesPhaseInt1 = (
@@ -547,6 +560,7 @@ def get_mergerringdown_raw_phase(
     chi_eff = mm1 * chi1 + mm2 * chi2
     S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
     chia = chi1 - chi2
+    StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
     fRD, fdamp, _, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
     fIMmatch = 0.6 * (0.5 * fRD + fISCO)
@@ -577,28 +591,44 @@ def get_mergerringdown_raw_phase(
 
     CollocationValuesPhaseRD0 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[8, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[8, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[8, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(
+            coeffs[8, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[8, uneqspin_indx:], eta, StotR, chia)
     )
     CollocationValuesPhaseRD1 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[9, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[9, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[9, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(
+            coeffs[9, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[9, uneqspin_indx:], eta, StotR, chia)
     )
     CollocationValuesPhaseRD2 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[10, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[10, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[10, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(
+            coeffs[10, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CPvalue(
+            coeffs[10, uneqspin_indx:], eta, StotR, chia
+        )
     )
     CollocationValuesPhaseRD3 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[11, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[11, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[11, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(
+            coeffs[11, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CPvalue(
+            coeffs[11, uneqspin_indx:], eta, StotR, chia
+        )
     )
     CollocationValuesPhaseRD4 = (
         IMRPhenomX_utils.nospin_CPvalue(coeffs[12, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[12, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[12, uneqspin_indx:], eta, S, chia)
+        + IMRPhenomX_utils.Eqspin_CPvalue(
+            coeffs[12, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CPvalue(
+            coeffs[12, uneqspin_indx:], eta, StotR, chia
+        )
     )
 
     CollocationValuesPhaseRD4 = CollocationValuesPhaseRD4 + CollocationValuesPhaseRD3
@@ -968,6 +998,7 @@ def _gen_IMRPhenomXAS(
     mm2 = 0.5 * (1.0 - delta)
     chi_eff = mm1 * chi1 + mm2 * chi2
     S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
+    StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
     chia = chi1 - chi2
     fM_s = f * M_s
     fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
@@ -1044,7 +1075,9 @@ def _gen_IMRPhenomXAS(
     #     )
     #     + (105.37711654943146 * chia * delta * eta**2)
     # )
-    lina, linb, psi4tostrain = IMRPhenomX_utils.calc_phaseatpeak(eta, S, chia, delta)
+    lina, linb, psi4tostrain = IMRPhenomX_utils.calc_phaseatpeak(
+        eta, StotR, chia, delta
+    )
     dphi22Ref = jax.grad(Phase)((fRD - fdamp) / M_s, theta_intrinsic, coeffs) / M_s
     linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
     phifRef = (

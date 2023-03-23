@@ -15,12 +15,12 @@ from WF4Py import waveforms
 import numpy as np
 import cProfile
 import lalsimulation as lalsim
-from ripple import ms_to_Mc_eta
+from ripple import ms_to_Mc_eta, Mc_eta_to_ms
 import lal
 
 
 def test_phase_phenomXAS():
-    theta = np.array([20, 19.0, 0.9, 0.5])
+    theta = np.array([20, 19.0, 0.5, 0.5])
     events = {
         "Mc": np.array([16.969038560664817]),
         "dL": np.array([1000.0]),
@@ -218,9 +218,9 @@ def test_phase_phenomXAS():
 
 
 def test_gen_phenomXAS(
-    theta_intrinsic=jnp.array([25.0, 19.0, 0.0, 0.0]),
+    theta_intrinsic=jnp.array([42.0, 33.90281401, 0.1, -0.9]),
     f_l=20,
-    f_u=1024,
+    f_u=620,
     del_f=0.0125,
 ):
     Mc, eta = ms_to_Mc_eta(jnp.array([theta_intrinsic[0], theta_intrinsic[1]]))
@@ -228,6 +228,16 @@ def test_gen_phenomXAS(
     theta_intrinsic_lal = np.array(
         [theta_intrinsic[0], theta_intrinsic[1], theta_intrinsic[2], theta_intrinsic[3]]
     )
+    events = {
+        "Mc": np.array([Mc]),
+        "dL": np.array([440.0]),
+        "iota": np.array([0.0]),
+        "eta": np.array([eta]),
+        "chi1z": np.array([theta_intrinsic_lal[2]]),
+        "chi2z": np.array([theta_intrinsic_lal[3]]),
+        "Lambda1": np.array([0.0]),
+        "Lambda2": np.array([0.0]),
+    }
     dist_mpc = 440.0
     tc = 0.0
     phic = 0.0
@@ -241,6 +251,8 @@ def test_gen_phenomXAS(
     f_u = f_u_idx * del_f
     f = np.arange(f_l_idx, f_u_idx) * del_f
     f_ref = f_l
+
+    phase_wf4py = waveforms.IMRPhenomXAS().Phi(f, **events) - 2 * np.pi
 
     Mf = f * (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
@@ -308,6 +320,12 @@ def test_gen_phenomXAS(
         label="ripple",
         alpha=0.3,
     )
+    plt.plot(
+        f,
+        phase_wf4py,
+        label="wf4py",
+        alpha=0.3,
+    )
 
     plt.axvline(x=f1)
     plt.axvline(x=f2)
@@ -320,8 +338,13 @@ def test_gen_phenomXAS(
     plt.plot(
         freq[f_mask],
         np.unwrap(np.angle(h0_lalsuite)) - phase_ripple,
-        label="difference",
+        label="ripple",
     )
+    # plt.plot(
+    #     freq[f_mask],
+    #     np.unwrap(np.angle(h0_lalsuite)) - phase_wf4py,
+    #     label="wf4py",
+    # )
 
     plt.axvline(x=f1)
     plt.axvline(x=f2)
