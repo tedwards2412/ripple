@@ -7,7 +7,7 @@ from ..constants import gt, PI
 from ..typing import Array
 
 # Dimensionless cutoff frequency for PhenomXAS
-f_CUT = 0.3
+fM_CUT = 0.3
 
 
 def get_cutoff_fs(m1, m2, chi1, chi2):
