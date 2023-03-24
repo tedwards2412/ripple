@@ -945,44 +945,7 @@ def get_mergerringdown_Amp(
     return None
 
 
-# @jax.jit
-def Amp(f: Array, theta: Array, D=1) -> Array:
-    """
-    Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
-    Note that this waveform also assumes that object one is the more massive.
-
-    Returns:
-    --------
-      Amplitude (array):
-    """
-
-    # First lets calculate some of the vairables that will be used below
-    # Mass variables
-    m1, m2, _, _ = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
-
-    # And now we can combine them by multiplying by a set of heaviside functions
-    # Amp = (
-    #     Amp_Ins * jnp.heaviside(f3 - f, 0.5)
-    #     + jnp.heaviside(f - f3, 0.5) * Amp_Inter * jnp.heaviside(f4 - f, 0.5)
-    #     + Amp_MR * jnp.heaviside(f - f4, 0.5)
-    # )
-
-    # Prefactor
-    Amp0 = get_Amp0(f * M_s, eta) * (
-        2.0 * jnp.sqrt(5.0 / (64.0 * PI))
-    )  # This second factor is from lalsuite...
-
-    # Need to add in an overall scaling of M_s^2 to make the units correct
-    dist_s = (D * m_per_Mpc) / C
-    # return Amp0 * Amp * (M_s ** 2.0) / dist_s
-    return None
-
-
-def Ampl(f: Array, theta: Array, D=1.0) -> Array:
+def Amp(f: Array, theta: Array, D=1.0) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1745,77 +1708,6 @@ def _gen_IMRPhenomXAS(
     fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
     Psi = Phase(f, theta_intrinsic, coeffs)
 
-    # lina = 0.0
-    # linb = (
-    #     (
-    #         3155.1635543201924
-    #         + 1257.9949740608242 * eta
-    #         - 32243.28428870599 * eta**2
-    #         + 347213.65466875216 * eta**3
-    #         - 1.9223851649491738e6 * eta**4
-    #         + 5.3035911346921865e6 * eta**5
-    #         - 5.789128656876938e6 * eta**6
-    #     )
-    #     + (
-    #         (
-    #             -24.181508118588667
-    #             + 115.49264174560281 * eta
-    #             - 380.19778216022763 * eta**2
-    #         )
-    #         * S
-    #         + (
-    #             24.72585609641552
-    #             - 328.3762360751952 * eta
-    #             + 725.6024119989094 * eta**2
-    #         )
-    #         * S**2
-    #         + (
-    #             23.404604124552
-    #             - 646.3410199799737 * eta
-    #             + 1941.8836639529036 * eta**2
-    #         )
-    #         * S**3
-    #         + (
-    #             -12.814828278938885
-    #             - 325.92980012408367 * eta
-    #             + 1320.102640190539 * eta**2
-    #         )
-    #         * S**4
-    #     )
-    #     + (-148.17317525117338 * chia * delta * eta**2)
-    # )
-    # psi4tostrain = (
-    #     (
-    #         13.39320482758057
-    #         - 175.42481512989315 * eta
-    #         + 2097.425116152503 * eta**2
-    #         - 9862.84178637907 * eta**3
-    #         + 16026.897939722587 * eta**4
-    #     )
-    #     + (
-    #         (4.7895602776763 - 163.04871764530466 * eta + 609.5575850476959 * eta**2)
-    #         * S
-    #         + (
-    #             1.3934428041390161
-    #             - 97.51812681228478 * eta
-    #             + 376.9200932531847 * eta**2
-    #         )
-    #         * S**2
-    #         + (
-    #             15.649521097877374
-    #             + 137.33317057388916 * eta
-    #             - 755.9566456906406 * eta**2
-    #         )
-    #         * S**3
-    #         + (
-    #             13.097315867845788
-    #             + 149.30405703643288 * eta
-    #             - 764.5242164872267 * eta**2
-    #         )
-    #         * S**4
-    #     )
-    #     + (105.37711654943146 * chia * delta * eta**2)
-    # )
     lina, linb, psi4tostrain = IMRPhenomX_utils.calc_phaseatpeak(
         eta, StotR, chia, delta
     )
@@ -1827,7 +1719,11 @@ def _gen_IMRPhenomXAS(
         + PI
     )
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - theta_extrinsic[2]
-    return Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
+    Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
+
+    A = Amp(f, theta_intrinsic, D=theta_extrinsic[0])
+    h0 = A * jnp.exp(1j * -Psi)
+    return h0
 
 
 # @jax.jit
@@ -1847,13 +1743,13 @@ def gen_IMRPhenomXAS(f: Array, params: Array):
 
     Returns:
     --------
-      hp (array): Strain of the plus polarization
-      hc (array): Strain of the cross polarization
+      h0 (array): Complex gravitational wave strain
     """
     # Lets make this easier by starting in Mchirp and eta space
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     theta_intrinsic = jnp.array([m1, m2, params[2], params[3]])
     theta_extrinsic = jnp.array([params[4], params[5], params[6]])
+    coeffs = IMRPhenomX_utils.PhenomX_coeff_table
 
-    # h0 = _gen_IMRPhenomXAS(f, theta_intrinsic, theta_extrinsic, coeffs)
-    return None
+    h0 = _gen_IMRPhenomXAS(f, theta_intrinsic, theta_extrinsic, coeffs)
+    return h0

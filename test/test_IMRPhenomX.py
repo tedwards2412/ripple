@@ -401,7 +401,7 @@ def test_amplitude_XAS(
     Mf = f * (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
 
-    amp_ripple = IMRPhenomXAS.Ampl(f, theta_intrinsic, D=dist_mpc)
+    amp_ripple = IMRPhenomXAS.Amp(f, theta_intrinsic, D=dist_mpc)
 
     ################ Just for display ##################
     fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(
@@ -493,7 +493,129 @@ def test_amplitude_XAS(
     plt.savefig("../figures/gen_diff_amp_PhenomX.pdf", bbox_inches="tight")
 
 
+def test_full_waveform_XAS(
+    theta_intrinsic=jnp.array([55.0, 33.90281401, 0.8, -0.8]),
+    f_l=20,
+    f_u=620,
+    del_f=0.0125,
+):
+    Mc, eta = ms_to_Mc_eta(jnp.array([theta_intrinsic[0], theta_intrinsic[1]]))
+    print(f"Chirp Mass = {Mc:.2f} Msol, eta = {eta:.2f}")
+    theta_intrinsic_lal = np.array(
+        [theta_intrinsic[0], theta_intrinsic[1], theta_intrinsic[2], theta_intrinsic[3]]
+    )
+    dist_mpc = 440.0
+    tc = 0.0
+    phic = 0.0
+    inclination = np.pi / 2.0
+    phi_ref = 0.0
+    theta_extrinsic = jnp.array([dist_mpc, tc, phic])
+
+    f_l_idx = round(f_l / del_f)
+    f_u_idx = f_u // del_f
+    f_l = f_l_idx * del_f
+    f_u = f_u_idx * del_f
+    f = np.arange(f_l_idx, f_u_idx) * del_f
+    f_ref = f_l
+
+    Mf = f * (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
+    M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
+
+    params = jnp.array(
+        [Mc, eta, theta_intrinsic[2], theta_intrinsic[3], dist_mpc, tc, phic]
+    )
+
+    h0_ripple = IMRPhenomXAS.gen_IMRPhenomXAS(f, params)
+
+    ################ Just for display ##################
+    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(
+        theta_intrinsic[0], theta_intrinsic[1], theta_intrinsic[2], theta_intrinsic[3]
+    )
+    fIMmatch = 0.6 * (0.5 * fRD + fISCO)
+    fINmatch = fMECO
+    deltaf = (fIMmatch - fINmatch) * 0.03
+
+    f1 = (fINmatch - 1.0 * deltaf) / M_s
+    f2 = (fIMmatch + 0.5 * deltaf) / M_s
+
+    m1_kg = theta_intrinsic_lal[0] * lal.MSUN_SI
+    m2_kg = theta_intrinsic_lal[1] * lal.MSUN_SI
+    distance = dist_mpc * 1e6 * lal.PC_SI
+    approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomXAS")
+
+    hp, hc = lalsim.SimInspiralChooseFDWaveform(
+        m1_kg,
+        m2_kg,
+        0.0,
+        0.0,
+        theta_intrinsic_lal[2],
+        0.0,
+        0.0,
+        theta_intrinsic_lal[3],
+        distance,
+        inclination,
+        phi_ref,
+        0.0,
+        0.0,
+        0.0,
+        del_f,
+        f_l,
+        f_u,
+        f_ref,
+        None,
+        approximant,
+    )
+
+    freq = np.arange(len(hp.data.data)) * del_f
+    f_mask = (freq >= f_l) & (freq < f_u)
+    h0_lalsuite = 2.0 * hp.data.data[f_mask]
+
+    plt.figure(figsize=(7, 5))
+    plt.loglog(
+        freq[f_mask],
+        np.abs(h0_lalsuite) ** 2,
+        label="lalsuite",
+    )
+    plt.loglog(
+        f,
+        np.abs(h0_ripple) ** 2,
+        label="ripple",
+        alpha=0.3,
+    )
+
+    plt.axvline(x=f1)
+    plt.axvline(x=f2)
+    plt.legend()
+    plt.xlabel(r"f")
+    plt.ylabel(r"$|A(f)|^2$")
+    plt.savefig("../figures/full_waveform_PhenomX_amp.pdf", bbox_inches="tight")
+
+    plt.figure(figsize=(7, 5))
+    plt.plot(
+        f,
+        np.gradient(np.unwrap(np.angle(h0_lalsuite))),
+        label="ripple",
+        alpha=0.3,
+    )
+    plt.plot(
+        f,
+        np.gradient(np.unwrap(np.angle(h0_ripple))),
+        label="ripple",
+        alpha=0.3,
+    )
+
+    plt.axvline(x=f1)
+    plt.axvline(x=f2)
+    plt.legend()
+    plt.xlabel(r"f")
+    plt.ylabel(r"$\mathrm{d}\Phi/\mathrm{d}f$")
+    plt.savefig(
+        "../figures/full_waveform_PhenomX_phase_gradient.pdf", bbox_inches="tight"
+    )
+
+
 if __name__ == "__main__":
     # test_phase_phenomXAS()
     # test_gen_phenomXAS()
-    test_amplitude_XAS()
+    # test_amplitude_XAS()
+    test_full_waveform_XAS()
