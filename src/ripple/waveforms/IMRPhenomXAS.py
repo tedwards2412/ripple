@@ -952,7 +952,6 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
-    eta3 = eta2 * eta
     delta = jnp.sqrt(1.0 - 4.0 * eta)
 
     mm1 = 0.5 * (1.0 + delta)
@@ -964,27 +963,10 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     # Spin variables
     chia = chi1 - chi2
 
-    chi1L2L = chi1 * chi2
-    chi1L2 = chi1 * chi1
-    chi1L3 = chi1 * chi1 * chi1
-    chi2L2 = chi2 * chi2
-    chi2L3 = chi2 * chi2 * chi2
-
     fM_s = f * M_s
     fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
     amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M_s**2 / ((D * m_per_Mpc) / C)
     ampNorm = jnp.sqrt(2.0 * eta / 3.0) * (PI ** (-1.0 / 6.0))
-
-    dphase0 = 5.0 / (128.0 * (PI ** (5.0 / 3.0)))
-
-    gpoints4 = [0.0, 1.0 / 4.0, 3.0 / 4.0, 1.0]
-    gpoints5 = [
-        0.0,
-        1.0 / 2.0 - 1.0 / (2.0 * jnp.sqrt(2.0)),
-        1.0 / 2.0,
-        1.0 / 2 + 1.0 / (2.0 * jnp.sqrt(2.0)),
-        1.0,
-    ]
 
     gamma2 = (
         (
@@ -1079,6 +1061,7 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
         + (-0.04426571511345366 * chia * delta * eta2)
     )
     F1 = fAmpRDMin
+
     gamma1 = (
         (v1RD / (fdamp * gamma3))
         * (F1 * F1 - 2.0 * F1 * fRD + fRD * fRD + fdamp * fdamp * gamma3 * gamma3)
@@ -1087,10 +1070,8 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     gammaR = gamma2 / (fdamp * gamma3)
     gammaD2 = (gamma3 * fdamp) * (gamma3 * fdamp)
     gammaD13 = fdamp * gamma1 * gamma3
-    fAmpInsMin = 0.0026
     fAmpInsMax = fMECO + 0.25 * (fISCO - fMECO)
     fAmpMatchIN = fAmpInsMax
-    fAmpIntMax = fAmpRDMin
 
     # TaylorF2 PN Amplitude Coefficients
     pnInitial = 1.0
@@ -1182,7 +1163,6 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     )
 
     # Now the collocation points for the inspiral
-    CollocationValuesAmpIns0 = 0.0
     CollocationValuesAmpIns1 = (
         (
             (
@@ -1265,7 +1245,6 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
         )
     )
 
-    CollocationPointsAmpIns0 = 0.25 * fAmpMatchIN
     CollocationPointsAmpIns1 = 0.50 * fAmpMatchIN
     CollocationPointsAmpIns2 = 0.75 * fAmpMatchIN
     CollocationPointsAmpIns3 = 1.00 * fAmpMatchIN
@@ -1323,9 +1302,6 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
         * (jnp.cbrt(F2) - jnp.cbrt(F3))
         * (F3 ** (7.0 / 3.0))
     )
-    pnSevenThirds = rho1
-    pnEightThirds = rho2
-    pnNineThirds = rho3
 
     # Now the intermediate region
     F1 = fAmpMatchIN
@@ -1502,48 +1478,28 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     V1 = 1.0 / V1
     V2 = 1.0 / V2
     V4 = 1.0 / V4
+
     # Reconstruct the phenomenological coefficients for the intermediate ansatz
     F12 = F1 * F1
     F13 = F12 * F1
     F14 = F13 * F1
     F15 = F14 * F1
-    F16 = F15 * F1
-    F17 = F16 * F1
 
     F22 = F2 * F2
     F23 = F22 * F2
     F24 = F23 * F2
-    F25 = F24 * F2
-    F26 = F25 * F2
-    F27 = F26 * F2
-
-    F32 = F3 * F3
-    F33 = F32 * F3
-    F34 = F33 * F3
-    F35 = F34 * F3
-    F36 = F35 * F3
-    F37 = F36 * F3
 
     F42 = F4 * F4
     F43 = F42 * F4
     F44 = F43 * F4
     F45 = F44 * F4
-    F46 = F45 * F4
-    F47 = F46 * F4
 
     F1mF2 = F1 - F2
-    F1mF3 = F1 - F3
     F1mF4 = F1 - F4
-    F2mF3 = F2 - F3
     F2mF4 = F2 - F4
-    F3mF4 = F3 - F4
 
     F1mF22 = F1mF2 * F1mF2
-    F1mF32 = F1mF3 * F1mF3
-    F1mF42 = F1mF4 * F1mF4
-    F2mF32 = F2mF3 * F2mF3
     F2mF42 = F2mF4 * F2mF4
-    F3mF42 = F3mF4 * F3mF4
     F1mF43 = F1mF4 * F1mF4 * F1mF4
 
     delta0 = (
