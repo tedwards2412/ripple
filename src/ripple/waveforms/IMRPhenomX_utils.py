@@ -10,7 +10,7 @@ from ..typing import Array
 fM_CUT = 0.3
 
 
-def get_cutoff_fs(m1, m2, chi1, chi2):
+def get_cutoff_fMs(m1, m2, chi1, chi2):
     # This function returns a variety of frequencies needed for computing IMRPhenomXAS
     # In particular, we have fRD, fdamp, fMECO, FISCO
     m1_s = m1 * gt
@@ -282,8 +282,7 @@ def get_cutoff_fs(m1, m2, chi1, chi2):
         )
     )
 
-    # return fRD / M_s, fdamp / M_s, fMECO / M_s, fISCO / M_s
-    # print(fRD, fdamp, fMECO, fISCO)
+    # NOTE: These are dimensionless frequencies
     return fRD, fdamp, fMECO, fISCO
 
 
@@ -364,7 +363,7 @@ def calc_phaseatpeak(eta, S, chia, delta):
     return lina, linb, psi4tostrain
 
 
-def nospin_CPvalue(NoSpin_coeffs, eta):
+def nospin_CV(NoSpin_coeffs, eta):
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
@@ -384,7 +383,7 @@ def nospin_CPvalue(NoSpin_coeffs, eta):
     )
 
 
-def Eqspin_CPvalue(EqSpin_coeffs, eta, S):
+def Eqspin_CV(EqSpin_coeffs, eta, S):
     eta2 = eta * eta
     eta3 = eta2 * eta
     eta4 = eta3 * eta
@@ -439,7 +438,7 @@ def Eqspin_CPvalue(EqSpin_coeffs, eta, S):
     return numerator / denominator
 
 
-def Uneqspin_CPvalue(EqSpin_coeffs, eta, S, chia):
+def Uneqspin_CV(EqSpin_coeffs, eta, S, chia):
     chia2 = chia * chia
     delta = jnp.sqrt(1.0 - 4.0 * eta)
     eta2 = eta * eta

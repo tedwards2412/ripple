@@ -10,6 +10,10 @@ from ripple import Mc_eta_to_ms
 eqspin_indx = 10
 uneqspin_indx = 39
 
+# Format Choices:
+# - All frequencies in Hz -> labelled as f, otherwise fM_s
+# - Update variable names of collocation points and values
+
 
 def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     """
@@ -208,100 +212,96 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     # Note that they do not use 4.1 from 2001.11412, they actually use
     # (Cos(i PI / 3) + 1)/2
 
-    _, _, fMECO, _ = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
+    _, _, fMs_MECO, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
 
-    fPhaseInsMin = 0.0026
-    fPhaseInsMax = 1.020 * fMECO
+    fMs_PhaseInsMin = 0.0026
+    fMs_PhaseInsMax = 1.020 * fMs_MECO
 
-    deltax = fPhaseInsMax - fPhaseInsMin
-    xmin = fPhaseInsMin
+    deltax = fMs_PhaseInsMax - fMs_PhaseInsMin
+    xmin = fMs_PhaseInsMin
 
-    CollocationPointsPhaseIns0 = gpoints4[0] * deltax + xmin
-    CollocationPointsPhaseIns1 = gpoints4[1] * deltax + xmin
-    CollocationPointsPhaseIns2 = gpoints4[2] * deltax + xmin
-    CollocationPointsPhaseIns3 = gpoints4[3] * deltax + xmin
+    CP_phase_Ins0 = gpoints4[0] * deltax + xmin
+    CP_phase_Ins1 = gpoints4[1] * deltax + xmin
+    CP_phase_Ins2 = gpoints4[2] * deltax + xmin
+    CP_phase_Ins3 = gpoints4[3] * deltax + xmin
 
-    CollocationValuesPhaseIns0 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[0, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[0, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[0, uneqspin_indx:], eta, S, chia)
+    CV_phase_Ins0 = (
+        IMRPhenomX_utils.nospin_CV(coeffs[0, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[0, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[0, uneqspin_indx:], eta, S, chia)
     )
-    CollocationValuesPhaseIns1 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[1, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[1, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[1, uneqspin_indx:], eta, S, chia)
+    CV_phase_Ins1 = (
+        IMRPhenomX_utils.nospin_CV(coeffs[1, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[1, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[1, uneqspin_indx:], eta, S, chia)
     )
-    CollocationValuesPhaseIns2 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[2, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[2, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[2, uneqspin_indx:], eta, S, chia)
+    CV_phase_Ins2 = (
+        IMRPhenomX_utils.nospin_CV(coeffs[2, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[2, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[2, uneqspin_indx:], eta, S, chia)
     )
 
-    # NOTE: This CollocationValuesPhaseIns3 disagrees slightly with the value in WF4py at non-zero spin
-    CollocationValuesPhaseIns3 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[3, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(coeffs[3, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[3, uneqspin_indx:], eta, S, chia)
+    # NOTE: This CV_phase_Ins3 disagrees slightly with the value in WF4py at non-zero spin
+    CV_phase_Ins3 = (
+        IMRPhenomX_utils.nospin_CV(coeffs[3, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[3, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[3, uneqspin_indx:], eta, S, chia)
     )
 
     # See line 1322 of https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x__internals_8c_source.html
-    CollocationValuesPhaseIns0 = CollocationValuesPhaseIns0 + CollocationValuesPhaseIns2
-    CollocationValuesPhaseIns1 = CollocationValuesPhaseIns1 + CollocationValuesPhaseIns2
-    CollocationValuesPhaseIns3 = CollocationValuesPhaseIns3 + CollocationValuesPhaseIns2
+    CV_phase_Ins0 = CV_phase_Ins0 + CV_phase_Ins2
+    CV_phase_Ins1 = CV_phase_Ins1 + CV_phase_Ins2
+    CV_phase_Ins3 = CV_phase_Ins3 + CV_phase_Ins2
 
     A0 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseIns0.shape),
-            CollocationPointsPhaseIns0 ** (1.0 / 3.0),
-            CollocationPointsPhaseIns0 ** (2.0 / 3.0),
-            CollocationPointsPhaseIns0,
+            jnp.ones(CP_phase_Ins0.shape),
+            CP_phase_Ins0 ** (1.0 / 3.0),
+            CP_phase_Ins0 ** (2.0 / 3.0),
+            CP_phase_Ins0,
         ]
     )
     A1 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseIns1.shape),
-            CollocationPointsPhaseIns1 ** (1.0 / 3.0),
-            CollocationPointsPhaseIns1 ** (2.0 / 3.0),
-            CollocationPointsPhaseIns1,
+            jnp.ones(CP_phase_Ins1.shape),
+            CP_phase_Ins1 ** (1.0 / 3.0),
+            CP_phase_Ins1 ** (2.0 / 3.0),
+            CP_phase_Ins1,
         ]
     )
     A2 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseIns2.shape),
-            CollocationPointsPhaseIns2 ** (1.0 / 3.0),
-            CollocationPointsPhaseIns2 ** (2.0 / 3.0),
-            CollocationPointsPhaseIns2,
+            jnp.ones(CP_phase_Ins2.shape),
+            CP_phase_Ins2 ** (1.0 / 3.0),
+            CP_phase_Ins2 ** (2.0 / 3.0),
+            CP_phase_Ins2,
         ]
     )
     A3 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseIns3.shape),
-            CollocationPointsPhaseIns3 ** (1.0 / 3.0),
-            CollocationPointsPhaseIns3 ** (2.0 / 3.0),
-            CollocationPointsPhaseIns3,
+            jnp.ones(CP_phase_Ins3.shape),
+            CP_phase_Ins3 ** (1.0 / 3.0),
+            CP_phase_Ins3 ** (2.0 / 3.0),
+            CP_phase_Ins3,
         ]
     )
 
     A = jnp.array([A0, A1, A2, A3])
     b = jnp.array(
         [
-            CollocationValuesPhaseIns0,
-            CollocationValuesPhaseIns1,
-            CollocationValuesPhaseIns2,
-            CollocationValuesPhaseIns3,
+            CV_phase_Ins0,
+            CV_phase_Ins1,
+            CV_phase_Ins2,
+            CV_phase_Ins3,
         ]
     ).T
 
-    coeffscoloc = jnp.linalg.solve(A, b)
-    a0 = coeffscoloc[0]
-    a1 = coeffscoloc[1]
-    a2 = coeffscoloc[2]
-    a3 = coeffscoloc[3]
+    coeffs_Ins = jnp.linalg.solve(A, b)
 
-    sigma1 = (-5.0 / 3.0) * a0
-    sigma2 = (-5.0 / 4.0) * a1
-    sigma3 = (-5.0 / 5.0) * a2
-    sigma4 = (-5.0 / 6.0) * a3
+    sigma1 = (-5.0 / 3.0) * coeffs_Ins[0]
+    sigma2 = (-5.0 / 4.0) * coeffs_Ins[1]
+    sigma3 = (-5.0 / 5.0) * coeffs_Ins[2]
+    sigma4 = (-5.0 / 6.0) * coeffs_Ins[3]
 
     phi_TF2 = (
         phi0
@@ -337,20 +337,18 @@ def get_intermediate_raw_phase(
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    eta2 = eta * eta
-    eta3 = eta2 * eta
     delta = jnp.sqrt(1.0 - 4.0 * eta)
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
-    chi_eff = mm1 * chi1 + mm2 * chi2
-    S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
     # Spin variables
     chia = chi1 - chi2
 
-    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
+    fMs_RD, fMs_damp, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2
+    )
 
     gpoints5 = jnp.array(
         [
@@ -362,179 +360,158 @@ def get_intermediate_raw_phase(
         ]
     )
 
-    # Intermediate phase collocation points:
-    # Default is to use 5 collocation points
-    fIMmatch = 0.6 * (0.5 * fRD + fISCO)
-    fINmatch = fMECO
-    deltaf = (fIMmatch - fINmatch) * 0.03
-    fPhaseMatchIN = fINmatch - 1.0 * deltaf
-    fPhaseMatchIM = fIMmatch + 0.5 * deltaf
+    fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
+    fMs_INmatch = fMs_MECO
+    deltafMs = (fMs_IMmatch - fMs_INmatch) * 0.03
+    fMs_PhaseMatchIN = fMs_INmatch - 1.0 * deltafMs
+    fPhaseMatchIM = fMs_IMmatch + 0.5 * deltafMs
 
-    deltax = fPhaseMatchIM - fPhaseMatchIN
-    xmin = fPhaseMatchIN
+    deltax = fPhaseMatchIM - fMs_PhaseMatchIN
+    xmin = fMs_PhaseMatchIN
 
-    CollocationPointsPhaseInt0 = gpoints5[0] * deltax + xmin
-    CollocationPointsPhaseInt1 = gpoints5[1] * deltax + xmin
-    CollocationPointsPhaseInt2 = gpoints5[2] * deltax + xmin
-    CollocationPointsPhaseInt3 = gpoints5[3] * deltax + xmin
-    CollocationPointsPhaseInt4 = gpoints5[4] * deltax + xmin
+    CP_phase_Int0 = gpoints5[0] * deltax + xmin
+    CP_phase_Int1 = gpoints5[1] * deltax + xmin
+    CP_phase_Int2 = gpoints5[2] * deltax + xmin
+    CP_phase_Int3 = gpoints5[3] * deltax + xmin
+    CP_phase_Int4 = gpoints5[4] * deltax + xmin
 
-    CollocationValuesPhaseInt0 = dPhaseIN
-    CollocationValuesPhaseInt4 = dPhaseRD
+    CV_phase_Int0 = dPhaseIN
+    CV_phase_Int4 = dPhaseRD
 
-    # This is different to WF4py and driving the difference in CollocationValuesPhaseInt1
+    # NOTE: This is different to WF4py and driving the difference in CV_phase_Int1
     v2IMmRDv4 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[4, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(
-            coeffs[4, eqspin_indx:uneqspin_indx], eta, StotR
-        )
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[4, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(coeffs[4, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[4, eqspin_indx:uneqspin_indx], eta, StotR)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[4, uneqspin_indx:], eta, StotR, chia)
     )
 
     v3IMmRDv4 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[5, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(
-            coeffs[5, eqspin_indx:uneqspin_indx], eta, StotR
-        )
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[5, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(coeffs[5, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[5, eqspin_indx:uneqspin_indx], eta, StotR)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[5, uneqspin_indx:], eta, StotR, chia)
     )
     v2IM = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[6, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(
-            coeffs[6, eqspin_indx:uneqspin_indx], eta, StotR
-        )
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[6, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(coeffs[6, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[6, eqspin_indx:uneqspin_indx], eta, StotR)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[6, uneqspin_indx:], eta, StotR, chia)
     )
 
-    # This is different to WF4py and driving the difference in CollocationValuesPhaseInt3
+    # NOTE: This is different to WF4py and driving the difference in CV_phase_Int3
     d43 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[7, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(
-            coeffs[7, eqspin_indx:uneqspin_indx], eta, StotR
-        )
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[7, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(coeffs[7, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[7, eqspin_indx:uneqspin_indx], eta, StotR)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[7, uneqspin_indx:], eta, StotR, chia)
     )
 
-    CollocationValuesPhaseRD3 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[11, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(
-            coeffs[11, eqspin_indx:uneqspin_indx], eta, StotR
-        )
-        + IMRPhenomX_utils.Uneqspin_CPvalue(
-            coeffs[11, uneqspin_indx:], eta, StotR, chia
-        )
+    CV_phase_RD3 = (
+        IMRPhenomX_utils.nospin_CV(coeffs[11, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[11, eqspin_indx:uneqspin_indx], eta, StotR)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[11, uneqspin_indx:], eta, StotR, chia)
     )
 
-    CollocationValuesPhaseInt1 = (
-        0.75 * (v2IMmRDv4 + CollocationValuesPhaseRD3) + 0.25 * v2IM
-    )
-    CollocationValuesPhaseInt2 = v3IMmRDv4 + CollocationValuesPhaseRD3
-    CollocationValuesPhaseInt3 = d43 + CollocationValuesPhaseInt2
+    CV_phase_Int1 = 0.75 * (v2IMmRDv4 + CV_phase_RD3) + 0.25 * v2IM
+    CV_phase_Int2 = v3IMmRDv4 + CV_phase_RD3
+    CV_phase_Int3 = d43 + CV_phase_Int2
 
     A0 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseInt0.shape),
-            fRD / CollocationPointsPhaseInt0,
-            (fRD / CollocationPointsPhaseInt0) * (fRD / CollocationPointsPhaseInt0),
-            (fRD / CollocationPointsPhaseInt0) ** 3,
-            (fRD / CollocationPointsPhaseInt0) ** 4,
+            jnp.ones(CP_phase_Int0.shape),
+            fMs_RD / CP_phase_Int0,
+            (fMs_RD / CP_phase_Int0) * (fMs_RD / CP_phase_Int0),
+            (fMs_RD / CP_phase_Int0) ** 3,
+            (fMs_RD / CP_phase_Int0) ** 4,
         ]
     )
     A1 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseInt1.shape),
-            fRD / CollocationPointsPhaseInt1,
-            (fRD / CollocationPointsPhaseInt1) * (fRD / CollocationPointsPhaseInt1),
-            (fRD / CollocationPointsPhaseInt1) ** 3,
-            (fRD / CollocationPointsPhaseInt1) ** 4,
+            jnp.ones(CP_phase_Int1.shape),
+            fMs_RD / CP_phase_Int1,
+            (fMs_RD / CP_phase_Int1) * (fMs_RD / CP_phase_Int1),
+            (fMs_RD / CP_phase_Int1) ** 3,
+            (fMs_RD / CP_phase_Int1) ** 4,
         ]
     )
     A2 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseInt2.shape),
-            fRD / CollocationPointsPhaseInt2,
-            (fRD / CollocationPointsPhaseInt2) * (fRD / CollocationPointsPhaseInt2),
-            (fRD / CollocationPointsPhaseInt2) ** 3,
-            (fRD / CollocationPointsPhaseInt2) ** 4,
+            jnp.ones(CP_phase_Int2.shape),
+            fMs_RD / CP_phase_Int2,
+            (fMs_RD / CP_phase_Int2) * (fMs_RD / CP_phase_Int2),
+            (fMs_RD / CP_phase_Int2) ** 3,
+            (fMs_RD / CP_phase_Int2) ** 4,
         ]
     )
     A3 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseInt3.shape),
-            fRD / CollocationPointsPhaseInt3,
-            (fRD / CollocationPointsPhaseInt3) * (fRD / CollocationPointsPhaseInt3),
-            (fRD / CollocationPointsPhaseInt3) ** 3,
-            (fRD / CollocationPointsPhaseInt3) ** 4,
+            jnp.ones(CP_phase_Int3.shape),
+            fMs_RD / CP_phase_Int3,
+            (fMs_RD / CP_phase_Int3) * (fMs_RD / CP_phase_Int3),
+            (fMs_RD / CP_phase_Int3) ** 3,
+            (fMs_RD / CP_phase_Int3) ** 4,
         ]
     )
     A4 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseInt4.shape),
-            fRD / CollocationPointsPhaseInt4,
-            (fRD / CollocationPointsPhaseInt4) * (fRD / CollocationPointsPhaseInt4),
-            (fRD / CollocationPointsPhaseInt4) ** 3,
-            (fRD / CollocationPointsPhaseInt4) ** 4,
+            jnp.ones(CP_phase_Int4.shape),
+            fMs_RD / CP_phase_Int4,
+            (fMs_RD / CP_phase_Int4) * (fMs_RD / CP_phase_Int4),
+            (fMs_RD / CP_phase_Int4) ** 3,
+            (fMs_RD / CP_phase_Int4) ** 4,
         ]
     )
 
     A = jnp.array([A0, A1, A2, A3, A4])
     b = jnp.array(
         [
-            CollocationValuesPhaseInt0
+            CV_phase_Int0
             - (
                 (4.0 * cL)
                 / (
-                    (4.0 * fdamp * fdamp)
-                    + (CollocationPointsPhaseInt0 - fRD)
-                    * (CollocationPointsPhaseInt0 - fRD)
+                    (4.0 * fMs_damp * fMs_damp)
+                    + (CP_phase_Int0 - fMs_RD) * (CP_phase_Int0 - fMs_RD)
                 )
             ),
-            CollocationValuesPhaseInt1
+            CV_phase_Int1
             - (
                 (4.0 * cL)
                 / (
-                    (4.0 * fdamp * fdamp)
-                    + (CollocationPointsPhaseInt1 - fRD)
-                    * (CollocationPointsPhaseInt1 - fRD)
+                    (4.0 * fMs_damp * fMs_damp)
+                    + (CP_phase_Int1 - fMs_RD) * (CP_phase_Int1 - fMs_RD)
                 )
             ),
-            CollocationValuesPhaseInt2
+            CV_phase_Int2
             - (
                 (4.0 * cL)
                 / (
-                    (4.0 * fdamp * fdamp)
-                    + (CollocationPointsPhaseInt2 - fRD)
-                    * (CollocationPointsPhaseInt2 - fRD)
+                    (4.0 * fMs_damp * fMs_damp)
+                    + (CP_phase_Int2 - fMs_RD) * (CP_phase_Int2 - fMs_RD)
                 )
             ),
-            CollocationValuesPhaseInt3
+            CV_phase_Int3
             - (
                 (4.0 * cL)
                 / (
-                    (4.0 * fdamp * fdamp)
-                    + (CollocationPointsPhaseInt3 - fRD)
-                    * (CollocationPointsPhaseInt3 - fRD)
+                    (4.0 * fMs_damp * fMs_damp)
+                    + (CP_phase_Int3 - fMs_RD) * (CP_phase_Int3 - fMs_RD)
                 )
             ),
-            CollocationValuesPhaseInt4
+            CV_phase_Int4
             - (
                 (4.0 * cL)
                 / (
-                    (4.0 * fdamp * fdamp)
-                    + (CollocationPointsPhaseInt4 - fRD)
-                    * (CollocationPointsPhaseInt4 - fRD)
+                    (4.0 * fMs_damp * fMs_damp)
+                    + (CP_phase_Int4 - fMs_RD) * (CP_phase_Int4 - fMs_RD)
                 )
             ),
         ]
     ).T
 
-    coeffscoloc = jnp.linalg.solve(A, b)
+    coeffs_Int = jnp.linalg.solve(A, b)
 
-    b0 = coeffscoloc[0]
-    b1 = coeffscoloc[1] * fRD
-    b2 = coeffscoloc[2] * fRD**2
-    b3 = coeffscoloc[3] * fRD**3
-    b4 = coeffscoloc[4] * fRD**4
+    b0 = coeffs_Int[0]
+    b1 = coeffs_Int[1] * fMs_RD
+    b2 = coeffs_Int[2] * fMs_RD**2
+    b3 = coeffs_Int[3] * fMs_RD**3
+    b4 = coeffs_Int[4] * fMs_RD**4
 
     return (
         b0 * fM_s
@@ -542,7 +519,7 @@ def get_intermediate_raw_phase(
         - b2 * (fM_s**-1.0)
         - b3 * (fM_s**-2.0) / 2.0
         - (b4 * (fM_s**-3.0) / 3.0)
-        + (2.0 * cL * jnp.arctan(((fM_s - fRD)) / (2.0 * fdamp))) / fdamp
+        + (2.0 * cL * jnp.arctan(((fM_s - fMs_RD)) / (2.0 * fMs_damp))) / fMs_damp
     )
 
 
@@ -562,10 +539,10 @@ def get_mergerringdown_raw_phase(
     chia = chi1 - chi2
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
-    fRD, fdamp, _, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
-    fIMmatch = 0.6 * (0.5 * fRD + fISCO)
-    fPhaseRDMin = fIMmatch
-    fPhaseRDMax = fRD + 1.25 * fdamp
+    fMs_RD, fMs_damp, _, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
+    fMs_PhaseRDMin = fMs_IMmatch
+    fMs_PhaseRDMax = fMs_RD + 1.25 * fMs_damp
     dphase0 = 5.0 / (128.0 * (PI ** (5.0 / 3.0)))
 
     gpoints5 = jnp.array(
@@ -580,159 +557,123 @@ def get_mergerringdown_raw_phase(
 
     # Ringdown phase collocation points:
     # Default is to use 5 pseudo-PN coefficients and hence 5 collocation points.
-    deltax = fPhaseRDMax - fPhaseRDMin
-    xmin = fPhaseRDMin
+    deltax = fMs_PhaseRDMax - fMs_PhaseRDMin
+    xmin = fMs_PhaseRDMin
 
-    CollocationPointsPhaseRD0 = gpoints5[0] * deltax + xmin
-    CollocationPointsPhaseRD1 = gpoints5[1] * deltax + xmin
-    CollocationPointsPhaseRD2 = gpoints5[2] * deltax + xmin
-    CollocationPointsPhaseRD3 = fRD
-    CollocationPointsPhaseRD4 = gpoints5[4] * deltax + xmin
+    CP_phase_RD0 = gpoints5[0] * deltax + xmin
+    CP_phase_RD1 = gpoints5[1] * deltax + xmin
+    CP_phase_RD2 = gpoints5[2] * deltax + xmin
+    CP_phase_RD3 = fMs_RD
+    CP_phase_RD4 = gpoints5[4] * deltax + xmin
 
-    CollocationValuesPhaseRD0 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[8, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(
-            coeffs[8, eqspin_indx:uneqspin_indx], eta, StotR
-        )
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[8, uneqspin_indx:], eta, StotR, chia)
+    CV_phase_RD0 = (
+        IMRPhenomX_utils.nospin_CV(coeffs[8, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[8, eqspin_indx:uneqspin_indx], eta, StotR)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[8, uneqspin_indx:], eta, StotR, chia)
     )
-    CollocationValuesPhaseRD1 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[9, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(
-            coeffs[9, eqspin_indx:uneqspin_indx], eta, StotR
-        )
-        + IMRPhenomX_utils.Uneqspin_CPvalue(coeffs[9, uneqspin_indx:], eta, StotR, chia)
+    CV_phase_RD1 = (
+        IMRPhenomX_utils.nospin_CV(coeffs[9, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[9, eqspin_indx:uneqspin_indx], eta, StotR)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[9, uneqspin_indx:], eta, StotR, chia)
     )
-    CollocationValuesPhaseRD2 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[10, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(
-            coeffs[10, eqspin_indx:uneqspin_indx], eta, StotR
-        )
-        + IMRPhenomX_utils.Uneqspin_CPvalue(
-            coeffs[10, uneqspin_indx:], eta, StotR, chia
-        )
+    CV_phase_RD2 = (
+        IMRPhenomX_utils.nospin_CV(coeffs[10, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[10, eqspin_indx:uneqspin_indx], eta, StotR)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[10, uneqspin_indx:], eta, StotR, chia)
     )
-    CollocationValuesPhaseRD3 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[11, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(
-            coeffs[11, eqspin_indx:uneqspin_indx], eta, StotR
-        )
-        + IMRPhenomX_utils.Uneqspin_CPvalue(
-            coeffs[11, uneqspin_indx:], eta, StotR, chia
-        )
+    CV_phase_RD3 = (
+        IMRPhenomX_utils.nospin_CV(coeffs[11, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[11, eqspin_indx:uneqspin_indx], eta, StotR)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[11, uneqspin_indx:], eta, StotR, chia)
     )
-    CollocationValuesPhaseRD4 = (
-        IMRPhenomX_utils.nospin_CPvalue(coeffs[12, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CPvalue(
-            coeffs[12, eqspin_indx:uneqspin_indx], eta, StotR
-        )
-        + IMRPhenomX_utils.Uneqspin_CPvalue(
-            coeffs[12, uneqspin_indx:], eta, StotR, chia
-        )
+    CV_phase_RD4 = (
+        IMRPhenomX_utils.nospin_CV(coeffs[12, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(coeffs[12, eqspin_indx:uneqspin_indx], eta, StotR)
+        + IMRPhenomX_utils.Uneqspin_CV(coeffs[12, uneqspin_indx:], eta, StotR, chia)
     )
 
-    CollocationValuesPhaseRD4 = CollocationValuesPhaseRD4 + CollocationValuesPhaseRD3
-    CollocationValuesPhaseRD2 = CollocationValuesPhaseRD2 + CollocationValuesPhaseRD3
-    CollocationValuesPhaseRD1 = CollocationValuesPhaseRD1 + CollocationValuesPhaseRD3
-    CollocationValuesPhaseRD0 = CollocationValuesPhaseRD0 + CollocationValuesPhaseRD1
+    CV_phase_RD4 = CV_phase_RD4 + CV_phase_RD3
+    CV_phase_RD2 = CV_phase_RD2 + CV_phase_RD3
+    CV_phase_RD1 = CV_phase_RD1 + CV_phase_RD3
+    CV_phase_RD0 = CV_phase_RD0 + CV_phase_RD1
 
     A0 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseRD0.shape),
-            CollocationPointsPhaseRD0 ** (-1.0 / 3.0),
-            CollocationPointsPhaseRD0 ** (-2),
-            CollocationPointsPhaseRD0 ** (-4),
+            jnp.ones(CP_phase_RD0.shape),
+            CP_phase_RD0 ** (-1.0 / 3.0),
+            CP_phase_RD0 ** (-2),
+            CP_phase_RD0 ** (-4),
             -(dphase0)
-            / (
-                fdamp * fdamp
-                + (CollocationPointsPhaseRD0 - fRD) * (CollocationPointsPhaseRD0 - fRD)
-            ),
+            / (fMs_damp * fMs_damp + (CP_phase_RD0 - fMs_RD) * (CP_phase_RD0 - fMs_RD)),
         ]
     )
     A1 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseRD1.shape),
-            CollocationPointsPhaseRD1 ** (-1.0 / 3.0),
-            CollocationPointsPhaseRD1 ** (-2),
-            CollocationPointsPhaseRD1 ** (-4),
+            jnp.ones(CP_phase_RD1.shape),
+            CP_phase_RD1 ** (-1.0 / 3.0),
+            CP_phase_RD1 ** (-2),
+            CP_phase_RD1 ** (-4),
             -(dphase0)
-            / (
-                fdamp * fdamp
-                + (CollocationPointsPhaseRD1 - fRD) * (CollocationPointsPhaseRD1 - fRD)
-            ),
+            / (fMs_damp * fMs_damp + (CP_phase_RD1 - fMs_RD) * (CP_phase_RD1 - fMs_RD)),
         ]
     )
     A2 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseRD2.shape),
-            CollocationPointsPhaseRD2 ** (-1.0 / 3.0),
-            CollocationPointsPhaseRD2 ** (-2),
-            CollocationPointsPhaseRD2 ** (-4),
+            jnp.ones(CP_phase_RD2.shape),
+            CP_phase_RD2 ** (-1.0 / 3.0),
+            CP_phase_RD2 ** (-2),
+            CP_phase_RD2 ** (-4),
             -(dphase0)
-            / (
-                fdamp * fdamp
-                + (CollocationPointsPhaseRD2 - fRD) * (CollocationPointsPhaseRD2 - fRD)
-            ),
+            / (fMs_damp * fMs_damp + (CP_phase_RD2 - fMs_RD) * (CP_phase_RD2 - fMs_RD)),
         ]
     )
     A3 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseRD3.shape),
-            CollocationPointsPhaseRD3 ** (-1.0 / 3.0),
-            CollocationPointsPhaseRD3 ** (-2),
-            CollocationPointsPhaseRD3 ** (-4),
+            jnp.ones(CP_phase_RD3.shape),
+            CP_phase_RD3 ** (-1.0 / 3.0),
+            CP_phase_RD3 ** (-2),
+            CP_phase_RD3 ** (-4),
             -(dphase0)
-            / (
-                fdamp * fdamp
-                + (CollocationPointsPhaseRD3 - fRD) * (CollocationPointsPhaseRD3 - fRD)
-            ),
+            / (fMs_damp * fMs_damp + (CP_phase_RD3 - fMs_RD) * (CP_phase_RD3 - fMs_RD)),
         ]
     )
     A4 = jnp.array(
         [
-            jnp.ones(CollocationPointsPhaseRD4.shape),
-            CollocationPointsPhaseRD4 ** (-1.0 / 3.0),
-            CollocationPointsPhaseRD4 ** (-2),
-            CollocationPointsPhaseRD4 ** (-4),
+            jnp.ones(CP_phase_RD4.shape),
+            CP_phase_RD4 ** (-1.0 / 3.0),
+            CP_phase_RD4 ** (-2),
+            CP_phase_RD4 ** (-4),
             -(dphase0)
-            / (
-                fdamp * fdamp
-                + (CollocationPointsPhaseRD4 - fRD) * (CollocationPointsPhaseRD4 - fRD)
-            ),
+            / (fMs_damp * fMs_damp + (CP_phase_RD4 - fMs_RD) * (CP_phase_RD4 - fMs_RD)),
         ]
     )
 
     A = jnp.array([A0, A1, A2, A3, A4])
     b = jnp.array(
         [
-            CollocationValuesPhaseRD0,
-            CollocationValuesPhaseRD1,
-            CollocationValuesPhaseRD2,
-            CollocationValuesPhaseRD3,
-            CollocationValuesPhaseRD4,
+            CV_phase_RD0,
+            CV_phase_RD1,
+            CV_phase_RD2,
+            CV_phase_RD3,
+            CV_phase_RD4,
         ]
     ).T
 
-    coeffscoloc = jnp.linalg.solve(A, b)
-    c0 = coeffscoloc[0]
-    c1 = coeffscoloc[1]
-    c2 = coeffscoloc[2]
-    c4 = coeffscoloc[3]
-    cRD = coeffscoloc[4]
-
+    coeffs_RD = jnp.linalg.solve(A, b)
+    c0, c1, c2, c4, cRD = coeffs_RD
     cL = -(dphase0 * cRD)
     c4ov3 = c4 / 3.0
-    cLovfda = cL / fdamp
+    cLovfda = cL / fMs_damp
 
     phiRD = (
         c0 * fM_s
         + 1.5 * c1 * (fM_s ** (2.0 / 3.0))
         - c2 * (fM_s**-1.0)
         - c4ov3 * (fM_s**-3.0)
-        + (cLovfda * jnp.arctan((fM_s - fRD) / fdamp))
+        + (cLovfda * jnp.arctan((fM_s - fMs_RD) / fMs_damp))
     )
 
-    return phiRD, (cL, CollocationValuesPhaseRD0)
+    return phiRD, (cL, CV_phase_RD0)
 
 
 # @jax.jit
@@ -754,17 +695,15 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     eta = m1_s * m2_s / (M_s**2.0)
 
     fM_s = f * M_s
-    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
-    fIMmatch = 0.6 * (0.5 * fRD + fISCO)
-    fINmatch = fMECO
-    deltaf = (fIMmatch - fINmatch) * 0.03
-    f1_Ms = fINmatch - 1.0 * deltaf
-    f2_Ms = fIMmatch + 0.5 * deltaf
+    fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
+    fMs_INmatch = fMs_MECO
+    deltafMs = (fMs_IMmatch - fMs_INmatch) * 0.03
+    f1_Ms = fMs_INmatch - 1.0 * deltafMs
+    f2_Ms = fMs_IMmatch + 0.5 * deltafMs
 
     phi_Ins = get_inspiral_phase(fM_s, theta, coeffs)
-    phi_MRD, (cL, CollocationValuesPhaseRD0) = get_mergerringdown_raw_phase(
-        fM_s, theta, coeffs
-    )
+    phi_MRD, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(fM_s, theta, coeffs)
 
     # Get the matching points
     phi_Ins_match_f1, dphi_Ins_match_f1 = jax.value_and_grad(get_inspiral_phase)(
@@ -778,13 +717,13 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     # Now find the intermediate phase
     phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
         get_intermediate_raw_phase
-    )(f1_Ms, theta, coeffs, dphi_Ins_match_f1, CollocationValuesPhaseRD0, cL)
+    )(f1_Ms, theta, coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL)
     alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
 
     phi_Int_func = (
         lambda fM_s_: get_intermediate_raw_phase(
-            fM_s_, theta, coeffs, dphi_Ins_match_f1, CollocationValuesPhaseRD0, cL
+            fM_s_, theta, coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL
         )
         + alpha1 * fM_s_
         + alpha0
@@ -803,7 +742,9 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
         + jnp.heaviside(fM_s - f1_Ms, 0.5)
         * phi_Int_corrected
         * jnp.heaviside(f2_Ms - fM_s, 0.5)
-        + phi_MRD_corrected * jnp.heaviside(fM_s - f2_Ms, 0.5)
+        + phi_MRD_corrected
+        * jnp.heaviside(fM_s - f2_Ms, 0.5)
+        * jnp.heaviside(IMRPhenomX_utils.fM_cut - fM_s, 0.5)
     )
 
     return phase
@@ -964,7 +905,9 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     chia = chi1 - chi2
 
     fM_s = f * M_s
-    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
+    fMs_RD, fMs_damp, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2
+    )
     amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M_s**2 / ((D * m_per_Mpc) / C)
     ampNorm = jnp.sqrt(2.0 * eta / 3.0) * (PI ** (-1.0 / 6.0))
 
@@ -1011,9 +954,10 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     fAmpRDMin = jnp.where(
         gamma2 <= 1.0,
         jnp.fabs(
-            fRD + fdamp * gamma3 * (jnp.sqrt(1.0 - gamma2 * gamma2) - 1.0) / gamma2
+            fMs_RD
+            + fMs_damp * gamma3 * (jnp.sqrt(1.0 - gamma2 * gamma2) - 1.0) / gamma2
         ),
-        jnp.fabs(fRD + fdamp * (-1.0) * gamma3 / gamma2),
+        jnp.fabs(fMs_RD + fMs_damp * (-1.0) * gamma3 / gamma2),
     )
     v1RD = (
         (
@@ -1063,14 +1007,19 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     F1 = fAmpRDMin
 
     gamma1 = (
-        (v1RD / (fdamp * gamma3))
-        * (F1 * F1 - 2.0 * F1 * fRD + fRD * fRD + fdamp * fdamp * gamma3 * gamma3)
-        * jnp.exp(((F1 - fRD) * gamma2) / (fdamp * gamma3))
+        (v1RD / (fMs_damp * gamma3))
+        * (
+            F1 * F1
+            - 2.0 * F1 * fMs_RD
+            + fMs_RD * fMs_RD
+            + fMs_damp * fMs_damp * gamma3 * gamma3
+        )
+        * jnp.exp(((F1 - fMs_RD) * gamma2) / (fMs_damp * gamma3))
     )
-    gammaR = gamma2 / (fdamp * gamma3)
-    gammaD2 = (gamma3 * fdamp) * (gamma3 * fdamp)
-    gammaD13 = fdamp * gamma1 * gamma3
-    fAmpInsMax = fMECO + 0.25 * (fISCO - fMECO)
+    gammaR = gamma2 / (fMs_damp * gamma3)
+    gammaD2 = (gamma3 * fMs_damp) * (gamma3 * fMs_damp)
+    gammaD13 = fMs_damp * gamma1 * gamma3
+    fAmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
     fAmpMatchIN = fAmpInsMax
 
     # TaylorF2 PN Amplitude Coefficients
@@ -1398,16 +1347,19 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
         + 3 * F1 * F1 * rho3
     )
     d4 = (
-        -jnp.exp(-gamma2 * (F4 - fRD) / (fdamp * gamma3))
+        -jnp.exp(-gamma2 * (F4 - fMs_RD) / (fMs_damp * gamma3))
         * gamma1
         * (
-            (F4 - fRD) * (F4 - fRD) * gamma2
-            + 2.0 * fdamp * (F4 - fRD) * gamma3
-            + fdamp * fdamp * gamma2 * gamma3 * gamma3
+            (F4 - fMs_RD) * (F4 - fMs_RD) * gamma2
+            + 2.0 * fMs_damp * (F4 - fMs_RD) * gamma3
+            + fMs_damp * fMs_damp * gamma2 * gamma3 * gamma3
         )
         / (
-            ((F4 - fRD) * (F4 - fRD) + (fdamp * gamma3) * (fdamp * gamma3))
-            * ((F4 - fRD) * (F4 - fRD) + (fdamp * gamma3) * (fdamp * gamma3))
+            ((F4 - fMs_RD) * (F4 - fMs_RD) + (fMs_damp * gamma3) * (fMs_damp * gamma3))
+            * (
+                (F4 - fMs_RD) * (F4 - fMs_RD)
+                + (fMs_damp * gamma3) * (fMs_damp * gamma3)
+            )
         )
     )
     inspF1 = (
@@ -1424,7 +1376,9 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
         )
     )
     rdF4 = (
-        jnp.exp(-(F4 - fRD) * gammaR) * (gammaD13) / ((F4 - fRD) * (F4 - fRD) + gammaD2)
+        jnp.exp(-(F4 - fMs_RD) * gammaR)
+        * (gammaD13)
+        / ((F4 - fMs_RD) * (F4 - fMs_RD) + gammaD2)
     )
 
     # Use d1 and d4 calculated above to get the derivative of the amplitude on the boundaries
@@ -1631,9 +1585,9 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
             ),
             jnp.where(
                 fM_s <= IMRPhenomX_utils.fM_CUT,
-                jnp.exp(-(fM_s - fRD) * gammaR)
+                jnp.exp(-(fM_s - fMs_RD) * gammaR)
                 * (gammaD13)
-                / ((fM_s - fRD) * (fM_s - fRD) + gammaD2),
+                / ((fM_s - fMs_RD) * (fM_s - fMs_RD) + gammaD2),
                 0.0,
             ),
         ),
@@ -1661,13 +1615,17 @@ def _gen_IMRPhenomXAS(
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
     chia = chi1 - chi2
     fM_s = f * M_s
-    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(m1, m2, chi1, chi2)
+    fMs_RD, fMs_damp, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2
+    )
     Psi = Phase(f, theta_intrinsic, coeffs)
 
     lina, linb, psi4tostrain = IMRPhenomX_utils.calc_phaseatpeak(
         eta, StotR, chia, delta
     )
-    dphi22Ref = jax.grad(Phase)((fRD - fdamp) / M_s, theta_intrinsic, coeffs) / M_s
+    dphi22Ref = (
+        jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, theta_intrinsic, coeffs) / M_s
+    )
     linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
     phifRef = (
         -(Phase(f_ref, theta_intrinsic, coeffs) + linb * (f_ref * M_s) + lina)
