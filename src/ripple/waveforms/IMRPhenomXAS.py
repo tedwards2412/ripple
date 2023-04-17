@@ -694,6 +694,7 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
+    # First gather all the frequency points we need
     fM_s = f * M_s
     fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
@@ -702,10 +703,14 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     f1_Ms = fMs_INmatch - 1.0 * deltafMs
     f2_Ms = fMs_IMmatch + 0.5 * deltafMs
 
+    # Calculate the inspiral and raw merger phase (required for the intemediate phase)
     phi_Ins = get_inspiral_phase(fM_s, theta, coeffs)
     phi_MRD, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(fM_s, theta, coeffs)
 
-    # Get the matching points
+    # Get matching points
+    # Here we want to evaluate the gradient and the phase of the raw phase functions
+    # in order to enforce C1 continuity at the transition frequencies.
+    # This procedure is identical to IMRPhenomD, see IMRPhenomD.py for more details
     phi_Ins_match_f1, dphi_Ins_match_f1 = jax.value_and_grad(get_inspiral_phase)(
         f1_Ms, theta, coeffs
     )
@@ -1597,7 +1602,6 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
 
 
 # @jax.jit
-# Removed theta_extrinsic and only return the phase for now
 def _gen_IMRPhenomXAS(
     f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array
 ):
@@ -1605,21 +1609,24 @@ def _gen_IMRPhenomXAS(
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * gt
     m2_s = m2 * gt
+
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     delta = jnp.sqrt(1.0 - 4.0 * eta)
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
+
     chi_eff = mm1 * chi1 + mm2 * chi2
     S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
     chia = chi1 - chi2
+
     fM_s = f * M_s
-    fMs_RD, fMs_damp, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
-        m1, m2, chi1, chi2
-    )
+    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
     Psi = Phase(f, theta_intrinsic, coeffs)
 
+    # Generate the linear in f and constant contribution to the phase in order
+    # to roll the waveform such that the peak is at the input tc and phic
     lina, linb, psi4tostrain = IMRPhenomX_utils.calc_phaseatpeak(
         eta, StotR, chia, delta
     )
