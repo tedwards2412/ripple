@@ -528,7 +528,7 @@ def test_full_waveform_XAS(
     h0_ripple = IMRPhenomXAS.gen_IMRPhenomXAS(f, params)
 
     ################ Just for display ##################
-    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fs(
+    fRD, fdamp, fMECO, fISCO = IMRPhenomX_utils.get_cutoff_fMs(
         theta_intrinsic[0], theta_intrinsic[1], theta_intrinsic[2], theta_intrinsic[3]
     )
     fIMmatch = 0.6 * (0.5 * fRD + fISCO)
@@ -571,6 +571,23 @@ def test_full_waveform_XAS(
     h0_lalsuite = 2.0 * hp.data.data[f_mask]
 
     plt.figure(figsize=(7, 5))
+    plt.plot(
+        freq[f_mask],
+        h0_lalsuite,
+        label="lalsuite",
+    )
+    plt.plot(
+        f,
+        h0_ripple,
+        label="ripple",
+        alpha=0.3,
+    )
+    plt.legend()
+    plt.xlabel(r"f")
+    plt.ylabel(r"h0")
+    plt.savefig("../figures/full_waveform_PhenomX.pdf", bbox_inches="tight")
+
+    plt.figure(figsize=(7, 5))
     plt.loglog(
         freq[f_mask],
         np.abs(h0_lalsuite) ** 2,
@@ -591,15 +608,29 @@ def test_full_waveform_XAS(
     plt.savefig("../figures/full_waveform_PhenomX_amp.pdf", bbox_inches="tight")
 
     plt.figure(figsize=(7, 5))
+    plt.loglog(
+        freq[f_mask],
+        np.abs((np.abs(h0_lalsuite) - np.abs(h0_ripple)) / np.abs(h0_ripple)),
+        label="lalsuite",
+    )
+
+    plt.axvline(x=f1)
+    plt.axvline(x=f2)
+    plt.legend()
+    plt.xlabel(r"f")
+    plt.ylabel(r"$|A(f)|$")
+    plt.savefig("../figures/full_waveform_PhenomX_ampdiff.pdf", bbox_inches="tight")
+
+    plt.figure(figsize=(7, 5))
     plt.plot(
         f,
         np.gradient(np.unwrap(np.angle(h0_lalsuite))),
-        label="ripple",
+        label="lalsuite",
         alpha=0.3,
     )
     plt.plot(
         f,
-        np.gradient(np.unwrap(np.angle(h0_ripple))),
+        -np.gradient(np.unwrap(np.angle(h0_ripple))),
         label="ripple",
         alpha=0.3,
     )

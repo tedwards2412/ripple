@@ -749,7 +749,7 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
         * jnp.heaviside(f2_Ms - fM_s, 0.5)
         + phi_MRD_corrected
         * jnp.heaviside(fM_s - f2_Ms, 0.5)
-        * jnp.heaviside(IMRPhenomX_utils.fM_cut - fM_s, 0.5)
+        * jnp.heaviside(IMRPhenomX_utils.fM_CUT - fM_s, 0.5)
     )
 
     return phase
@@ -762,7 +762,7 @@ def get_Amp0(fM_s: Array, eta: float) -> Array:
     return Amp0
 
 
-def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
+def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1013,28 +1013,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
     return Amp_Ins
 
 
-def get_intermediate_Amp(
-    fM_s: Array, theta: Array, coeffs: Array, f1, f3, f_RD, f_damp
-) -> Array:
-    m1, m2, _, _ = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M_s = m1_s + m2_s
-
-    return None
-
-
-def get_mergerringdown_Amp(
-    fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp
-) -> Array:
-    m1, m2, _, _ = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M_s = m1_s + m2_s
-    return None
-
-
-def Amp(f: Array, theta: Array, D=1.0) -> Array:
+def get_intermediate_Amp(fM_s: Array, theta: Array, coeffs: Array, fAmpRDMin) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1045,19 +1024,346 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
 
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
-    chi_eff = mm1 * chi1 + mm2 * chi2
-    S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
     # Spin variables
     chia = chi1 - chi2
 
-    fM_s = f * M_s
-    fMs_RD, fMs_damp, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
-        m1, m2, chi1, chi2
+    # Now the intermediate region
+    _, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fAmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
+    fAmpMatchIN = fAmpInsMax
+    F1 = fAmpMatchIN
+    # This needs to come from outside
+    F4 = fAmpRDMin
+
+    inspF1, d1 = jax.value_and_grad(get_inspiral_Amp)(F1, theta, coeffs)
+    rdF4, d4 = jax.value_and_grad(get_mergerringdown_Amp, has_aux=True)(
+        F4, theta, coeffs
     )
-    amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M_s**2 / ((D * m_per_Mpc) / C)
-    ampNorm = jnp.sqrt(2.0 * eta / 3.0) * (PI ** (-1.0 / 6.0))
+    rdF4 = rdF4[0]
+
+    # d1 = (
+    #     (
+    #         (chi2 * (81 - 81 * delta - 44 * eta) + chi1 * (81 * (1 + delta) - 44 * eta))
+    #         * PI
+    #     )
+    #     / 48.0
+    #     + ((-969 + 1804 * eta) * (PI ** (2.0 / 3.0))) / (1008.0 * (F1 ** (1.0 / 3.0)))
+    #     + (
+    #         (
+    #             -27312085
+    #             - 10287648 * chi2**2
+    #             + 10287648 * chi2**2 * delta
+    #             - 10287648 * chi1**2 * (1 + delta)
+    #             + 24
+    #             * (
+    #                 -1975055
+    #                 + 857304 * chi1**2
+    #                 - 994896 * chi1 * chi2
+    #                 + 857304 * chi2**2
+    #             )
+    #             * eta
+    #             + 35371056 * eta2
+    #         )
+    #         * (PI ** (4.0 / 3.0))
+    #         * (F1 ** (1.0 / 3.0))
+    #     )
+    #     / 6.096384e6
+    #     + (
+    #         5
+    #         * (PI ** (5.0 / 3.0))
+    #         * (
+    #             -6048 * chi1**2 * chi1 * (-1 - delta + (3 + delta) * eta)
+    #             + chi1
+    #             * (
+    #                 287213 * (1 + delta)
+    #                 - 4 * (93414 + 2083 * delta) * eta
+    #                 - 35632 * eta2
+    #             )
+    #             + chi2
+    #             * (
+    #                 -((287213 + 6048 * chi2**2) * (-1 + delta))
+    #                 + 4
+    #                 * (-93414 + 1512 * chi2**2 * (-3 + delta) + 2083 * delta)
+    #                 * eta
+    #                 - 35632 * eta2
+    #             )
+    #             + 42840 * (-1 + 4 * eta) * PI
+    #         )
+    #         * (F1 ** (2.0 / 3.0))
+    #     )
+    #     / 96768.0
+    #     - (
+    #         (PI ** (2.0))
+    #         * (
+    #             -336
+    #             * (
+    #                 -3248849057
+    #                 + 1809550512 * chi1**2
+    #                 - 2954929824 * chi1 * chi2
+    #                 + 1809550512 * chi2**2
+    #             )
+    #             * eta2
+    #             - 324322727232 * eta2 * eta
+    #             + 7
+    #             * (
+    #                 177520268561
+    #                 + 29362199328 * chi2**2
+    #                 - 29362199328 * chi2**2 * delta
+    #                 + 29362199328 * chi1**2 * (1 + delta)
+    #                 + 12160253952 * (chi1 + chi2 + chi1 * delta - chi2 * delta) * PI
+    #             )
+    #             + 12
+    #             * eta
+    #             * (
+    #                 -545384828789
+    #                 + 49568837472 * chi1 * chi2
+    #                 - 12312458928 * chi2**2
+    #                 - 21943440288 * chi2**2 * delta
+    #                 + 77616 * chi1**2 * (-158633 + 282718 * delta)
+    #                 - 8345272320 * (chi1 + chi2) * PI
+    #                 + 21384760320 * (PI ** (2.0))
+    #             )
+    #         )
+    #         * F1
+    #     )
+    #     / 3.0042980352e10
+    #     + (7.0 / 3.0) * (F1 ** (4.0 / 3.0)) * rho1
+    #     + (8.0 / 3.0) * (F1 ** (5.0 / 3.0)) * rho2
+    #     + 3 * F1 * F1 * rho3
+    # )
+    # d4 = (
+    #     -jnp.exp(-gamma2 * (F4 - fMs_RD) / (fMs_damp * gamma3))
+    #     * gamma1
+    #     * (
+    #         (F4 - fMs_RD) * (F4 - fMs_RD) * gamma2
+    #         + 2.0 * fMs_damp * (F4 - fMs_RD) * gamma3
+    #         + fMs_damp * fMs_damp * gamma2 * gamma3 * gamma3
+    #     )
+    #     / (
+    #         ((F4 - fMs_RD) * (F4 - fMs_RD) + (fMs_damp * gamma3) * (fMs_damp * gamma3))
+    #         * (
+    #             (F4 - fMs_RD) * (F4 - fMs_RD)
+    #             + (fMs_damp * gamma3) * (fMs_damp * gamma3)
+    #         )
+    #     )
+    # )
+    # inspF1 = (
+    #     pnInitial
+    #     + (F1 ** (1.0 / 3.0)) * pnOneThird
+    #     + (F1 ** (2.0 / 3.0)) * pnTwoThirds
+    #     + F1 * pnThreeThirds
+    #     + F1
+    #     * (
+    #         (F1 ** (1.0 / 3.0)) * pnFourThirds
+    #         + (F1 ** (2.0 / 3.0)) * pnFiveThirds
+    #         + F1 * pnSixThirds
+    #         + F1 * ((F1 ** (1.0 / 3.0)) * rho1 + (F1 ** (2.0 / 3.0)) * rho2 + F1 * rho3)
+    #     )
+    # )
+    # rdF4 = (
+    #     jnp.exp(-(F4 - fMs_RD) * gammaR)
+    #     * (gammaD13)
+    #     / ((F4 - fMs_RD) * (F4 - fMs_RD) + gammaD2)
+    # )
+
+    # Use d1 and d4 calculated above to get the derivative of the amplitude on the boundaries
+    d1 = ((7.0 / 6.0) * (F1 ** (1.0 / 6.0)) / inspF1) - (
+        (F1 ** (7.0 / 6.0)) * d1 / (inspF1 * inspF1)
+    )
+    d4 = ((7.0 / 6.0) * (F4 ** (1.0 / 6.0)) / rdF4) - (
+        (F4 ** (7.0 / 6.0)) * d4 / (rdF4 * rdF4)
+    )
+
+    # Use a 4th order polynomial in intermediate - good extrapolation, recommended default fit
+    F2 = F1 + (1.0 / 2.0) * (F4 - F1)
+
+    V1 = (F1 ** (-7.0 / 6)) * inspF1
+    # FIXME: This need to go to utils
+    V2 = (
+        (
+            (
+                1.4873184918202145
+                + 1974.6112656679577 * eta
+                + 27563.641024162127 * eta2
+                - 19837.908020966777 * eta2 * eta
+            )
+            / (1.0 + 143.29004876335128 * eta + 458.4097306093354 * eta2)
+        )
+        + (
+            (
+                StotR
+                * (
+                    27.952730865904343
+                    + eta * (-365.55631765202895 - 260.3494489873286 * StotR)
+                    + 3.2646808851249016 * StotR
+                    + 3011.446602208493 * eta2 * StotR
+                    - 19.38970173389662 * StotR**2
+                    + eta2
+                    * eta
+                    * (
+                        1612.2681322644232
+                        - 6962.675551371755 * StotR
+                        + 1486.4658089990298 * StotR**2
+                    )
+                )
+            )
+            / (12.647425554323242 - 10.540154508599963 * StotR + 1.0 * StotR**2)
+        )
+        + (chia * delta * (-0.016404056649860943 - 296.473359655246 * eta) * eta2)
+    )
+    V4 = (F4 ** (-7.0 / 6)) * rdF4
+
+    V1 = 1.0 / V1
+    V2 = 1.0 / V2
+    V4 = 1.0 / V4
+
+    # Reconstruct the phenomenological coefficients for the intermediate ansatz
+    F12 = F1 * F1
+    F13 = F12 * F1
+    F14 = F13 * F1
+    F15 = F14 * F1
+
+    F22 = F2 * F2
+    F23 = F22 * F2
+    F24 = F23 * F2
+
+    F42 = F4 * F4
+    F43 = F42 * F4
+    F44 = F43 * F4
+    F45 = F44 * F4
+
+    F1mF2 = F1 - F2
+    F1mF4 = F1 - F4
+    F2mF4 = F2 - F4
+
+    F1mF22 = F1mF2 * F1mF2
+    F2mF42 = F2mF4 * F2mF4
+    F1mF43 = F1mF4 * F1mF4 * F1mF4
+
+    delta0 = (
+        -(d4 * F12 * F1mF22 * F1mF4 * F2 * F2mF4 * F4)
+        + d1 * F1 * F1mF2 * F1mF4 * F2 * F2mF42 * F42
+        + F42
+        * (
+            F2 * F2mF42 * (-4 * F12 + 3 * F1 * F2 + 2 * F1 * F4 - F2 * F4) * V1
+            + F12 * F1mF43 * V2
+        )
+        + F12 * F1mF22 * F2 * (F1 * F2 - 2 * F1 * F4 - 3 * F2 * F4 + 4 * F42) * V4
+    ) / (F1mF22 * F1mF43 * F2mF42)
+
+    delta1 = (
+        d4 * F1 * F1mF22 * F1mF4 * F2mF4 * (2 * F2 * F4 + F1 * (F2 + F4))
+        + F4
+        * (
+            -(d1 * F1mF2 * F1mF4 * F2mF42 * (2 * F1 * F2 + (F1 + F2) * F4))
+            - 2
+            * F1
+            * (
+                F44 * (V1 - V2)
+                + 3 * F24 * (V1 - V4)
+                + F14 * (V2 - V4)
+                + 4 * F23 * F4 * (-V1 + V4)
+                + 2 * F13 * F4 * (-V2 + V4)
+                + F1
+                * (
+                    2 * F43 * (-V1 + V2)
+                    + 6 * F22 * F4 * (V1 - V4)
+                    + 4 * F23 * (-V1 + V4)
+                )
+            )
+        )
+    ) / (F1mF22 * F1mF43 * F2mF42)
+
+    delta2 = (
+        -(d4 * F1mF22 * F1mF4 * F2mF4 * (F12 + F2 * F4 + 2 * F1 * (F2 + F4)))
+        + d1 * F1mF2 * F1mF4 * F2mF42 * (F1 * F2 + 2 * (F1 + F2) * F4 + F42)
+        - 4 * F12 * F23 * V1
+        + 3 * F1 * F24 * V1
+        - 4 * F1 * F23 * F4 * V1
+        + 3 * F24 * F4 * V1
+        + 12 * F12 * F2 * F42 * V1
+        - 4 * F23 * F42 * V1
+        - 8 * F12 * F43 * V1
+        + F1 * F44 * V1
+        + F45 * V1
+        + F15 * V2
+        + F14 * F4 * V2
+        - 8 * F13 * F42 * V2
+        + 8 * F12 * F43 * V2
+        - F1 * F44 * V2
+        - F45 * V2
+        - F1mF22
+        * (
+            F13
+            + F2 * (3 * F2 - 4 * F4) * F4
+            + F12 * (2 * F2 + F4)
+            + F1 * (3 * F2 - 4 * F4) * (F2 + 2 * F4)
+        )
+        * V4
+    ) / (F1mF22 * F1mF43 * F2mF42)
+
+    delta3 = (
+        d4 * F1mF22 * F1mF4 * F2mF4 * (2 * F1 + F2 + F4)
+        - d1 * F1mF2 * F1mF4 * F2mF42 * (F1 + F2 + 2 * F4)
+        + 2
+        * (
+            F44 * (-V1 + V2)
+            + 2 * F12 * F2mF42 * (V1 - V4)
+            + 2 * F22 * F42 * (V1 - V4)
+            + 2 * F13 * F4 * (V2 - V4)
+            + F24 * (-V1 + V4)
+            + F14 * (-V2 + V4)
+            + 2
+            * F1
+            * F4
+            * (F42 * (V1 - V2) + F22 * (V1 - V4) + 2 * F2 * F4 * (-V1 + V4))
+        )
+    ) / (F1mF22 * F1mF43 * F2mF42)
+
+    delta4 = (
+        -(d4 * F1mF22 * F1mF4 * F2mF4)
+        + d1 * F1mF2 * F1mF4 * F2mF42
+        - 3 * F1 * F22 * V1
+        + 2 * F23 * V1
+        + 6 * F1 * F2 * F4 * V1
+        - 3 * F22 * F4 * V1
+        - 3 * F1 * F42 * V1
+        + F43 * V1
+        + F13 * V2
+        - 3 * F12 * F4 * V2
+        + 3 * F1 * F42 * V2
+        - F43 * V2
+        - F1mF22 * (F1 + 2 * F2 - 3 * F4) * V4
+    ) / (F1mF22 * F1mF43 * F2mF42)
+
+    Amp_Int = (fM_s ** (7.0 / 6.0)) / (
+        delta0 + fM_s * (delta1 + fM_s * (delta2 + fM_s * (delta3 + fM_s * delta4)))
+    )
+
+    return Amp_Int
+
+
+def get_mergerringdown_Amp(
+    fM_s: Array,
+    theta: Array,
+    coeffs: Array,
+) -> Array:
+    m1, m2, chi1, chi2 = theta
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+    eta2 = eta * eta
+    delta = jnp.sqrt(1.0 - 4.0 * eta)
+
+    mm1 = 0.5 * (1.0 + delta)
+    mm2 = 0.5 * (1.0 - delta)
+    StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
+    chia = chi1 - chi2
+
+    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
 
     # FIXME: Needs to go to utils
     gamma2 = (
@@ -1168,352 +1474,50 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     gammaR = gamma2 / (fMs_damp * gamma3)
     gammaD2 = (gamma3 * fMs_damp) * (gamma3 * fMs_damp)
     gammaD13 = fMs_damp * gamma1 * gamma3
+
+    Amp_RD = (
+        jnp.exp(-(fM_s - fMs_RD) * gammaR)
+        * (gammaD13)
+        / ((fM_s - fMs_RD) * (fM_s - fMs_RD) + gammaD2)
+    )
+
+    return Amp_RD, fAmpRDMin
+
+
+def Amp(f: Array, theta: Array, D=1.0) -> Array:
+    m1, m2, chi1, chi2 = theta
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+
+    fM_s = f * M_s
+    _, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M_s**2 / ((D * m_per_Mpc) / C)
+    ampNorm = jnp.sqrt(2.0 * eta / 3.0) * (PI ** (-1.0 / 6.0))
+
     fAmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
     fAmpMatchIN = fAmpInsMax
 
-    # Now the intermediate region
-    F1 = fAmpMatchIN
-    F4 = fAmpRDMin
-
-    d1 = (
-        (
-            (chi2 * (81 - 81 * delta - 44 * eta) + chi1 * (81 * (1 + delta) - 44 * eta))
-            * PI
-        )
-        / 48.0
-        + ((-969 + 1804 * eta) * (PI ** (2.0 / 3.0))) / (1008.0 * (F1 ** (1.0 / 3.0)))
-        + (
-            (
-                -27312085
-                - 10287648 * chi2**2
-                + 10287648 * chi2**2 * delta
-                - 10287648 * chi1**2 * (1 + delta)
-                + 24
-                * (
-                    -1975055
-                    + 857304 * chi1**2
-                    - 994896 * chi1 * chi2
-                    + 857304 * chi2**2
-                )
-                * eta
-                + 35371056 * eta2
-            )
-            * (PI ** (4.0 / 3.0))
-            * (F1 ** (1.0 / 3.0))
-        )
-        / 6.096384e6
-        + (
-            5
-            * (PI ** (5.0 / 3.0))
-            * (
-                -6048 * chi1**2 * chi1 * (-1 - delta + (3 + delta) * eta)
-                + chi1
-                * (
-                    287213 * (1 + delta)
-                    - 4 * (93414 + 2083 * delta) * eta
-                    - 35632 * eta2
-                )
-                + chi2
-                * (
-                    -((287213 + 6048 * chi2**2) * (-1 + delta))
-                    + 4
-                    * (-93414 + 1512 * chi2**2 * (-3 + delta) + 2083 * delta)
-                    * eta
-                    - 35632 * eta2
-                )
-                + 42840 * (-1 + 4 * eta) * PI
-            )
-            * (F1 ** (2.0 / 3.0))
-        )
-        / 96768.0
-        - (
-            (PI ** (2.0))
-            * (
-                -336
-                * (
-                    -3248849057
-                    + 1809550512 * chi1**2
-                    - 2954929824 * chi1 * chi2
-                    + 1809550512 * chi2**2
-                )
-                * eta2
-                - 324322727232 * eta2 * eta
-                + 7
-                * (
-                    177520268561
-                    + 29362199328 * chi2**2
-                    - 29362199328 * chi2**2 * delta
-                    + 29362199328 * chi1**2 * (1 + delta)
-                    + 12160253952 * (chi1 + chi2 + chi1 * delta - chi2 * delta) * PI
-                )
-                + 12
-                * eta
-                * (
-                    -545384828789
-                    + 49568837472 * chi1 * chi2
-                    - 12312458928 * chi2**2
-                    - 21943440288 * chi2**2 * delta
-                    + 77616 * chi1**2 * (-158633 + 282718 * delta)
-                    - 8345272320 * (chi1 + chi2) * PI
-                    + 21384760320 * (PI ** (2.0))
-                )
-            )
-            * F1
-        )
-        / 3.0042980352e10
-        + (7.0 / 3.0) * (F1 ** (4.0 / 3.0)) * rho1
-        + (8.0 / 3.0) * (F1 ** (5.0 / 3.0)) * rho2
-        + 3 * F1 * F1 * rho3
-    )
-    d4 = (
-        -jnp.exp(-gamma2 * (F4 - fMs_RD) / (fMs_damp * gamma3))
-        * gamma1
-        * (
-            (F4 - fMs_RD) * (F4 - fMs_RD) * gamma2
-            + 2.0 * fMs_damp * (F4 - fMs_RD) * gamma3
-            + fMs_damp * fMs_damp * gamma2 * gamma3 * gamma3
-        )
-        / (
-            ((F4 - fMs_RD) * (F4 - fMs_RD) + (fMs_damp * gamma3) * (fMs_damp * gamma3))
-            * (
-                (F4 - fMs_RD) * (F4 - fMs_RD)
-                + (fMs_damp * gamma3) * (fMs_damp * gamma3)
-            )
-        )
-    )
-    inspF1 = (
-        pnInitial
-        + (F1 ** (1.0 / 3.0)) * pnOneThird
-        + (F1 ** (2.0 / 3.0)) * pnTwoThirds
-        + F1 * pnThreeThirds
-        + F1
-        * (
-            (F1 ** (1.0 / 3.0)) * pnFourThirds
-            + (F1 ** (2.0 / 3.0)) * pnFiveThirds
-            + F1 * pnSixThirds
-            + F1 * ((F1 ** (1.0 / 3.0)) * rho1 + (F1 ** (2.0 / 3.0)) * rho2 + F1 * rho3)
-        )
-    )
-    rdF4 = (
-        jnp.exp(-(F4 - fMs_RD) * gammaR)
-        * (gammaD13)
-        / ((F4 - fMs_RD) * (F4 - fMs_RD) + gammaD2)
-    )
-
-    # Use d1 and d4 calculated above to get the derivative of the amplitude on the boundaries
-    d1 = ((7.0 / 6.0) * (F1 ** (1.0 / 6.0)) / inspF1) - (
-        (F1 ** (7.0 / 6.0)) * d1 / (inspF1 * inspF1)
-    )
-    d4 = ((7.0 / 6.0) * (F4 ** (1.0 / 6.0)) / rdF4) - (
-        (F4 ** (7.0 / 6.0)) * d4 / (rdF4 * rdF4)
-    )
-
-    # Use a 4th order polynomial in intermediate - good extrapolation, recommended default fit
-    F2 = F1 + (1.0 / 2.0) * (F4 - F1)
-    F3 = 0.0
-
-    V1 = (F1 ** (-7.0 / 6)) * inspF1
-    V2 = (
-        (
-            (
-                1.4873184918202145
-                + 1974.6112656679577 * eta
-                + 27563.641024162127 * eta2
-                - 19837.908020966777 * eta2 * eta
-            )
-            / (1.0 + 143.29004876335128 * eta + 458.4097306093354 * eta2)
-        )
-        + (
-            (
-                StotR
-                * (
-                    27.952730865904343
-                    + eta * (-365.55631765202895 - 260.3494489873286 * StotR)
-                    + 3.2646808851249016 * StotR
-                    + 3011.446602208493 * eta2 * StotR
-                    - 19.38970173389662 * StotR**2
-                    + eta2
-                    * eta
-                    * (
-                        1612.2681322644232
-                        - 6962.675551371755 * StotR
-                        + 1486.4658089990298 * StotR**2
-                    )
-                )
-            )
-            / (12.647425554323242 - 10.540154508599963 * StotR + 1.0 * StotR**2)
-        )
-        + (chia * delta * (-0.016404056649860943 - 296.473359655246 * eta) * eta2)
-    )
-    V3 = 0.0
-    V4 = (F4 ** (-7.0 / 6)) * rdF4
-
-    V1 = 1.0 / V1
-    V2 = 1.0 / V2
-    V4 = 1.0 / V4
-
-    # Reconstruct the phenomenological coefficients for the intermediate ansatz
-    F12 = F1 * F1
-    F13 = F12 * F1
-    F14 = F13 * F1
-    F15 = F14 * F1
-
-    F22 = F2 * F2
-    F23 = F22 * F2
-    F24 = F23 * F2
-
-    F42 = F4 * F4
-    F43 = F42 * F4
-    F44 = F43 * F4
-    F45 = F44 * F4
-
-    F1mF2 = F1 - F2
-    F1mF4 = F1 - F4
-    F2mF4 = F2 - F4
-
-    F1mF22 = F1mF2 * F1mF2
-    F2mF42 = F2mF4 * F2mF4
-    F1mF43 = F1mF4 * F1mF4 * F1mF4
-
-    delta0 = (
-        -(d4 * F12 * F1mF22 * F1mF4 * F2 * F2mF4 * F4)
-        + d1 * F1 * F1mF2 * F1mF4 * F2 * F2mF42 * F42
-        + F42
-        * (
-            F2 * F2mF42 * (-4 * F12 + 3 * F1 * F2 + 2 * F1 * F4 - F2 * F4) * V1
-            + F12 * F1mF43 * V2
-        )
-        + F12 * F1mF22 * F2 * (F1 * F2 - 2 * F1 * F4 - 3 * F2 * F4 + 4 * F42) * V4
-    ) / (F1mF22 * F1mF43 * F2mF42)
-    delta1 = (
-        d4 * F1 * F1mF22 * F1mF4 * F2mF4 * (2 * F2 * F4 + F1 * (F2 + F4))
-        + F4
-        * (
-            -(d1 * F1mF2 * F1mF4 * F2mF42 * (2 * F1 * F2 + (F1 + F2) * F4))
-            - 2
-            * F1
-            * (
-                F44 * (V1 - V2)
-                + 3 * F24 * (V1 - V4)
-                + F14 * (V2 - V4)
-                + 4 * F23 * F4 * (-V1 + V4)
-                + 2 * F13 * F4 * (-V2 + V4)
-                + F1
-                * (
-                    2 * F43 * (-V1 + V2)
-                    + 6 * F22 * F4 * (V1 - V4)
-                    + 4 * F23 * (-V1 + V4)
-                )
-            )
-        )
-    ) / (F1mF22 * F1mF43 * F2mF42)
-    delta2 = (
-        -(d4 * F1mF22 * F1mF4 * F2mF4 * (F12 + F2 * F4 + 2 * F1 * (F2 + F4)))
-        + d1 * F1mF2 * F1mF4 * F2mF42 * (F1 * F2 + 2 * (F1 + F2) * F4 + F42)
-        - 4 * F12 * F23 * V1
-        + 3 * F1 * F24 * V1
-        - 4 * F1 * F23 * F4 * V1
-        + 3 * F24 * F4 * V1
-        + 12 * F12 * F2 * F42 * V1
-        - 4 * F23 * F42 * V1
-        - 8 * F12 * F43 * V1
-        + F1 * F44 * V1
-        + F45 * V1
-        + F15 * V2
-        + F14 * F4 * V2
-        - 8 * F13 * F42 * V2
-        + 8 * F12 * F43 * V2
-        - F1 * F44 * V2
-        - F45 * V2
-        - F1mF22
-        * (
-            F13
-            + F2 * (3 * F2 - 4 * F4) * F4
-            + F12 * (2 * F2 + F4)
-            + F1 * (3 * F2 - 4 * F4) * (F2 + 2 * F4)
-        )
-        * V4
-    ) / (F1mF22 * F1mF43 * F2mF42)
-    delta3 = (
-        d4 * F1mF22 * F1mF4 * F2mF4 * (2 * F1 + F2 + F4)
-        - d1 * F1mF2 * F1mF4 * F2mF42 * (F1 + F2 + 2 * F4)
-        + 2
-        * (
-            F44 * (-V1 + V2)
-            + 2 * F12 * F2mF42 * (V1 - V4)
-            + 2 * F22 * F42 * (V1 - V4)
-            + 2 * F13 * F4 * (V2 - V4)
-            + F24 * (-V1 + V4)
-            + F14 * (-V2 + V4)
-            + 2
-            * F1
-            * F4
-            * (F42 * (V1 - V2) + F22 * (V1 - V4) + 2 * F2 * F4 * (-V1 + V4))
-        )
-    ) / (F1mF22 * F1mF43 * F2mF42)
-    delta4 = (
-        -(d4 * F1mF22 * F1mF4 * F2mF4)
-        + d1 * F1mF2 * F1mF4 * F2mF42
-        - 3 * F1 * F22 * V1
-        + 2 * F23 * V1
-        + 6 * F1 * F2 * F4 * V1
-        - 3 * F22 * F4 * V1
-        - 3 * F1 * F42 * V1
-        + F43 * V1
-        + F13 * V2
-        - 3 * F12 * F4 * V2
-        + 3 * F1 * F42 * V2
-        - F43 * V2
-        - F1mF22 * (F1 + 2 * F2 - 3 * F4) * V4
-    ) / (F1mF22 * F1mF43 * F2mF42)
-    delta5 = 0.0
-
     # Below
+    coeffs = IMRPhenomX_utils.PhenomX_coeff_table
     Overallamp = amp0 * ampNorm
 
-    amplitudeIMR = jnp.where(
-        fM_s <= fAmpMatchIN,
-        (
-            pnInitial
-            + (fM_s ** (1.0 / 3.0)) * pnOneThird
-            + (fM_s ** (2.0 / 3.0)) * pnTwoThirds
-            + fM_s * pnThreeThirds
-            + fM_s
-            * (
-                (fM_s ** (1.0 / 3.0)) * pnFourThirds
-                + (fM_s ** (2.0 / 3.0)) * pnFiveThirds
-                + fM_s * pnSixThirds
-                + fM_s
-                * (
-                    (fM_s ** (1.0 / 3.0)) * rho1
-                    + (fM_s ** (2.0 / 3.0)) * rho2
-                    + fM_s * rho3
-                )
-            )
-        ),
-        jnp.where(
-            fM_s <= fAmpRDMin,
-            (fM_s ** (7.0 / 6.0))
-            / (
-                delta0
-                + fM_s
-                * (
-                    delta1
-                    + fM_s
-                    * (delta2 + fM_s * (delta3 + fM_s * (delta4 + fM_s * delta5)))
-                )
-            ),
-            jnp.where(
-                fM_s <= IMRPhenomX_utils.fM_CUT,
-                jnp.exp(-(fM_s - fMs_RD) * gammaR)
-                * (gammaD13)
-                / ((fM_s - fMs_RD) * (fM_s - fMs_RD) + gammaD2),
-                0.0,
-            ),
-        ),
+    Amp_Ins = get_inspiral_Amp(fM_s, theta, coeffs)
+    Amp_RD, fAmpRDMin = get_mergerringdown_Amp(fM_s, theta, coeffs)
+    Amp_Int = get_intermediate_Amp(fM_s, theta, coeffs, fAmpRDMin)
+
+    Amp = (
+        Amp_Ins * jnp.heaviside(fAmpMatchIN - fM_s, 0.5)
+        + jnp.heaviside(fM_s - fAmpMatchIN, 0.5)
+        * Amp_Int
+        * jnp.heaviside(fAmpRDMin - fM_s, 0.5)
+        + Amp_RD
+        * jnp.heaviside(fM_s - fAmpRDMin, 0.5)
+        * jnp.heaviside(IMRPhenomX_utils.fM_CUT - fM_s, 0.5)
     )
 
-    return Overallamp * amplitudeIMR * (fM_s ** (-7.0 / 6.0))
+    return Overallamp * Amp * (fM_s ** (-7.0 / 6.0))
 
 
 # @jax.jit

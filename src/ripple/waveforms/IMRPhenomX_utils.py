@@ -282,7 +282,7 @@ def get_cutoff_fMs(m1, m2, chi1, chi2):
         )
     )
 
-    # NOTE: These are dimensionless frequencies
+    # NOTE: These are dimensionless frequencies (i.e. M in seconds * f in Hz)
     return fRD, fdamp, fMECO, fISCO
 
 
