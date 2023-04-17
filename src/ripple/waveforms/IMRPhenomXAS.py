@@ -769,89 +769,232 @@ def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
-    eta3 = eta * eta2
     delta = jnp.sqrt(1.0 - 4.0 * eta)
 
     # Spin variables
-    chi12 = chi1 * chi1
-    chi22 = chi2 * chi2
+    mm1 = 0.5 * (1.0 + delta)
+    mm2 = 0.5 * (1.0 - delta)
+    chi_eff = mm1 * chi1 + mm2 * chi2
+    S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
+    chia = chi1 - chi2
 
-    chi13 = chi12 * chi1
-    chi23 = chi22 * chi2
+    # Grab relevent frequencies
+    _, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
+    fAmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
+    fAmpMatchIN = fAmpInsMax
 
     A0 = 1.0
-    A2 = -323.0 / 224.0 + 451.0 * eta / 168.0
-    A3 = chi1 * (27.0 * delta / 16.0 - 11.0 * eta / 12.0 + 27.0 / 16.0) + chi2 * (
-        -27.0 * delta / 16.0 - 11.0 * eta / 12.0 + 27.0 / 16.0
-    )
+    # A1 = 0.0
+    A2 = ((-969 + 1804 * eta) / 672.0) * (PI ** (2.0 / 3.0))
+    A3 = (
+        (
+            81 * (chi1 + chi2)
+            + 81 * chi1 * delta
+            - 81 * chi2 * delta
+            - 44 * (chi1 + chi2) * eta
+        )
+        / 48.0
+    ) * PI
     A4 = (
-        chi12 * (-81.0 * delta / 64.0 + 81.0 * eta / 32.0 - 81.0 / 64.0)
-        + chi22 * (81.0 * delta / 64.0 + 81.0 * eta / 32.0 - 81.0 / 64.0)
-        + (
-            105271.0 * eta2 / 24192.0
-            - 1975055.0 * eta / 338688
-            - 27312085.0 / 8128512.0
+        (
+            -27312085
+            - 10287648 * chi1**2 * (1 + delta)
+            + 24
+            * (
+                428652 * chi2**2 * (-1 + delta)
+                + (
+                    -1975055
+                    + 10584 * (81 * chi1**2 - 94 * chi1 * chi2 + 81 * chi2**2)
+                )
+                * eta
+                + 1473794 * eta2
+            )
         )
-        - 47.0 * eta * chi1 * chi2 / 16.0
-    )
+        / 8.128512e6
+    ) * (PI ** (4.0 / 3.0))
     A5 = (
-        chi13 * (delta * (3.0 / 16.0 - 3 * eta / 16.0) - 9.0 * eta / 16.0 + 3.0 / 16.0)
-        + chi1
-        * (
-            delta * (287213.0 / 32256.0 - 2083.0 * eta / 8064.0)
-            - 2227.0 * eta2 / 2016.0
-            - 15569.0 * eta / 1344.0
-            + 287213.0 / 32256.0
+        (
+            -6048 * chi1**2 * chi1 * (-1 - delta + (3 + delta) * eta)
+            + chi2
+            * (
+                -((287213 + 6048 * chi2**2) * (-1 + delta))
+                + 4 * (-93414 + 1512 * chi2**2 * (-3 + delta) + 2083 * delta) * eta
+                - 35632 * eta2
+            )
+            + chi1
+            * (287213 * (1 + delta) - 4 * eta * (93414 + 2083 * delta + 8908 * eta))
+            + 42840 * (-1 + 4 * eta) * PI
         )
-        + chi23
-        * (delta * (3.0 * eta / 16.0 - 3.0 / 16.0) - 9.0 * eta / 16.0 + 3.0 / 16.0)
-    )
-    (
-        +chi2
-        * (
-            delta * (2083.0 * eta / 8064.0 - 287213.0 / 32256.0)
-            - 2227.0 * eta2 / 2016.0
-            - 15569.0 * eta / 1344.0
-            + 287213.0 / 32256.0
-        )
-        - 85.0 * PI / 64.0
-        + 85.0 * PI * eta / 16.0
-    )
+        / 32256.0
+    ) * (PI ** (5.0 / 3.0))
     A6 = (
         (
-            chi1
+            -1242641879927
+            + 12.0
             * (
-                -17.0 * PI * delta / 12.0
-                + (-133249.0 * eta2 / 8064.0 - 319321.0 * eta / 32256.0) * chi2
-                + 5.0 * PI * eta / 3.0
-                - 17.0 * PI / 12.0
-            )
-            + chi12
-            * (
-                delta * (-141359.0 * eta / 32256.0 - 49039.0 / 14336.0)
-                + 163199.0 * eta2 / 16128.0
-                + 158633.0 * eta / 64512.0
-                - 49039.0 / 14336.0
-            )
-            + chi22
-            * (
-                delta * (141359.0 * eta / 32256.0 - 49039.0 / 14336.0)
-                + 163199.0 * eta2 / 16128.0
-                + 158633.0 * eta / 64512.0
-                - 49039.0 / 14336.0
+                28.0
+                * (
+                    -3248849057.0
+                    + 11088
+                    * (163199 * chi1**2 - 266498 * chi1 * chi2 + 163199 * chi2**2)
+                )
+                * eta2
+                + 27026893936 * eta2 * eta
+                - 116424
+                * (
+                    147117 * (-(chi2**2 * (-1.0 + delta)) + chi1**2 * (1.0 + delta))
+                    + 60928 * (chi1 + chi2 + chi1 * delta - chi2 * delta) * PI
+                )
+                + eta
+                * (
+                    545384828789.0
+                    - 77616
+                    * (
+                        638642 * chi1 * chi2
+                        + chi1**2 * (-158633 + 282718 * delta)
+                        - chi2**2 * (158633.0 + 282718.0 * delta)
+                        - 107520.0 * (chi1 + chi2) * PI
+                        + 275520 * PI**2
+                    )
+                )
             )
         )
-        + chi2 * (17.0 * PI * delta / 12.0 + 5 * PI * eta / 3.0 - 17 * PI / 12.0)
-        - 177520268561.0 / 8583708672.0
-        + (545384828789.0 / 5007163392.0 - 205.0 * PI**2.0 / 48.0) * eta
-        - 3248849057.0 * eta2 / 178827264.0
-        + 34473079.0 * eta3 / 6386688.0
+        / 6.0085960704e10
+    ) * PI**2
+
+    # Now we need to get the higher order components
+    # FIXME: This part needs to go into utils
+    CV_Amp_Ins0 = (
+        (
+            (
+                -0.015178276424448592
+                - 0.06098548699809163 * eta
+                + 0.4845148547154606 * eta2
+            )
+            / (1.0 + 0.09799277215675059 * eta)
+        )
+        + (
+            (
+                (0.02300153747158323 + 0.10495263104245876 * eta2) * S
+                + (0.04834642258922544 - 0.14189350657140673 * eta) * eta * S**2 * S
+                + (0.01761591799745109 - 0.14404522791467844 * eta2) * S**2
+            )
+            / (1.0 - 0.7340448493183307 * S)
+        )
+        + (
+            chia
+            * delta
+            * eta2
+            * eta2
+            * (0.0018724905795891192 + 34.90874132485147 * eta)
+        )
+    )
+    CV_Amp_Ins1 = (
+        (
+            (-0.058572000924124644 - 1.1970535595488723 * eta + 8.4630293045015 * eta2)
+            / (1.0 + 15.430818840453686 * eta)
+        )
+        + (
+            (
+                (
+                    -0.08746408292050666
+                    + eta * (-0.20646621646484237 - 0.21291764491897636 * S)
+                    + eta2 * (0.788717372588848 + 0.8282888482429105 * S)
+                    - 0.018924013869130434 * S
+                )
+                * S
+            )
+            / (-1.332123330797879 + 1.0 * S)
+        )
+        + (
+            chia
+            * delta
+            * eta2
+            * eta2
+            * (0.004389995099201855 + 105.84553997647659 * eta)
+        )
+    )
+    CV_Amp_Ins2 = (
+        (
+            (
+                -0.16212854591357853
+                + 1.617404703616985 * eta
+                - 3.186012733446088 * eta2
+                + 5.629598195000046 * eta2 * eta
+            )
+            / (1.0 + 0.04507019231274476 * eta)
+        )
+        + (
+            (
+                S
+                * (
+                    1.0055835408962206
+                    + eta2 * (18.353433894421833 - 18.80590889704093 * S)
+                    - 0.31443470118113853 * S
+                    + eta * (-4.127597118865669 + 5.215501942120774 * S)
+                    + eta2 * eta * (-41.0378120175805 + 19.099315016873643 * S)
+                )
+            )
+            / (5.852706459485663 - 5.717874483424523 * S + 1.0 * S**2)
+        )
+        + (
+            chia
+            * delta
+            * eta2
+            * eta2
+            * (0.05575955418803233 + 208.92352600701068 * eta)
+        )
     )
 
-    # Here we need to compute the rhos
-    # A7 = rho1
-    # A8 = rho2
-    # A9 = rho3
+    CP_Amp_Ins0 = 0.50 * fAmpMatchIN
+    CP_Amp_Ins1 = 0.75 * fAmpMatchIN
+    CP_Amp_Ins2 = 1.00 * fAmpMatchIN
+
+    rho1 = (
+        -((CP_Amp_Ins1 ** (8.0 / 3.0)) * (CP_Amp_Ins2**3) * CV_Amp_Ins0)
+        + CP_Amp_Ins1**3 * (CP_Amp_Ins2 ** (8.0 / 3.0)) * CV_Amp_Ins0
+        + (CP_Amp_Ins0 ** (8.0 / 3.0)) * (CP_Amp_Ins2**3) * CV_Amp_Ins1
+        - CP_Amp_Ins0**3 * (CP_Amp_Ins2 ** (8.0 / 3.0)) * CV_Amp_Ins1
+        - (CP_Amp_Ins0 ** (8.0 / 3.0)) * (CP_Amp_Ins1**3) * CV_Amp_Ins2
+        + CP_Amp_Ins0**3 * (CP_Amp_Ins1 ** (8.0 / 3.0)) * CV_Amp_Ins2
+    ) / (
+        (CP_Amp_Ins0 ** (7.0 / 3.0))
+        * (jnp.cbrt(CP_Amp_Ins0) - jnp.cbrt(CP_Amp_Ins1))
+        * (CP_Amp_Ins1 ** (7.0 / 3.0))
+        * (jnp.cbrt(CP_Amp_Ins0) - jnp.cbrt(CP_Amp_Ins2))
+        * (jnp.cbrt(CP_Amp_Ins1) - jnp.cbrt(CP_Amp_Ins2))
+        * (CP_Amp_Ins2 ** (7.0 / 3.0))
+    )
+    rho2 = (
+        (CP_Amp_Ins1 ** (7.0 / 3.0)) * (CP_Amp_Ins2**3) * CV_Amp_Ins0
+        - CP_Amp_Ins1**3 * (CP_Amp_Ins2 ** (7.0 / 3.0)) * CV_Amp_Ins0
+        - (CP_Amp_Ins0 ** (7.0 / 3.0)) * (CP_Amp_Ins2**3) * CV_Amp_Ins1
+        + CP_Amp_Ins0**3 * (CP_Amp_Ins2 ** (7.0 / 3.0)) * CV_Amp_Ins1
+        + (CP_Amp_Ins0 ** (7.0 / 3.0)) * (CP_Amp_Ins1**3) * CV_Amp_Ins2
+        - CP_Amp_Ins0**3 * (CP_Amp_Ins1 ** (7.0 / 3.0)) * CV_Amp_Ins2
+    ) / (
+        (CP_Amp_Ins0 ** (7.0 / 3.0))
+        * (jnp.cbrt(CP_Amp_Ins0) - jnp.cbrt(CP_Amp_Ins1))
+        * (CP_Amp_Ins1 ** (7.0 / 3.0))
+        * (jnp.cbrt(CP_Amp_Ins0) - jnp.cbrt(CP_Amp_Ins2))
+        * (jnp.cbrt(CP_Amp_Ins1) - jnp.cbrt(CP_Amp_Ins2))
+        * (CP_Amp_Ins2 ** (7.0 / 3.0))
+    )
+    rho3 = (
+        (CP_Amp_Ins1 ** (8.0 / 3.0)) * (CP_Amp_Ins2 ** (7.0 / 3.0)) * CV_Amp_Ins0
+        - (CP_Amp_Ins1 ** (7.0 / 3.0)) * (CP_Amp_Ins2 ** (8.0 / 3.0)) * CV_Amp_Ins0
+        - (CP_Amp_Ins0 ** (8.0 / 3.0)) * (CP_Amp_Ins2 ** (7.0 / 3.0)) * CV_Amp_Ins1
+        + (CP_Amp_Ins0 ** (7.0 / 3.0)) * (CP_Amp_Ins2 ** (8.0 / 3.0)) * CV_Amp_Ins1
+        + (CP_Amp_Ins0 ** (8.0 / 3.0)) * (CP_Amp_Ins1 ** (7.0 / 3.0)) * CV_Amp_Ins2
+        - (CP_Amp_Ins0 ** (7.0 / 3.0)) * (CP_Amp_Ins1 ** (8.0 / 3.0)) * CV_Amp_Ins2
+    ) / (
+        (CP_Amp_Ins0 ** (7.0 / 3.0))
+        * (jnp.cbrt(CP_Amp_Ins0) - jnp.cbrt(CP_Amp_Ins1))
+        * (CP_Amp_Ins1 ** (7.0 / 3.0))
+        * (jnp.cbrt(CP_Amp_Ins0) - jnp.cbrt(CP_Amp_Ins2))
+        * (jnp.cbrt(CP_Amp_Ins1) - jnp.cbrt(CP_Amp_Ins2))
+        * (CP_Amp_Ins2 ** (7.0 / 3.0))
+    )
 
     Amp_Ins = (
         A0
@@ -862,9 +1005,9 @@ def get_inspiral_Amp(fM_s: Array, theta: Array) -> Array:
         + A5 * (fM_s ** (5.0 / 3.0))
         + A6 * (fM_s**2.0)
         # # Now we add the coefficient terms
-        # + A7 * (fM_s ** (7.0 / 3.0))
-        # + A8 * (fM_s ** (8.0 / 3.0))
-        # + A9 * (fM_s ** 3.0)
+        + rho1 * (fM_s ** (7.0 / 3.0))
+        + rho2 * (fM_s ** (8.0 / 3.0))
+        + rho3 * (fM_s**3.0)
     )
 
     return Amp_Ins
@@ -916,6 +1059,7 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M_s**2 / ((D * m_per_Mpc) / C)
     ampNorm = jnp.sqrt(2.0 * eta / 3.0) * (PI ** (-1.0 / 6.0))
 
+    # FIXME: Needs to go to utils
     gamma2 = (
         (
             (0.8312293675316895 + 7.480371544268765 * eta - 18.256121237800397 * eta2)
@@ -1026,236 +1170,6 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     gammaD13 = fMs_damp * gamma1 * gamma3
     fAmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
     fAmpMatchIN = fAmpInsMax
-
-    # TaylorF2 PN Amplitude Coefficients
-    pnInitial = 1.0
-    pnOneThird = 0.0
-    pnTwoThirds = ((-969 + 1804 * eta) / 672.0) * (PI ** (2.0 / 3.0))
-    pnThreeThirds = (
-        (
-            81 * (chi1 + chi2)
-            + 81 * chi1 * delta
-            - 81 * chi2 * delta
-            - 44 * (chi1 + chi2) * eta
-        )
-        / 48.0
-    ) * PI
-    pnFourThirds = (
-        (
-            -27312085
-            - 10287648 * chi1**2 * (1 + delta)
-            + 24
-            * (
-                428652 * chi2**2 * (-1 + delta)
-                + (
-                    -1975055
-                    + 10584 * (81 * chi1**2 - 94 * chi1 * chi2 + 81 * chi2**2)
-                )
-                * eta
-                + 1473794 * eta2
-            )
-        )
-        / 8.128512e6
-    ) * (PI ** (4.0 / 3.0))
-    pnFiveThirds = (
-        (
-            -6048 * chi1**2 * chi1 * (-1 - delta + (3 + delta) * eta)
-            + chi2
-            * (
-                -((287213 + 6048 * chi2**2) * (-1 + delta))
-                + 4 * (-93414 + 1512 * chi2**2 * (-3 + delta) + 2083 * delta) * eta
-                - 35632 * eta2
-            )
-            + chi1
-            * (287213 * (1 + delta) - 4 * eta * (93414 + 2083 * delta + 8908 * eta))
-            + 42840 * (-1 + 4 * eta) * PI
-        )
-        / 32256.0
-    ) * (PI ** (5.0 / 3.0))
-    pnSixThirds = (
-        (
-            (
-                -1242641879927
-                + 12.0
-                * (
-                    28.0
-                    * (
-                        -3248849057.0
-                        + 11088
-                        * (
-                            163199 * chi1**2
-                            - 266498 * chi1 * chi2
-                            + 163199 * chi2**2
-                        )
-                    )
-                    * eta2
-                    + 27026893936 * eta2 * eta
-                    - 116424
-                    * (
-                        147117
-                        * (-(chi2**2 * (-1.0 + delta)) + chi1**2 * (1.0 + delta))
-                        + 60928 * (chi1 + chi2 + chi1 * delta - chi2 * delta) * PI
-                    )
-                    + eta
-                    * (
-                        545384828789.0
-                        - 77616
-                        * (
-                            638642 * chi1 * chi2
-                            + chi1**2 * (-158633 + 282718 * delta)
-                            - chi2**2 * (158633.0 + 282718.0 * delta)
-                            - 107520.0 * (chi1 + chi2) * PI
-                            + 275520 * PI * PI
-                        )
-                    )
-                )
-            )
-            / 6.0085960704e10
-        )
-        * PI
-        * PI
-    )
-
-    # Now the collocation points for the inspiral
-    CollocationValuesAmpIns1 = (
-        (
-            (
-                -0.015178276424448592
-                - 0.06098548699809163 * eta
-                + 0.4845148547154606 * eta2
-            )
-            / (1.0 + 0.09799277215675059 * eta)
-        )
-        + (
-            (
-                (0.02300153747158323 + 0.10495263104245876 * eta2) * S
-                + (0.04834642258922544 - 0.14189350657140673 * eta) * eta * S**2 * S
-                + (0.01761591799745109 - 0.14404522791467844 * eta2) * S**2
-            )
-            / (1.0 - 0.7340448493183307 * S)
-        )
-        + (
-            chia
-            * delta
-            * eta2
-            * eta2
-            * (0.0018724905795891192 + 34.90874132485147 * eta)
-        )
-    )
-    CollocationValuesAmpIns2 = (
-        (
-            (-0.058572000924124644 - 1.1970535595488723 * eta + 8.4630293045015 * eta2)
-            / (1.0 + 15.430818840453686 * eta)
-        )
-        + (
-            (
-                (
-                    -0.08746408292050666
-                    + eta * (-0.20646621646484237 - 0.21291764491897636 * S)
-                    + eta2 * (0.788717372588848 + 0.8282888482429105 * S)
-                    - 0.018924013869130434 * S
-                )
-                * S
-            )
-            / (-1.332123330797879 + 1.0 * S)
-        )
-        + (
-            chia
-            * delta
-            * eta2
-            * eta2
-            * (0.004389995099201855 + 105.84553997647659 * eta)
-        )
-    )
-    CollocationValuesAmpIns3 = (
-        (
-            (
-                -0.16212854591357853
-                + 1.617404703616985 * eta
-                - 3.186012733446088 * eta2
-                + 5.629598195000046 * eta2 * eta
-            )
-            / (1.0 + 0.04507019231274476 * eta)
-        )
-        + (
-            (
-                S
-                * (
-                    1.0055835408962206
-                    + eta2 * (18.353433894421833 - 18.80590889704093 * S)
-                    - 0.31443470118113853 * S
-                    + eta * (-4.127597118865669 + 5.215501942120774 * S)
-                    + eta2 * eta * (-41.0378120175805 + 19.099315016873643 * S)
-                )
-            )
-            / (5.852706459485663 - 5.717874483424523 * S + 1.0 * S**2)
-        )
-        + (
-            chia
-            * delta
-            * eta2
-            * eta2
-            * (0.05575955418803233 + 208.92352600701068 * eta)
-        )
-    )
-
-    CollocationPointsAmpIns1 = 0.50 * fAmpMatchIN
-    CollocationPointsAmpIns2 = 0.75 * fAmpMatchIN
-    CollocationPointsAmpIns3 = 1.00 * fAmpMatchIN
-
-    V1 = CollocationValuesAmpIns1
-    V2 = CollocationValuesAmpIns2
-    V3 = CollocationValuesAmpIns3
-
-    F1 = CollocationPointsAmpIns1
-    F2 = CollocationPointsAmpIns2
-    F3 = CollocationPointsAmpIns3
-
-    rho1 = (
-        -((F2 ** (8.0 / 3.0)) * (F3 * F3 * F3) * V1)
-        + F2 * F2 * F2 * (F3 ** (8.0 / 3.0)) * V1
-        + (F1 ** (8.0 / 3.0)) * (F3 * F3 * F3) * V2
-        - F1 * F1 * F1 * (F3 ** (8.0 / 3.0)) * V2
-        - (F1 ** (8.0 / 3.0)) * (F2 * F2 * F2) * V3
-        + F1 * F1 * F1 * (F2 ** (8.0 / 3.0)) * V3
-    ) / (
-        (F1 ** (7.0 / 3.0))
-        * (jnp.cbrt(F1) - jnp.cbrt(F2))
-        * (F2 ** (7.0 / 3.0))
-        * (jnp.cbrt(F1) - jnp.cbrt(F3))
-        * (jnp.cbrt(F2) - jnp.cbrt(F3))
-        * (F3 ** (7.0 / 3.0))
-    )
-    rho2 = (
-        (F2 ** (7.0 / 3.0)) * (F3 * F3 * F3) * V1
-        - F2 * F2 * F2 * (F3 ** (7.0 / 3.0)) * V1
-        - (F1 ** (7.0 / 3.0)) * (F3 * F3 * F3) * V2
-        + F1 * F1 * F1 * (F3 ** (7.0 / 3.0)) * V2
-        + (F1 ** (7.0 / 3.0)) * (F2 * F2 * F2) * V3
-        - F1 * F1 * F1 * (F2 ** (7.0 / 3.0)) * V3
-    ) / (
-        (F1 ** (7.0 / 3.0))
-        * (jnp.cbrt(F1) - jnp.cbrt(F2))
-        * (F2 ** (7.0 / 3.0))
-        * (jnp.cbrt(F1) - jnp.cbrt(F3))
-        * (jnp.cbrt(F2) - jnp.cbrt(F3))
-        * (F3 ** (7.0 / 3.0))
-    )
-    rho3 = (
-        (F2 ** (8.0 / 3.0)) * (F3 ** (7.0 / 3.0)) * V1
-        - (F2 ** (7.0 / 3.0)) * (F3 ** (8.0 / 3.0)) * V1
-        - (F1 ** (8.0 / 3.0)) * (F3 ** (7.0 / 3.0)) * V2
-        + (F1 ** (7.0 / 3.0)) * (F3 ** (8.0 / 3.0)) * V2
-        + (F1 ** (8.0 / 3.0)) * (F2 ** (7.0 / 3.0)) * V3
-        - (F1 ** (7.0 / 3.0)) * (F2 ** (8.0 / 3.0)) * V3
-    ) / (
-        (F1 ** (7.0 / 3.0))
-        * (jnp.cbrt(F1) - jnp.cbrt(F2))
-        * (F2 ** (7.0 / 3.0))
-        * (jnp.cbrt(F1) - jnp.cbrt(F3))
-        * (jnp.cbrt(F2) - jnp.cbrt(F3))
-        * (F3 ** (7.0 / 3.0))
-    )
 
     # Now the intermediate region
     F1 = fAmpMatchIN
@@ -1554,6 +1468,7 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     ) / (F1mF22 * F1mF43 * F2mF42)
     delta5 = 0.0
 
+    # Below
     Overallamp = amp0 * ampNorm
 
     amplitudeIMR = jnp.where(
