@@ -1013,28 +1013,28 @@ def get_intermediate_Amp(
     _, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
     fMs_AmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
     fMs_AmpMatchIN = fMs_AmpInsMax
-    F1 = fMs_AmpMatchIN
+    FMs1 = fMs_AmpMatchIN
     # This needs to come from outside
-    F4 = fMs_AmpRDMin
+    FMs4 = fMs_AmpRDMin
 
-    inspF1, d1 = jax.value_and_grad(get_inspiral_Amp)(F1, theta, amp_coeffs)
-    rdF4, d4 = jax.value_and_grad(get_mergerringdown_Amp, has_aux=True)(
-        F4, theta, amp_coeffs
+    inspFMs1, d1 = jax.value_and_grad(get_inspiral_Amp)(FMs1, theta, amp_coeffs)
+    rdFMs4, d4 = jax.value_and_grad(get_mergerringdown_Amp, has_aux=True)(
+        FMs4, theta, amp_coeffs
     )
-    rdF4 = rdF4[0]
+    rdFMs4 = rdFMs4[0]
 
     # Use d1 and d4 calculated above to get the derivative of the amplitude on the boundaries
-    d1 = ((7.0 / 6.0) * (F1 ** (1.0 / 6.0)) / inspF1) - (
-        (F1 ** (7.0 / 6.0)) * d1 / (inspF1 * inspF1)
+    d1 = ((7.0 / 6.0) * (FMs1 ** (1.0 / 6.0)) / inspFMs1) - (
+        (FMs1 ** (7.0 / 6.0)) * d1 / (inspFMs1 * inspFMs1)
     )
-    d4 = ((7.0 / 6.0) * (F4 ** (1.0 / 6.0)) / rdF4) - (
-        (F4 ** (7.0 / 6.0)) * d4 / (rdF4 * rdF4)
+    d4 = ((7.0 / 6.0) * (FMs4 ** (1.0 / 6.0)) / rdFMs4) - (
+        (FMs4 ** (7.0 / 6.0)) * d4 / (rdFMs4 * rdFMs4)
     )
 
     # Use a 4th order polynomial in intermediate - good extrapolation, recommended default fit
-    F2 = F1 + (1.0 / 2.0) * (F4 - F1)
+    FMs2 = FMs1 + (1.0 / 2.0) * (FMs4 - FMs1)
 
-    V1 = (F1 ** (-7.0 / 6)) * inspF1
+    V1 = (FMs1 ** (-7.0 / 6)) * inspFMs1
 
     V2 = (
         IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[3, 0:amp_eqspin_indx], eta)
@@ -1045,63 +1045,70 @@ def get_intermediate_Amp(
             amp_coeffs[3, amp_uneqspin_indx:], eta, StotR, chia
         )
     )
-    V4 = (F4 ** (-7.0 / 6)) * rdF4
+    V4 = (FMs4 ** (-7.0 / 6)) * rdFMs4
 
     V1 = 1.0 / V1
     V2 = 1.0 / V2
     V4 = 1.0 / V4
 
     # Reconstruct the phenomenological coefficients for the intermediate ansatz
-    F12 = F1 * F1
-    F13 = F12 * F1
-    F14 = F13 * F1
-    F15 = F14 * F1
+    F12 = FMs1 * FMs1
+    F13 = F12 * FMs1
+    F14 = F13 * FMs1
+    F15 = F14 * FMs1
 
-    F22 = F2 * F2
-    F23 = F22 * F2
-    F24 = F23 * F2
+    F22 = FMs2 * FMs2
+    F23 = F22 * FMs2
+    F24 = F23 * FMs2
 
-    F42 = F4 * F4
-    F43 = F42 * F4
-    F44 = F43 * F4
-    F45 = F44 * F4
+    F42 = FMs4 * FMs4
+    F43 = F42 * FMs4
+    F44 = F43 * FMs4
+    F45 = F44 * FMs4
 
-    F1mF2 = F1 - F2
-    F1mF4 = F1 - F4
-    F2mF4 = F2 - F4
+    F1mF2 = FMs1 - FMs2
+    F1mF4 = FMs1 - FMs4
+    F2mF4 = FMs2 - FMs4
 
     F1mF22 = F1mF2 * F1mF2
     F2mF42 = F2mF4 * F2mF4
     F1mF43 = F1mF4 * F1mF4 * F1mF4
 
     delta0 = (
-        -(d4 * F12 * F1mF22 * F1mF4 * F2 * F2mF4 * F4)
-        + d1 * F1 * F1mF2 * F1mF4 * F2 * F2mF42 * F42
+        -(d4 * F12 * F1mF22 * F1mF4 * FMs2 * F2mF4 * FMs4)
+        + d1 * FMs1 * F1mF2 * F1mF4 * FMs2 * F2mF42 * F42
         + F42
         * (
-            F2 * F2mF42 * (-4 * F12 + 3 * F1 * F2 + 2 * F1 * F4 - F2 * F4) * V1
+            FMs2
+            * F2mF42
+            * (-4 * F12 + 3 * FMs1 * FMs2 + 2 * FMs1 * FMs4 - FMs2 * FMs4)
+            * V1
             + F12 * F1mF43 * V2
         )
-        + F12 * F1mF22 * F2 * (F1 * F2 - 2 * F1 * F4 - 3 * F2 * F4 + 4 * F42) * V4
+        + F12
+        * F1mF22
+        * FMs2
+        * (FMs1 * FMs2 - 2 * FMs1 * FMs4 - 3 * FMs2 * FMs4 + 4 * F42)
+        * V4
     ) / (F1mF22 * F1mF43 * F2mF42)
 
     delta1 = (
-        d4 * F1 * F1mF22 * F1mF4 * F2mF4 * (2 * F2 * F4 + F1 * (F2 + F4))
-        + F4
+        d4 * FMs1 * F1mF22 * F1mF4 * F2mF4 * (2 * FMs2 * FMs4 + FMs1 * (FMs2 + FMs4))
+        + FMs4
         * (
-            -(d1 * F1mF2 * F1mF4 * F2mF42 * (2 * F1 * F2 + (F1 + F2) * F4))
+            -(d1 * F1mF2 * F1mF4 * F2mF42 * (2 * FMs1 * FMs2 + (FMs1 + FMs2) * FMs4))
             - 2
-            * F1
+            * FMs1
             * (
                 F44 * (V1 - V2)
                 + 3 * F24 * (V1 - V4)
                 + F14 * (V2 - V4)
-                + 4 * F23 * F4 * (-V1 + V4)
-                + 2 * F13 * F4 * (-V2 + V4)
-                + F1
+                + 4 * F23 * FMs4 * (-V1 + V4)
+                + 2 * F13 * FMs4 * (-V2 + V4)
+                + FMs1
                 * (
                     2 * F43 * (-V1 + V2)
-                    + 6 * F22 * F4 * (V1 - V4)
+                    + 6 * F22 * FMs4 * (V1 - V4)
                     + 4 * F23 * (-V1 + V4)
                 )
             )
@@ -1109,65 +1116,65 @@ def get_intermediate_Amp(
     ) / (F1mF22 * F1mF43 * F2mF42)
 
     delta2 = (
-        -(d4 * F1mF22 * F1mF4 * F2mF4 * (F12 + F2 * F4 + 2 * F1 * (F2 + F4)))
-        + d1 * F1mF2 * F1mF4 * F2mF42 * (F1 * F2 + 2 * (F1 + F2) * F4 + F42)
+        -(d4 * F1mF22 * F1mF4 * F2mF4 * (F12 + FMs2 * FMs4 + 2 * FMs1 * (FMs2 + FMs4)))
+        + d1 * F1mF2 * F1mF4 * F2mF42 * (FMs1 * FMs2 + 2 * (FMs1 + FMs2) * FMs4 + F42)
         - 4 * F12 * F23 * V1
-        + 3 * F1 * F24 * V1
-        - 4 * F1 * F23 * F4 * V1
-        + 3 * F24 * F4 * V1
-        + 12 * F12 * F2 * F42 * V1
+        + 3 * FMs1 * F24 * V1
+        - 4 * FMs1 * F23 * FMs4 * V1
+        + 3 * F24 * FMs4 * V1
+        + 12 * F12 * FMs2 * F42 * V1
         - 4 * F23 * F42 * V1
         - 8 * F12 * F43 * V1
-        + F1 * F44 * V1
+        + FMs1 * F44 * V1
         + F45 * V1
         + F15 * V2
-        + F14 * F4 * V2
+        + F14 * FMs4 * V2
         - 8 * F13 * F42 * V2
         + 8 * F12 * F43 * V2
-        - F1 * F44 * V2
+        - FMs1 * F44 * V2
         - F45 * V2
         - F1mF22
         * (
             F13
-            + F2 * (3 * F2 - 4 * F4) * F4
-            + F12 * (2 * F2 + F4)
-            + F1 * (3 * F2 - 4 * F4) * (F2 + 2 * F4)
+            + FMs2 * (3 * FMs2 - 4 * FMs4) * FMs4
+            + F12 * (2 * FMs2 + FMs4)
+            + FMs1 * (3 * FMs2 - 4 * FMs4) * (FMs2 + 2 * FMs4)
         )
         * V4
     ) / (F1mF22 * F1mF43 * F2mF42)
 
     delta3 = (
-        d4 * F1mF22 * F1mF4 * F2mF4 * (2 * F1 + F2 + F4)
-        - d1 * F1mF2 * F1mF4 * F2mF42 * (F1 + F2 + 2 * F4)
+        d4 * F1mF22 * F1mF4 * F2mF4 * (2 * FMs1 + FMs2 + FMs4)
+        - d1 * F1mF2 * F1mF4 * F2mF42 * (FMs1 + FMs2 + 2 * FMs4)
         + 2
         * (
             F44 * (-V1 + V2)
             + 2 * F12 * F2mF42 * (V1 - V4)
             + 2 * F22 * F42 * (V1 - V4)
-            + 2 * F13 * F4 * (V2 - V4)
+            + 2 * F13 * FMs4 * (V2 - V4)
             + F24 * (-V1 + V4)
             + F14 * (-V2 + V4)
             + 2
-            * F1
-            * F4
-            * (F42 * (V1 - V2) + F22 * (V1 - V4) + 2 * F2 * F4 * (-V1 + V4))
+            * FMs1
+            * FMs4
+            * (F42 * (V1 - V2) + F22 * (V1 - V4) + 2 * FMs2 * FMs4 * (-V1 + V4))
         )
     ) / (F1mF22 * F1mF43 * F2mF42)
 
     delta4 = (
         -(d4 * F1mF22 * F1mF4 * F2mF4)
         + d1 * F1mF2 * F1mF4 * F2mF42
-        - 3 * F1 * F22 * V1
+        - 3 * FMs1 * F22 * V1
         + 2 * F23 * V1
-        + 6 * F1 * F2 * F4 * V1
-        - 3 * F22 * F4 * V1
-        - 3 * F1 * F42 * V1
+        + 6 * FMs1 * FMs2 * FMs4 * V1
+        - 3 * F22 * FMs4 * V1
+        - 3 * FMs1 * F42 * V1
         + F43 * V1
         + F13 * V2
-        - 3 * F12 * F4 * V2
-        + 3 * F1 * F42 * V2
+        - 3 * F12 * FMs4 * V2
+        + 3 * FMs1 * F42 * V2
         - F43 * V2
-        - F1mF22 * (F1 + 2 * F2 - 3 * F4) * V4
+        - F1mF22 * (FMs1 + 2 * FMs2 - 3 * FMs4) * V4
     ) / (F1mF22 * F1mF43 * F2mF42)
 
     Amp_Int = (fM_s ** (7.0 / 6.0)) / (
@@ -1187,7 +1194,6 @@ def get_mergerringdown_Amp(
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    eta2 = eta * eta
     delta = jnp.sqrt(1.0 - 4.0 * eta)
 
     mm1 = 0.5 * (1.0 + delta)
@@ -1232,17 +1238,17 @@ def get_mergerringdown_Amp(
             amp_coeffs[6, amp_uneqspin_indx:], eta, StotR, chia
         )
     )
-    F1 = fMs_AmpRDMin
+    FMs1 = fMs_AmpRDMin
 
     gamma1 = (
         (v1RD / (fMs_damp * gamma3))
         * (
-            F1 * F1
-            - 2.0 * F1 * fMs_RD
+            FMs1 * FMs1
+            - 2.0 * FMs1 * fMs_RD
             + fMs_RD * fMs_RD
             + fMs_damp * fMs_damp * gamma3 * gamma3
         )
-        * jnp.exp(((F1 - fMs_RD) * gamma2) / (fMs_damp * gamma3))
+        * jnp.exp(((FMs1 - fMs_RD) * gamma2) / (fMs_damp * gamma3))
     )
     gammaR = gamma2 / (fMs_damp * gamma3)
     gammaD2 = (gamma3 * fMs_damp) * (gamma3 * fMs_damp)
