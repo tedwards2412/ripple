@@ -11,7 +11,7 @@ eqspin_indx = 10
 uneqspin_indx = 39
 
 amp_eqspin_indx = 8
-amp_uneqspin_indx = 32
+amp_uneqspin_indx = 36
 
 
 def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
@@ -1035,38 +1035,15 @@ def get_intermediate_Amp(
     F2 = F1 + (1.0 / 2.0) * (F4 - F1)
 
     V1 = (F1 ** (-7.0 / 6)) * inspF1
-    # FIXME: This need to go to utils
+
     V2 = (
-        (
-            (
-                1.4873184918202145
-                + 1974.6112656679577 * eta
-                + 27563.641024162127 * eta2
-                - 19837.908020966777 * eta2 * eta
-            )
-            / (1.0 + 143.29004876335128 * eta + 458.4097306093354 * eta2)
+        IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[3, 0:amp_eqspin_indx], eta)
+        + IMRPhenomX_utils.Amp_Eqspin_CV(
+            amp_coeffs[3, amp_eqspin_indx:amp_uneqspin_indx], eta, StotR
         )
-        + (
-            (
-                StotR
-                * (
-                    27.952730865904343
-                    + eta * (-365.55631765202895 - 260.3494489873286 * StotR)
-                    + 3.2646808851249016 * StotR
-                    + 3011.446602208493 * eta2 * StotR
-                    - 19.38970173389662 * StotR**2
-                    + eta2
-                    * eta
-                    * (
-                        1612.2681322644232
-                        - 6962.675551371755 * StotR
-                        + 1486.4658089990298 * StotR**2
-                    )
-                )
-            )
-            / (12.647425554323242 - 10.540154508599963 * StotR + 1.0 * StotR**2)
+        + IMRPhenomX_utils.Amp_Uneqspin_CV(
+            amp_coeffs[3, amp_uneqspin_indx:], eta, StotR, chia
         )
-        + (chia * delta * (-0.016404056649860943 - 296.473359655246 * eta) * eta2)
     )
     V4 = (F4 ** (-7.0 / 6)) * rdF4
 
@@ -1220,46 +1197,23 @@ def get_mergerringdown_Amp(
 
     fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
 
-    # FIXME: Needs to go to utils
     gamma2 = (
-        (
-            (0.8312293675316895 + 7.480371544268765 * eta - 18.256121237800397 * eta2)
-            / (1.0 + 10.915453595496611 * eta - 30.578409433912874 * eta2)
+        IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[4, 0:amp_eqspin_indx], eta)
+        + IMRPhenomX_utils.Amp_Eqspin_CV(
+            amp_coeffs[4, amp_eqspin_indx:amp_uneqspin_indx], eta, StotR
         )
-        + (
-            (
-                StotR
-                * (
-                    0.5869408584532747
-                    + eta * (-0.1467158405070222 - 2.8489481072076472 * StotR)
-                    + 0.031852563636196894 * StotR
-                    + eta2 * (0.25295441250444334 + 4.6849496672664594 * StotR)
-                )
-            )
-            / (3.8775263105069953 - 3.41755361841226 * StotR + 1.0 * StotR**2)
+        + IMRPhenomX_utils.Amp_Uneqspin_CV(
+            amp_coeffs[4, amp_uneqspin_indx:], eta, StotR, chia
         )
-        + (-0.00548054788508203 * chia * delta * eta)
     )
     gamma3 = (
-        (
-            (
-                1.3666000000000007
-                - 4.091333144596439 * eta
-                + 2.109081209912545 * eta2
-                - 4.222259944408823 * eta2 * eta
-            )
-            / (1.0 - 2.7440263888207594 * eta)
+        IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[5, 0:amp_eqspin_indx], eta)
+        + IMRPhenomX_utils.Amp_Eqspin_CV(
+            amp_coeffs[5, amp_eqspin_indx:amp_uneqspin_indx], eta, StotR
         )
-        + (
-            (
-                0.07179105336478316
-                + eta2 * (2.331724812782498 - 0.6330998412809531 * StotR)
-                + eta * (-0.8752427297525086 + 0.4168560229353532 * StotR)
-                - 0.05633734476062242 * StotR
-            )
-            * StotR
+        + IMRPhenomX_utils.Amp_Uneqspin_CV(
+            amp_coeffs[5, amp_uneqspin_indx:], eta, StotR, chia
         )
-        + (0.0 * delta * chia)
     )
     fMs_AmpRDMin = jnp.where(
         gamma2 <= 1.0,
@@ -1270,49 +1224,13 @@ def get_mergerringdown_Amp(
         jnp.fabs(fMs_RD + fMs_damp * (-1.0) * gamma3 / gamma2),
     )
     v1RD = (
-        (
-            (0.03689164742964719 + 25.417967754401182 * eta + 162.52904393600332 * eta2)
-            / (1.0 + 61.19874463331437 * eta - 29.628854485544874 * eta2)
+        IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[6, 0:amp_eqspin_indx], eta)
+        + IMRPhenomX_utils.Amp_Eqspin_CV(
+            amp_coeffs[6, amp_eqspin_indx:amp_uneqspin_indx], eta, StotR
         )
-        + (
-            (
-                StotR
-                * (
-                    -0.14352506969368556
-                    + 0.026356911108320547 * StotR
-                    + 0.19967405175523437 * StotR**2
-                    - 0.05292913111731128 * StotR**2 * StotR
-                    + eta2
-                    * eta
-                    * (
-                        -48.31945248941757
-                        - 3.751501972663298 * StotR
-                        + 81.9290740950083 * StotR**2
-                        + 30.491948143930266 * StotR**2 * StotR
-                        - 132.77982622925845 * StotR**2 * StotR**2
-                    )
-                    + eta
-                    * (
-                        -4.805034453745424
-                        + 1.11147906765112 * StotR
-                        + 6.176053843938542 * StotR**2
-                        - 0.2874540719094058 * StotR**2 * StotR
-                        - 8.990840289951514 * StotR**2 * StotR**2
-                    )
-                    - 0.18147275151697131 * StotR**2 * StotR**2
-                    + eta2
-                    * (
-                        27.675454081988036
-                        - 2.398327419614959 * StotR
-                        - 47.99096500250743 * StotR**2
-                        - 5.104257870393138 * StotR**2 * StotR
-                        + 72.08174136362386 * StotR**2 * StotR**2
-                    )
-                )
-            )
-            / (-1.4160870461211452 + 1.0 * StotR)
+        + IMRPhenomX_utils.Amp_Uneqspin_CV(
+            amp_coeffs[6, amp_uneqspin_indx:], eta, StotR, chia
         )
-        + (-0.04426571511345366 * chia * delta * eta2)
     )
     F1 = fMs_AmpRDMin
 
