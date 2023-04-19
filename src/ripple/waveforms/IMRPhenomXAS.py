@@ -10,17 +10,14 @@ from ripple import Mc_eta_to_ms
 eqspin_indx = 10
 uneqspin_indx = 39
 
-# Format Choices:
-# - All frequencies in Hz -> labelled as f, otherwise fM_s
-# - Update variable names of collocation points and values
+amp_eqspin_indx = 8
+amp_uneqspin_indx = 32
 
 
-def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
+def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
     """
     Calculate the inspiral phase for the IMRPhenomD waveform.
     """
-    # First lets calculate some of the vairables that will be used below
-    # Mass variables
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -226,26 +223,26 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     CP_phase_Ins3 = gpoints4[3] * deltax + xmin
 
     CV_phase_Ins0 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[0, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[0, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[0, uneqspin_indx:], eta, S, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[0, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(phase_coeffs[0, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CV(phase_coeffs[0, uneqspin_indx:], eta, S, chia)
     )
     CV_phase_Ins1 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[1, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[1, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[1, uneqspin_indx:], eta, S, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[1, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(phase_coeffs[1, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CV(phase_coeffs[1, uneqspin_indx:], eta, S, chia)
     )
     CV_phase_Ins2 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[2, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[2, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[2, uneqspin_indx:], eta, S, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[2, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(phase_coeffs[2, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CV(phase_coeffs[2, uneqspin_indx:], eta, S, chia)
     )
 
     # NOTE: This CV_phase_Ins3 disagrees slightly with the value in WF4py at non-zero spin
     CV_phase_Ins3 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[3, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[3, eqspin_indx:uneqspin_indx], eta, S)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[3, uneqspin_indx:], eta, S, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[3, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(phase_coeffs[3, eqspin_indx:uneqspin_indx], eta, S)
+        + IMRPhenomX_utils.Uneqspin_CV(phase_coeffs[3, uneqspin_indx:], eta, S, chia)
     )
 
     # See line 1322 of https://lscsoft.docs.ligo.org/lalsuite/lalsimulation/_l_a_l_sim_i_m_r_phenom_x__internals_8c_source.html
@@ -330,7 +327,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
 
 def get_intermediate_raw_phase(
-    fM_s: Array, theta: Array, coeffs: Array, dPhaseIN, dPhaseRD, cL
+    fM_s: Array, theta: Array, phase_coeffs: Array, dPhaseIN, dPhaseRD, cL
 ) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
@@ -342,8 +339,6 @@ def get_intermediate_raw_phase(
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
-
-    # Spin variables
     chia = chi1 - chi2
 
     fMs_RD, fMs_damp, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
@@ -380,33 +375,53 @@ def get_intermediate_raw_phase(
 
     # NOTE: This is different to WF4py and driving the difference in CV_phase_Int1
     v2IMmRDv4 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[4, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[4, eqspin_indx:uneqspin_indx], eta, StotR)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[4, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[4, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(
+            phase_coeffs[4, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CV(
+            phase_coeffs[4, uneqspin_indx:], eta, StotR, chia
+        )
     )
 
     v3IMmRDv4 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[5, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[5, eqspin_indx:uneqspin_indx], eta, StotR)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[5, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[5, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(
+            phase_coeffs[5, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CV(
+            phase_coeffs[5, uneqspin_indx:], eta, StotR, chia
+        )
     )
     v2IM = (
-        IMRPhenomX_utils.nospin_CV(coeffs[6, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[6, eqspin_indx:uneqspin_indx], eta, StotR)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[6, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[6, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(
+            phase_coeffs[6, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CV(
+            phase_coeffs[6, uneqspin_indx:], eta, StotR, chia
+        )
     )
 
     # NOTE: This is different to WF4py and driving the difference in CV_phase_Int3
     d43 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[7, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[7, eqspin_indx:uneqspin_indx], eta, StotR)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[7, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[7, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(
+            phase_coeffs[7, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CV(
+            phase_coeffs[7, uneqspin_indx:], eta, StotR, chia
+        )
     )
 
     CV_phase_RD3 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[11, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[11, eqspin_indx:uneqspin_indx], eta, StotR)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[11, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[11, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(
+            phase_coeffs[11, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CV(
+            phase_coeffs[11, uneqspin_indx:], eta, StotR, chia
+        )
     )
 
     CV_phase_Int1 = 0.75 * (v2IMmRDv4 + CV_phase_RD3) + 0.25 * v2IM
@@ -524,7 +539,7 @@ def get_intermediate_raw_phase(
 
 
 def get_mergerringdown_raw_phase(
-    fM_s: Array, theta: Array, coeffs: Array  # , f_RD, f_damp
+    fM_s: Array, theta: Array, phase_coeffs: Array
 ) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
@@ -567,29 +582,49 @@ def get_mergerringdown_raw_phase(
     CP_phase_RD4 = gpoints5[4] * deltax + xmin
 
     CV_phase_RD0 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[8, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[8, eqspin_indx:uneqspin_indx], eta, StotR)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[8, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[8, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(
+            phase_coeffs[8, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CV(
+            phase_coeffs[8, uneqspin_indx:], eta, StotR, chia
+        )
     )
     CV_phase_RD1 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[9, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[9, eqspin_indx:uneqspin_indx], eta, StotR)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[9, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[9, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(
+            phase_coeffs[9, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CV(
+            phase_coeffs[9, uneqspin_indx:], eta, StotR, chia
+        )
     )
     CV_phase_RD2 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[10, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[10, eqspin_indx:uneqspin_indx], eta, StotR)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[10, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[10, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(
+            phase_coeffs[10, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CV(
+            phase_coeffs[10, uneqspin_indx:], eta, StotR, chia
+        )
     )
     CV_phase_RD3 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[11, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[11, eqspin_indx:uneqspin_indx], eta, StotR)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[11, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[11, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(
+            phase_coeffs[11, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CV(
+            phase_coeffs[11, uneqspin_indx:], eta, StotR, chia
+        )
     )
     CV_phase_RD4 = (
-        IMRPhenomX_utils.nospin_CV(coeffs[12, 0:eqspin_indx], eta)
-        + IMRPhenomX_utils.Eqspin_CV(coeffs[12, eqspin_indx:uneqspin_indx], eta, StotR)
-        + IMRPhenomX_utils.Uneqspin_CV(coeffs[12, uneqspin_indx:], eta, StotR, chia)
+        IMRPhenomX_utils.nospin_CV(phase_coeffs[12, 0:eqspin_indx], eta)
+        + IMRPhenomX_utils.Eqspin_CV(
+            phase_coeffs[12, eqspin_indx:uneqspin_indx], eta, StotR
+        )
+        + IMRPhenomX_utils.Uneqspin_CV(
+            phase_coeffs[12, uneqspin_indx:], eta, StotR, chia
+        )
     )
 
     CV_phase_RD4 = CV_phase_RD4 + CV_phase_RD3
@@ -677,7 +712,7 @@ def get_mergerringdown_raw_phase(
 
 
 # @jax.jit
-def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
+def Phase(f: Array, theta: Array, phase_coeffs: Array) -> Array:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
     Sets time and phase of coealence to be zero.
@@ -686,15 +721,12 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     --------
         phase (array): Phase of the GW as a function of frequency
     """
-    # First lets calculate some of the vairables that will be used below
-    # Mass variables
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
-    # First gather all the frequency points we need
     fM_s = f * M_s
     fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
@@ -704,31 +736,33 @@ def Phase(f: Array, theta: Array, coeffs: Array) -> Array:
     f2_Ms = fMs_IMmatch + 0.5 * deltafMs
 
     # Calculate the inspiral and raw merger phase (required for the intemediate phase)
-    phi_Ins = get_inspiral_phase(fM_s, theta, coeffs)
-    phi_MRD, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(fM_s, theta, coeffs)
+    phi_Ins = get_inspiral_phase(fM_s, theta, phase_coeffs)
+    phi_MRD, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(
+        fM_s, theta, phase_coeffs
+    )
 
     # Get matching points
     # Here we want to evaluate the gradient and the phase of the raw phase functions
     # in order to enforce C1 continuity at the transition frequencies.
     # This procedure is identical to IMRPhenomD, see IMRPhenomD.py for more details
     phi_Ins_match_f1, dphi_Ins_match_f1 = jax.value_and_grad(get_inspiral_phase)(
-        f1_Ms, theta, coeffs
+        f1_Ms, theta, phase_coeffs
     )
     phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
         get_mergerringdown_raw_phase, has_aux=True
-    )(f2_Ms, theta, coeffs)
-    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(f2_Ms, theta, coeffs)
+    )(f2_Ms, theta, phase_coeffs)
+    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(f2_Ms, theta, phase_coeffs)
 
     # Now find the intermediate phase
     phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
         get_intermediate_raw_phase
-    )(f1_Ms, theta, coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL)
+    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL)
     alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
 
     phi_Int_func = (
         lambda fM_s_: get_intermediate_raw_phase(
-            fM_s_, theta, coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL
+            fM_s_, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL
         )
         + alpha1 * fM_s_
         + alpha0
@@ -762,7 +796,7 @@ def get_Amp0(fM_s: Array, eta: float) -> Array:
     return Amp0
 
 
-def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
+def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -771,17 +805,15 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     eta2 = eta * eta
     delta = jnp.sqrt(1.0 - 4.0 * eta)
 
-    # Spin variables
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
     chi_eff = mm1 * chi1 + mm2 * chi2
     S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
     chia = chi1 - chi2
 
-    # Grab relevent frequencies
     _, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
-    fAmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
-    fAmpMatchIN = fAmpInsMax
+    fMs_AmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
+    fMs_AmpMatchIN = fMs_AmpInsMax
 
     A0 = 1.0
     # A1 = 0.0
@@ -863,92 +895,38 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     ) * PI**2
 
     # Now we need to get the higher order components
-    # FIXME: This part needs to go into utils
+
     CV_Amp_Ins0 = (
-        (
-            (
-                -0.015178276424448592
-                - 0.06098548699809163 * eta
-                + 0.4845148547154606 * eta2
-            )
-            / (1.0 + 0.09799277215675059 * eta)
+        IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[0, 0:amp_eqspin_indx], eta)
+        + IMRPhenomX_utils.Amp_Eqspin_CV(
+            amp_coeffs[0, amp_eqspin_indx:amp_uneqspin_indx], eta, S
         )
-        + (
-            (
-                (0.02300153747158323 + 0.10495263104245876 * eta2) * S
-                + (0.04834642258922544 - 0.14189350657140673 * eta) * eta * S**2 * S
-                + (0.01761591799745109 - 0.14404522791467844 * eta2) * S**2
-            )
-            / (1.0 - 0.7340448493183307 * S)
-        )
-        + (
-            chia
-            * delta
-            * eta2
-            * eta2
-            * (0.0018724905795891192 + 34.90874132485147 * eta)
+        + IMRPhenomX_utils.Amp_Uneqspin_CV(
+            amp_coeffs[0, amp_uneqspin_indx:], eta, S, chia
         )
     )
     CV_Amp_Ins1 = (
-        (
-            (-0.058572000924124644 - 1.1970535595488723 * eta + 8.4630293045015 * eta2)
-            / (1.0 + 15.430818840453686 * eta)
+        IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[1, 0:amp_eqspin_indx], eta)
+        + IMRPhenomX_utils.Amp_Eqspin_CV(
+            amp_coeffs[1, amp_eqspin_indx:amp_uneqspin_indx], eta, S
         )
-        + (
-            (
-                (
-                    -0.08746408292050666
-                    + eta * (-0.20646621646484237 - 0.21291764491897636 * S)
-                    + eta2 * (0.788717372588848 + 0.8282888482429105 * S)
-                    - 0.018924013869130434 * S
-                )
-                * S
-            )
-            / (-1.332123330797879 + 1.0 * S)
-        )
-        + (
-            chia
-            * delta
-            * eta2
-            * eta2
-            * (0.004389995099201855 + 105.84553997647659 * eta)
+        + IMRPhenomX_utils.Amp_Uneqspin_CV(
+            amp_coeffs[1, amp_uneqspin_indx:], eta, S, chia
         )
     )
     CV_Amp_Ins2 = (
-        (
-            (
-                -0.16212854591357853
-                + 1.617404703616985 * eta
-                - 3.186012733446088 * eta2
-                + 5.629598195000046 * eta2 * eta
-            )
-            / (1.0 + 0.04507019231274476 * eta)
+        IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[2, 0:amp_eqspin_indx], eta)
+        + IMRPhenomX_utils.Amp_Eqspin_CV(
+            amp_coeffs[2, amp_eqspin_indx:amp_uneqspin_indx], eta, S
         )
-        + (
-            (
-                S
-                * (
-                    1.0055835408962206
-                    + eta2 * (18.353433894421833 - 18.80590889704093 * S)
-                    - 0.31443470118113853 * S
-                    + eta * (-4.127597118865669 + 5.215501942120774 * S)
-                    + eta2 * eta * (-41.0378120175805 + 19.099315016873643 * S)
-                )
-            )
-            / (5.852706459485663 - 5.717874483424523 * S + 1.0 * S**2)
-        )
-        + (
-            chia
-            * delta
-            * eta2
-            * eta2
-            * (0.05575955418803233 + 208.92352600701068 * eta)
+        + IMRPhenomX_utils.Amp_Uneqspin_CV(
+            amp_coeffs[2, amp_uneqspin_indx:], eta, S, chia
         )
     )
 
-    CP_Amp_Ins0 = 0.50 * fAmpMatchIN
-    CP_Amp_Ins1 = 0.75 * fAmpMatchIN
-    CP_Amp_Ins2 = 1.00 * fAmpMatchIN
+    CP_Amp_Ins0 = 0.50 * fMs_AmpMatchIN
+    CP_Amp_Ins1 = 0.75 * fMs_AmpMatchIN
+    CP_Amp_Ins2 = 1.00 * fMs_AmpMatchIN
 
     rho1 = (
         -((CP_Amp_Ins1 ** (8.0 / 3.0)) * (CP_Amp_Ins2**3) * CV_Amp_Ins0)
@@ -1013,7 +991,9 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     return Amp_Ins
 
 
-def get_intermediate_Amp(fM_s: Array, theta: Array, coeffs: Array, fAmpRDMin) -> Array:
+def get_intermediate_Amp(
+    fM_s: Array, theta: Array, amp_coeffs: Array, fMs_AmpRDMin
+) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1031,15 +1011,15 @@ def get_intermediate_Amp(fM_s: Array, theta: Array, coeffs: Array, fAmpRDMin) ->
 
     # Now the intermediate region
     _, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
-    fAmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
-    fAmpMatchIN = fAmpInsMax
-    F1 = fAmpMatchIN
+    fMs_AmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
+    fMs_AmpMatchIN = fMs_AmpInsMax
+    F1 = fMs_AmpMatchIN
     # This needs to come from outside
-    F4 = fAmpRDMin
+    F4 = fMs_AmpRDMin
 
-    inspF1, d1 = jax.value_and_grad(get_inspiral_Amp)(F1, theta, coeffs)
+    inspF1, d1 = jax.value_and_grad(get_inspiral_Amp)(F1, theta, amp_coeffs)
     rdF4, d4 = jax.value_and_grad(get_mergerringdown_Amp, has_aux=True)(
-        F4, theta, coeffs
+        F4, theta, amp_coeffs
     )
     rdF4 = rdF4[0]
 
@@ -1223,7 +1203,7 @@ def get_intermediate_Amp(fM_s: Array, theta: Array, coeffs: Array, fAmpRDMin) ->
 def get_mergerringdown_Amp(
     fM_s: Array,
     theta: Array,
-    coeffs: Array,
+    amp_coeffs: Array,
 ) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
@@ -1281,7 +1261,7 @@ def get_mergerringdown_Amp(
         )
         + (0.0 * delta * chia)
     )
-    fAmpRDMin = jnp.where(
+    fMs_AmpRDMin = jnp.where(
         gamma2 <= 1.0,
         jnp.fabs(
             fMs_RD
@@ -1334,7 +1314,7 @@ def get_mergerringdown_Amp(
         )
         + (-0.04426571511345366 * chia * delta * eta2)
     )
-    F1 = fAmpRDMin
+    F1 = fMs_AmpRDMin
 
     gamma1 = (
         (v1RD / (fMs_damp * gamma3))
@@ -1356,10 +1336,10 @@ def get_mergerringdown_Amp(
         / ((fM_s - fMs_RD) * (fM_s - fMs_RD) + gammaD2)
     )
 
-    return Amp_RD, fAmpRDMin
+    return Amp_RD, fMs_AmpRDMin
 
 
-def Amp(f: Array, theta: Array, D=1.0) -> Array:
+def Amp(f: Array, theta: Array, amp_coeffs: Array, D=1.0) -> Array:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1371,24 +1351,23 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
     amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M_s**2 / ((D * m_per_Mpc) / C)
     ampNorm = jnp.sqrt(2.0 * eta / 3.0) * (PI ** (-1.0 / 6.0))
 
-    fAmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
-    fAmpMatchIN = fAmpInsMax
+    fMs_AmpInsMax = fMs_MECO + 0.25 * (fMs_ISCO - fMs_MECO)
+    fMs_AmpMatchIN = fMs_AmpInsMax
 
     # Below
-    coeffs = IMRPhenomX_utils.PhenomX_coeff_table
     Overallamp = amp0 * ampNorm
 
-    Amp_Ins = get_inspiral_Amp(fM_s, theta, coeffs)
-    Amp_RD, fAmpRDMin = get_mergerringdown_Amp(fM_s, theta, coeffs)
-    Amp_Int = get_intermediate_Amp(fM_s, theta, coeffs, fAmpRDMin)
+    Amp_Ins = get_inspiral_Amp(fM_s, theta, amp_coeffs)
+    Amp_RD, fMs_AmpRDMin = get_mergerringdown_Amp(fM_s, theta, amp_coeffs)
+    Amp_Int = get_intermediate_Amp(fM_s, theta, amp_coeffs, fMs_AmpRDMin)
 
     Amp = (
-        Amp_Ins * jnp.heaviside(fAmpMatchIN - fM_s, 0.5)
-        + jnp.heaviside(fM_s - fAmpMatchIN, 0.5)
+        Amp_Ins * jnp.heaviside(fMs_AmpMatchIN - fM_s, 0.5)
+        + jnp.heaviside(fM_s - fMs_AmpMatchIN, 0.5)
         * Amp_Int
-        * jnp.heaviside(fAmpRDMin - fM_s, 0.5)
+        * jnp.heaviside(fMs_AmpRDMin - fM_s, 0.5)
         + Amp_RD
-        * jnp.heaviside(fM_s - fAmpRDMin, 0.5)
+        * jnp.heaviside(fM_s - fMs_AmpRDMin, 0.5)
         * jnp.heaviside(IMRPhenomX_utils.fM_CUT - fM_s, 0.5)
     )
 
@@ -1397,7 +1376,11 @@ def Amp(f: Array, theta: Array, D=1.0) -> Array:
 
 # @jax.jit
 def _gen_IMRPhenomXAS(
-    f: Array, theta_intrinsic: Array, theta_extrinsic: Array, coeffs: Array
+    f: Array,
+    theta_intrinsic: Array,
+    theta_extrinsic: Array,
+    phase_coeffs: Array,
+    amp_coeffs: Array,
 ):
     f_ref = jnp.amin(f, axis=0)
     m1, m2, chi1, chi2 = theta_intrinsic
@@ -1417,7 +1400,7 @@ def _gen_IMRPhenomXAS(
 
     fM_s = f * M_s
     fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
-    Psi = Phase(f, theta_intrinsic, coeffs)
+    Psi = Phase(f, theta_intrinsic, phase_coeffs)
 
     # Generate the linear in f and constant contribution to the phase in order
     # to roll the waveform such that the peak is at the input tc and phic
@@ -1425,18 +1408,18 @@ def _gen_IMRPhenomXAS(
         eta, StotR, chia, delta
     )
     dphi22Ref = (
-        jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, theta_intrinsic, coeffs) / M_s
+        jax.grad(Phase)((fMs_RD - fMs_damp) / M_s, theta_intrinsic, phase_coeffs) / M_s
     )
     linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
     phifRef = (
-        -(Phase(f_ref, theta_intrinsic, coeffs) + linb * (f_ref * M_s) + lina)
+        -(Phase(f_ref, theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
         + PI / 4.0
         + PI
     )
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - theta_extrinsic[2]
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
 
-    A = Amp(f, theta_intrinsic, D=theta_extrinsic[0])
+    A = Amp(f, theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
     h0 = A * jnp.exp(1j * -Psi)
     return h0
 
@@ -1464,7 +1447,10 @@ def gen_IMRPhenomXAS(f: Array, params: Array):
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     theta_intrinsic = jnp.array([m1, m2, params[2], params[3]])
     theta_extrinsic = jnp.array([params[4], params[5], params[6]])
-    coeffs = IMRPhenomX_utils.PhenomX_coeff_table
+    phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table
+    amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
 
-    h0 = _gen_IMRPhenomXAS(f, theta_intrinsic, theta_extrinsic, coeffs)
+    h0 = _gen_IMRPhenomXAS(
+        f, theta_intrinsic, theta_extrinsic, phase_coeffs, amp_coeffs
+    )
     return h0

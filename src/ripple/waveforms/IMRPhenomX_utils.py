@@ -464,7 +464,368 @@ def Uneqspin_CV(EqSpin_coeffs, eta, S, chia):
     )
 
 
-PhenomX_coeff_table = jnp.array(
+def Amp_Nospin_CV(NoSpin_coeffs, eta):
+    numerator = (
+        NoSpin_coeffs[0]
+        + NoSpin_coeffs[1] * eta
+        + NoSpin_coeffs[2] * eta**2
+        + NoSpin_coeffs[3] * eta**3
+        + NoSpin_coeffs[4] * eta**4
+    )
+    denominator = (
+        NoSpin_coeffs[5] + NoSpin_coeffs[6] * eta + NoSpin_coeffs[7] * eta**2
+    )
+    return numerator / denominator
+
+
+def Amp_Eqspin_CV(EqSpin_coeffs, eta, S):
+    numeratorS0 = (
+        EqSpin_coeffs[0]
+        + EqSpin_coeffs[1] * eta
+        + EqSpin_coeffs[2] * eta**2
+        + EqSpin_coeffs[3] * eta**3
+    )
+    numeratorS1 = (
+        EqSpin_coeffs[4]
+        + EqSpin_coeffs[5] * eta
+        + EqSpin_coeffs[6] * eta**2
+        + EqSpin_coeffs[7] * eta**3
+    )
+    numeratorS2 = (
+        EqSpin_coeffs[8]
+        + EqSpin_coeffs[9] * eta
+        + EqSpin_coeffs[10] * eta**2
+        + EqSpin_coeffs[11] * eta**3
+    )
+    numeratorS3 = (
+        EqSpin_coeffs[12]
+        + EqSpin_coeffs[13] * eta
+        + EqSpin_coeffs[14] * eta**2
+        + EqSpin_coeffs[15] * eta**3
+    )
+    numeratorS4 = (
+        EqSpin_coeffs[16]
+        + EqSpin_coeffs[17] * eta
+        + EqSpin_coeffs[18] * eta**2
+        + EqSpin_coeffs[19] * eta**3
+    )
+    denominator = (
+        EqSpin_coeffs[20]
+        + EqSpin_coeffs[21] * S
+        + EqSpin_coeffs[22] * eta
+        + EqSpin_coeffs[23] * S**2
+    )
+    return (
+        numeratorS0
+        + numeratorS1 * S
+        + numeratorS2 * S**2
+        + numeratorS3 * S**3
+        + numeratorS4 * S**4
+    ) / denominator
+
+
+def Amp_Uneqspin_CV(UneqSpin_coeffs, eta, S, chia):
+    delta = jnp.sqrt(1.0 - 4.0 * eta)
+    return (
+        chia
+        * delta
+        * (
+            UneqSpin_coeffs[0]
+            + UneqSpin_coeffs[1] * eta
+            + UneqSpin_coeffs[2] * eta**2
+            + UneqSpin_coeffs[3] * eta**3
+            + UneqSpin_coeffs[4] * eta**4
+            + UneqSpin_coeffs[5] * eta**5
+        )
+    )
+
+
+PhenomX_amp_coeff_table = jnp.array(
+    [
+        [  # Coeffs for CV_Amp_Ins0 (ind 0)
+            -0.015178276424448592,  # No spin
+            -0.06098548699809163,
+            0.4845148547154606,
+            0.0,
+            0.0,
+            1.0,
+            0.09799277215675059,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            0.02300153747158323,
+            0.0,
+            0.10495263104245876,
+            0.0,
+            0.01761591799745109,
+            0.0,
+            -0.14404522791467844,
+            0.0,
+            0.0,
+            0.04834642258922544,
+            -0.14189350657140673,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            -0.7340448493183307,
+            0.0,
+            0.0,
+            0.0,  # Uneq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0018724905795891192,
+            34.90874132485147,
+        ],
+        [  # Coeffs for CV_Amp_Ins1 (ind 1)
+            -0.058572000924124644,  # No spin
+            -1.1970535595488723,
+            8.4630293045015,
+            0.0,
+            0.0,
+            1.0,
+            15.430818840453686,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            -0.08746408292050666,
+            -0.20646621646484237,
+            0.788717372588848,
+            0.0,
+            -0.018924013869130434,
+            -0.21291764491897636,
+            +0.8282888482429105,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.332123330797879,
+            1.0,
+            0.0,
+            0.0,
+            0.0,  # Uneq spin
+            0.0,
+            0.0,
+            0.0,
+            0.004389995099201855,
+            105.84553997647659,
+        ],
+        [  # Coeffs for CV_Amp_Ins2 (ind 2)
+            -0.16212854591357853,  # No spin
+            1.617404703616985,
+            -3.186012733446088,
+            5.629598195000046,
+            0.0,
+            1.0,
+            0.04507019231274476,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            1.0055835408962206,
+            -4.127597118865669,
+            18.353433894421833,
+            -41.0378120175805,
+            -0.31443470118113853,
+            5.215501942120774,
+            -18.80590889704093,
+            19.099315016873643,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            5.852706459485663,
+            -5.717874483424523,
+            0.0,
+            1.0,
+            0.0,  # Uneq spin
+            0.0,
+            0.0,
+            0.0,
+            0.05575955418803233,
+            208.92352600701068,
+        ],
+        [  # Coeffs for V2 (ind 3)
+            0.0,  # No spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Uneq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
+        [  # Coeffs for gamma2 (ind 4)
+            0.0,  # No spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Uneq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
+        [  # Coeffs for gamma3 (ind 5)
+            0.0,  # No spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Uneq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
+        [  # Coeffs for v1RD (ind 6)
+            0.0,  # No spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Eq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,  # Uneq spin
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ],
+    ]
+)
+
+PhenomX_phase_coeff_table = jnp.array(
     [
         [  # Coeffs collocation point 0 of the inspiral phase (ind 0)
             -17294.000000000007,  # No spin

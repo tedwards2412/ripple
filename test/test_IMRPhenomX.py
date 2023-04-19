@@ -58,14 +58,8 @@ def test_phase_phenomXAS():
     theta_ripple = np.array([theta[0], theta[1], theta[2], theta[3]])
 
     f_ref = f_l
-    # phase_ripple = IMRPhenomXAS.get_inspiral_phase(
-    #     Mf, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
-    # )
-    # phase_ripple = IMRPhenomXAS.get_mergerringdown_raw_phase(
-    #     Mf, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
-    # )
     phase_ripple = IMRPhenomXAS.Phase(
-        f, theta_ripple, IMRPhenomX_utils.PhenomX_coeff_table
+        f, theta_ripple, IMRPhenomX_utils.PhenomX_phase_coeff_table
     )
     phase_wf4py = waveforms.IMRPhenomXAS().Phi(f, **events) - 2 * np.pi
 
@@ -258,7 +252,7 @@ def test_gen_phenomXAS(
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * 4.92549094830932e-6
 
     phase_ripple = IMRPhenomXAS._gen_IMRPhenomXAS(
-        f, theta_intrinsic, theta_extrinsic, IMRPhenomX_utils.PhenomX_coeff_table
+        f, theta_intrinsic, theta_extrinsic, IMRPhenomX_utils.PhenomX_phase_coeff_table
     )
 
     ################ Just for display ##################
