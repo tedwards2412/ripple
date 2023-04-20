@@ -8,6 +8,7 @@ from jax import grad, vmap
 from ripple.waveforms import IMRPhenomXAS, IMRPhenomX_utils, IMRPhenomD
 import matplotlib.pyplot as plt
 from ripple.constants import gt
+from ripple import get_eff_pads, get_match_arr
 
 from WF4Py import waveforms
 
@@ -639,8 +640,350 @@ def test_full_waveform_XAS(
     )
 
 
+def random_match_waveforms(n=10):
+    # Get a frequency domain waveform
+    thetas = []
+    matches = []
+    f_ASD, ASD = np.loadtxt("O3Livingston.txt", unpack=True)
+
+    for i in tqdm(range(n)):
+        m1 = np.random.uniform(1.0, 100.0)
+        m2 = np.random.uniform(1.0, 100.0)
+        s1 = np.random.uniform(-1.0, 1.0)
+        s2 = np.random.uniform(-1.0, 1.0)
+        M = m1 + m2
+        tc = 0.0
+        phic = 0.0
+        dist_mpc = 440
+        inclination = np.pi / 2.0
+        phi_ref = 0
+
+        ################################
+        # Need to normalise the frequency
+        # grid according to the total mass
+        ################################
+        # xi_l = 0.004
+        # xi_u = 0.2
+        # dxi = 0.000005
+        # M_s = M * gt
+
+        # f_l = xi_l / M_s
+        # f_u = xi_u / M_s
+        # del_f = dxi / M_s
+        #################################
+
+        # f_l = 30.0
+        # f_u = 1000.0
+        # del_f = 0.0125
+
+        f_l = 32.0
+        f_u = 1024.0
+        del_f = 0.0125
+
+        f_l_idx = round(f_l / del_f)
+        f_u_idx = f_u // del_f
+        f_l = f_l_idx * del_f
+        f_u = f_u_idx * del_f
+        fs = np.arange(f_l_idx, f_u_idx) * del_f
+
+        if m1 < m2:
+            theta = np.array([m2, m1, s1, s2])
+        elif m1 > m2:
+            theta = np.array([m1, m2, s1, s2])
+        else:
+            raise ValueError("Something went wrong with the parameters")
+        approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomXAS")
+
+        # coeffs = IMRPhenomD_utils.get_coeffs(theta)
+        # _, _, f3, f4, _, _ = IMRPhenomD_utils.get_transition_frequencies(
+        #     theta, coeffs[5], coeffs[6]
+        # )
+
+        f_ref = f_l
+        m1_kg = theta[0] * lal.MSUN_SI
+        m2_kg = theta[1] * lal.MSUN_SI
+        distance = dist_mpc * 1e6 * lal.PC_SI
+
+        hp, hc = lalsim.SimInspiralChooseFDWaveform(
+            m1_kg,
+            m2_kg,
+            0.0,
+            0.0,
+            theta[2],
+            0.0,
+            0.0,
+            theta[3],
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0.0,
+            0.0,
+            del_f,
+            f_l,
+            f_u,
+            f_ref,
+            None,
+            approximant,
+        )
+        freqs = np.arange(len(hp.data.data)) * del_f
+
+        Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+
+        theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic])
+        h0_ripple = IMRPhenomXAS.gen_IMRPhenomXAS(fs, theta_ripple, f_ref)
+        pad_low, pad_high = get_eff_pads(fs)
+        PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
+
+        try:
+            mask_lal = (freqs >= f_l) & (freqs < f_u)
+            h0_lalsuite = 2.0 * hp.data.data[mask_lal]
+            matches.append(
+                get_match_arr(
+                    pad_low,
+                    pad_high,
+                    # np.ones_like(fs) * 1.0e-42,
+                    PSD_vals,
+                    h0_ripple,
+                    h0_lalsuite,
+                )
+            )
+            thetas.append(theta)
+        except:
+            print("Arrays are wrong")
+
+        # else:
+        #     mask_lal = (freqs >= f_l) & (freqs <= f_u)
+        #     matches.append(
+        #         get_match_arr(
+        #             pad_low,
+        #             pad_high,
+        #             np.ones_like(fs) * 1.0e-42,
+        #             hp_ripple,
+        #             hp.data.data[mask_lal],
+        #         )
+        #     )
+        #     thetas.append(theta)
+
+    thetas = np.array(thetas)
+    matches = np.array(matches)
+
+    # np.savetxt(thetas)
+    np.savetxt("ripple_phenomXAS_matches.txt", np.c_[thetas, matches])
+
+    plt.figure(figsize=(7, 5))
+    cm = plt.cm.get_cmap("inferno")
+    q = thetas[:, 1] / thetas[:, 0]
+    mask = matches == 1.0
+    Mtot = thetas[:, 0] + thetas[:, 1]
+    chieff = (thetas[:, 0] * thetas[:, 2] + thetas[:, 1] * thetas[:, 3]) / (
+        thetas[:, 0] + thetas[:, 1]
+    )
+    sc = plt.scatter(Mtot, chieff, c=np.log10(1.0 - matches), cmap=cm)
+    plt.scatter(Mtot[mask], chieff[mask], color="C0")
+    plt.colorbar(sc, label=r"$\log_{10}(1-\mathrm{Match})$")
+    plt.xlabel(r"Total Mass, $M$")
+    plt.ylabel(r"Effective Spin, $\chi_{\rm eff}$")
+    # plt.xlim(1, 50)
+    # plt.ylim(, 50)
+
+    plt.savefig(
+        "../figures/test_match_vs_lalsuite_qchieff_XAS.pdf", bbox_inches="tight"
+    )
+
+    # plt.figure(figsize=(7, 5))
+    # cm = plt.cm.get_cmap("inferno")
+    # sc = plt.scatter(thetas[:, 0], thetas[:, 1], c=np.log10(1.0 - matches), cmap=cm)
+    # plt.colorbar(sc, label=r"$\log_{10}(1-\mathrm{Match})$")
+    # plt.xlabel(r"$m_1 \,\left[M_{\odot}\right]$")
+    # plt.ylabel(r"$m_2 \,\left[M_{\odot}\right]$")
+    # plt.xlim(1, 50)
+    # plt.ylim(1, 50)
+
+    # plt.savefig("../figures/test_match_vs_lalsuite_m1m2.pdf", bbox_inches="tight")
+
+    # plt.figure(figsize=(7, 5))
+    # cm = plt.cm.get_cmap("inferno")
+    # sc = plt.scatter(thetas[:, 2], thetas[:, 3], c=np.log10(1.0 - matches), cmap=cm)
+    # plt.colorbar(sc, label=r"$\log_{10}(1-\mathrm{Match})$")
+    # plt.xlabel(r"$\chi_1$")
+    # plt.ylabel(r"$\chi_2$")
+    # plt.savefig("../figures/test_match_vs_lalsuite_s1s2.pdf", bbox_inches="tight")
+
+    print(thetas, matches)
+
+
+def plot_waveforms():
+    # Get a frequency domain waveform
+    # source parameters
+    m1_msun = 15.0
+    m2_msun = 15.0
+    chi1 = [0, 0, 0.5]
+    chi2 = [0, 0, 0.5]
+    tc = 0.0
+    phic = 0.0
+    dist_mpc = 440
+    inclination = 0.8
+    phi_ref = 0
+
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1_msun, m2_msun]))
+
+    theta_ripple = np.array(
+        [Mc, eta, chi1[2], chi2[2], dist_mpc, tc, phic, inclination]
+    )
+
+    # theta = np.array([m1_msun, m2_msun, chi1[2], chi2[2]])
+    f_l = 32.0
+    f_u = 1024.0
+    del_f = 0.0125
+    fs = np.arange(f_l, f_u, del_f)
+
+    # coeffs = IMRPhenomD_utils.get_coeffs(theta)
+    # _, _, f3, f4, _, _ = IMRPhenomD_utils.get_transition_frequencies(
+    #     theta, coeffs[5], coeffs[6]
+    # )
+
+    approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomXAS")
+
+    f_ref = f_l
+    m1_kg = m1_msun * lal.MSUN_SI
+    m2_kg = m2_msun * lal.MSUN_SI
+    distance = dist_mpc * 1e6 * lal.PC_SI
+
+    hp, hc = lalsim.SimInspiralChooseFDWaveform(
+        m1_kg,
+        m2_kg,
+        chi1[0],
+        chi1[1],
+        chi1[2],
+        chi2[0],
+        chi2[1],
+        chi2[2],
+        distance,
+        inclination,
+        phi_ref,
+        0.0,
+        0.0,
+        0.0,
+        del_f,
+        f_l,
+        f_u,
+        f_ref,
+        None,
+        approximant,
+    )
+    freqs = np.arange(len(hp.data.data)) * del_f
+    mask_lal = (freqs >= f_l) & (freqs < f_u)
+
+    hp_ripple, hc_ripple = IMRPhenomXAS.gen_IMRPhenomXAS_polar(fs, theta_ripple, f_ref)
+
+    plt.figure(figsize=(15, 5))
+    plt.plot(
+        freqs[mask_lal],
+        hp.data.data[mask_lal].real,
+        label="hp lalsuite real",
+        alpha=0.3,
+        color="C0",
+        ls="--",
+        lw=5,
+    )
+
+    plt.plot(
+        fs,
+        hp_ripple.real,
+        label="hp ripple real",
+        alpha=0.8,
+        color="C0",
+    )
+
+    plt.plot(
+        freqs[mask_lal],
+        hp.data.data[mask_lal].imag,
+        label="hp lalsuite imag",
+        alpha=0.3,
+        color="C1",
+        ls="--",
+        lw=5,
+    )
+
+    plt.plot(
+        fs,
+        hp_ripple.imag,
+        label="hp ripple imag",
+        alpha=0.8,
+        color="C1",
+    )
+
+    # plt.axvline(x=f3, ls="--")
+    # plt.axvline(x=f4, ls="--")
+    # plt.legend()
+    plt.xlim(0, 300)
+    plt.xlabel("Frequency [Hz]")
+    plt.ylabel("Strain")
+    plt.savefig("../figures/waveform_comparison_hp_XAS.pdf", bbox_inches="tight")
+
+    plt.figure(figsize=(15, 5))
+    plt.plot(
+        freqs[mask_lal],
+        hc.data.data[mask_lal].real,
+        label="hc lalsuite real",
+        alpha=0.3,
+        color="C0",
+        ls="--",
+        lw=5,
+    )
+
+    plt.plot(
+        fs,
+        hc_ripple.real,
+        label="hc ripple real",
+        alpha=0.3,
+        color="C0",
+    )
+
+    plt.plot(
+        freqs[mask_lal],
+        hc.data.data[mask_lal].imag,
+        label="hc lalsuite imag",
+        alpha=0.3,
+        color="C1",
+        ls="--",
+        lw=5,
+    )
+
+    plt.plot(
+        fs,
+        hc_ripple.imag,
+        label="hc ripple imag",
+        alpha=0.3,
+        color="C1",
+    )
+
+    # plt.axvline(x=f3, ls="--")
+    # plt.axvline(x=f4, ls="--")
+    plt.legend()
+    plt.xlim(0, 300)
+    plt.xlabel("Frequency")
+    plt.ylabel("hf")
+    plt.savefig("../figures/waveform_comparison_hc_XAS.pdf", bbox_inches="tight")
+
+    pad_low, pad_high = get_eff_pads(fs)
+
+    print(
+        get_match_arr(
+            pad_low,
+            pad_high,
+            np.ones_like(fs),
+            hp_ripple,
+            hp.data.data[mask_lal],
+        )
+    )
+
+
 if __name__ == "__main__":
     # test_phase_phenomXAS()
     # test_gen_phenomXAS()
     # test_amplitude_XAS()
-    test_full_waveform_XAS()
+    # test_full_waveform_XAS()
+    # random_match_waveforms()
+    plot_waveforms()

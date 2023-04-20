@@ -1342,7 +1342,7 @@ def _gen_IMRPhenomXAS(
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
 
     A = Amp(f, theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
-    h0 = A * jnp.exp(1j * -Psi)
+    h0 = A * jnp.exp(1j * Psi)
     return h0
 
 
