@@ -6,12 +6,18 @@ A small `jax` package for differentiable and fast gravitational wave data analys
 
 ### Installation
 
-Ripple is still in development so should be used carefully. Currently IMRPhenomD is tested extensively, but more waveforms will be added as they are developed.
+Both waveforms have been tested extensively and match lalsuite implementations to machine precision across all the parameter space. 
+
 Ripple can be installed using 
 
 ```
 pip3 install ripplegw
 ```
+
+### Supported waveforms
+
+- IMRPhenomXAS (aligned spin)
+- IMRPhenomD (aligned spin)
 
 ### Generating a waveform and its derivative
 
@@ -23,7 +29,7 @@ We start with some basic imports:
 ```python
 import jax.numpy as jnp
 
-from ripple.waveforms import IMRPhenomD
+from ripple.waveforms import IMRPhenomXAS
 from ripple import ms_to_Mc_eta
 ```
 
@@ -58,7 +64,7 @@ fs = jnp.arange(f_l, f_u, del_f)
 f_ref = f_l
 
 # And finally lets generate the waveform!
-hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
+hp_ripple, hc_ripple = IMRPhenomXAS.gen_IMRPhenomXAS_polar(fs, theta_ripple, f_ref)
 
 # Note that we have not internally jitted the functions since this would
 # introduce an annoying overhead each time the user evaluated the function with a different length frequency array
@@ -68,7 +74,7 @@ import jax
 
 @jax.jit
 def waveform(theta):
-    return IMRPhenomD.gen_IMRPhenomD_polar(fs, theta)
+    return IMRPhenomXAS.gen_IMRPhenomXAS_polar(fs, theta)
 ```
 
 
