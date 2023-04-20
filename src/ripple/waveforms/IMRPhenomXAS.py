@@ -1305,8 +1305,8 @@ def _gen_IMRPhenomXAS(
     theta_extrinsic: Array,
     phase_coeffs: Array,
     amp_coeffs: Array,
+    f_ref: float,
 ):
-    f_ref = jnp.amin(f, axis=0)
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -1317,8 +1317,6 @@ def _gen_IMRPhenomXAS(
     mm1 = 0.5 * (1.0 + delta)
     mm2 = 0.5 * (1.0 - delta)
 
-    chi_eff = mm1 * chi1 + mm2 * chi2
-    S = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (1.0 - (76.0 * eta / 113.0))
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
     chia = chi1 - chi2
 
@@ -1349,7 +1347,7 @@ def _gen_IMRPhenomXAS(
 
 
 # @jax.jit
-def gen_IMRPhenomXAS(f: Array, params: Array):
+def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     """
     Generate PhenomXAS frequency domain waveform following 2001.11412.
     Note that this waveform also assumes that object one is the more massive.
@@ -1375,6 +1373,37 @@ def gen_IMRPhenomXAS(f: Array, params: Array):
     amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table
 
     h0 = _gen_IMRPhenomXAS(
-        f, theta_intrinsic, theta_extrinsic, phase_coeffs, amp_coeffs
+        f, theta_intrinsic, theta_extrinsic, phase_coeffs, amp_coeffs, f_ref
     )
     return h0
+
+
+# @jax.jit
+def gen_IMRPhenomXAS_polar(f: Array, params: Array, f_ref: float):
+    """
+    Generate PhenomXAS frequency domain waveform following 2001.11412.
+    vars array contains both intrinsic and extrinsic variables
+    theta = [Mchirp, eta, chi1, chi2, D, tc, phic]
+    Mchirp: Chirp mass of the system [solar masses]
+    eta: Symmetric mass ratio [between 0.0 and 0.25]
+    chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
+    chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+    D: Luminosity distance to source [Mpc]
+    tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
+    phic: Phase of coalesence
+    inclination: Inclination angle of the binary [between 0 and PI]
+
+    f_ref: Reference frequency for the waveform
+
+    Returns:
+    --------
+      hp (array): Strain of the plus polarization
+      hc (array): Strain of the cross polarization
+    """
+    iota = params[7]
+    h0 = gen_IMRPhenomXAS(f, params, f_ref)
+
+    hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
+    hc = -1j * h0 * jnp.cos(iota)
+
+    return hp, hc

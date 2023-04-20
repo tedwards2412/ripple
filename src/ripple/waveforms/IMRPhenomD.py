@@ -609,7 +609,6 @@ def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref: float):
     h0 = gen_IMRPhenomD(f, params, f_ref)
 
     hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
-    # hc = h0 * jnp.cos(iota)
     hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc
