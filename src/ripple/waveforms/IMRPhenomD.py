@@ -28,7 +28,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     # First lets construct the phase in the inspiral (region I)
     m1M = m1_s / M_s
@@ -51,25 +51,20 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     )
     phi5 = 5.0 / 9.0 * (772.9 / 8.4 - 13.0 * eta) * PI
     phi5 += (
-        (
-            -m1M
-            * (
-                1391.5 / 8.4
-                - m1M * (1.0 - m1M) * 10.0 / 3.0
-                + m1M * (1276.0 / 8.1 + m1M * (1.0 - m1M) * 170.0 / 9.0)
-            )
+        -m1M
+        * (
+            1391.5 / 8.4
+            - m1M * (1.0 - m1M) * 10.0 / 3.0
+            + m1M * (1276.0 / 8.1 + m1M * (1.0 - m1M) * 170.0 / 9.0)
         )
-        * chi1
-        + (
-            -m2M
-            * (
-                1391.5 / 8.4
-                - m2M * (1.0 - m2M) * 10.0 / 3.0
-                + m2M * (1276.0 / 8.1 + m2M * (1.0 - m2M) * 170.0 / 9.0)
-            )
+    ) * chi1 + (
+        -m2M
+        * (
+            1391.5 / 8.4
+            - m2M * (1.0 - m2M) * 10.0 / 3.0
+            + m2M * (1276.0 / 8.1 + m2M * (1.0 - m2M) * 170.0 / 9.0)
         )
-        * chi2
-    )
+    ) * chi2
     phi5_log = (5.0 / 3.0) * (772.9 / 8.4 - 13.0 * eta) * PI
     phi5_log += 3.0 * (
         (
@@ -112,37 +107,32 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         770.96675 / 2.54016 + 378.515 / 1.512 * eta - 740.45 / 7.56 * eta * eta
     )
     phi7 += (
-        (
-            m1M
+        m1M
+        * (
+            -17097.8035 / 4.8384
+            + eta * 28764.25 / 6.72
+            + eta * eta * 47.35 / 1.44
+            + m1M
             * (
-                -17097.8035 / 4.8384
-                + eta * 28764.25 / 6.72
-                + eta * eta * 47.35 / 1.44
-                + m1M
-                * (
-                    -7189.233785 / 1.524096
-                    + eta * 458.555 / 3.024
-                    - eta * eta * 534.5 / 7.2
-                )
+                -7189.233785 / 1.524096
+                + eta * 458.555 / 3.024
+                - eta * eta * 534.5 / 7.2
             )
         )
-        * chi1
-        + (
-            m2M
+    ) * chi1 + (
+        m2M
+        * (
+            -17097.8035 / 4.8384
+            + eta * 28764.25 / 6.72
+            + eta * eta * 47.35 / 1.44
+            + m2M
             * (
-                -17097.8035 / 4.8384
-                + eta * 28764.25 / 6.72
-                + eta * eta * 47.35 / 1.44
-                + m2M
-                * (
-                    -7189.233785 / 1.524096
-                    + eta * 458.555 / 3.024
-                    - eta * eta * 534.5 / 7.2
-                )
+                -7189.233785 / 1.524096
+                + eta * 458.555 / 3.024
+                - eta * eta * 534.5 / 7.2
             )
         )
-        * chi2
-    )
+    ) * chi2
 
     # Add frequency dependence here
     v = (PI * fM_s) ** (1.0 / 3.0)
@@ -166,7 +156,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
             coeffs[7] * fM_s
             + (3.0 / 4.0) * coeffs[8] * (fM_s ** (4.0 / 3.0))
             + (3.0 / 5.0) * coeffs[9] * (fM_s ** (5.0 / 3.0))
-            + (1.0 / 2.0) * coeffs[10] * (fM_s ** 2.0)
+            + (1.0 / 2.0) * coeffs[10] * (fM_s**2.0)
         )
         / eta
     )
@@ -178,12 +168,12 @@ def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     phi_IIa_raw = (
         coeffs[11] * fM_s
         + coeffs[12] * jnp.log(fM_s)
-        - coeffs[13] * (fM_s ** -3.0) / 3.0
+        - coeffs[13] * (fM_s**-3.0) / 3.0
     ) / eta
 
     return phi_IIa_raw
@@ -194,14 +184,14 @@ def get_IIb_raw_phase(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) ->
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     f_RDM_s = f_RD * M_s
     f_dampM_s = f_damp * M_s
 
     phi_IIb_raw = (
         coeffs[14] * fM_s
-        - coeffs[15] * (fM_s ** -1.0)
+        - coeffs[15] * (fM_s**-1.0)
         + 4.0 * coeffs[16] * (fM_s ** (3.0 / 4.0)) / 3.0
         + coeffs[17] * jnp.arctan((fM_s - coeffs[18] * f_RDM_s) / f_dampM_s)
     ) / eta
@@ -223,7 +213,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
     eta2 = eta * eta
     eta3 = eta * eta2
 
@@ -284,7 +274,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
     A6 = (
         -(
-            (PI ** 2.0)
+            (PI**2.0)
             * (
                 -336.0
                 * (
@@ -312,7 +302,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
                     + 77616.0 * chi12 * (2610335.0 + 995766.0 * Seta)
                     - 77287373856.0 * chi22 * Seta
                     + 5841690624.0 * (chi1 + chi2) * PI
-                    + 21384760320.0 * (PI ** 2.0)
+                    + 21384760320.0 * (PI**2.0)
                 )
             )
         )
@@ -329,11 +319,11 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         + A3 * fM_s
         + A4 * (fM_s ** (4.0 / 3.0))
         + A5 * (fM_s ** (5.0 / 3.0))
-        + A6 * (fM_s ** 2.0)
+        + A6 * (fM_s**2.0)
         # Now we add the coefficient terms
         + A7 * (fM_s ** (7.0 / 3.0))
         + A8 * (fM_s ** (8.0 / 3.0))
-        + A9 * (fM_s ** 3.0)
+        + A9 * (fM_s**3.0)
     )
 
     return Amp_Ins
@@ -365,9 +355,9 @@ def get_IIa_Amp(
     Amp_IIa = (
         delta0
         + delta1 * fM_s
-        + delta2 * (fM_s ** 2.0)
-        + delta3 * (fM_s ** 3.0)
-        + delta4 * (fM_s ** 4.0)
+        + delta2 * (fM_s**2.0)
+        + delta3 * (fM_s**3.0)
+        + delta4 * (fM_s**4.0)
     )
 
     return Amp_IIa
@@ -491,7 +481,7 @@ def Amp(
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     # _, _, f3, f4, f_RD, f_damp = get_transition_frequencies(theta, coeffs[5], coeffs[6])
     _, _, f3, f4, f_RD, f_damp = transition_frequencies
@@ -524,7 +514,7 @@ def Amp(
 
     # Need to add in an overall scaling of M_s^2 to make the units correct
     dist_s = (D * m_per_Mpc) / C
-    return Amp0 * Amp * (M_s ** 2.0) / dist_s
+    return Amp0 * Amp * (M_s**2.0) / dist_s
 
 
 # @jax.jit
@@ -576,7 +566,7 @@ def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
     D: Luminosity distance to source [Mpc]
     tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
     phic: Phase of coalesence
-    
+
     f_ref: Reference frequency for the waveform
 
     Returns:
@@ -619,7 +609,6 @@ def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref: float):
     h0 = gen_IMRPhenomD(f, params, f_ref)
 
     hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
-    # hc = h0 * jnp.cos(iota)
     hc = -1j * h0 * jnp.cos(iota)
 
     return hp, hc
