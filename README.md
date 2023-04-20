@@ -21,7 +21,7 @@ pip3 install ripplegw
 
 ### Generating a waveform and its derivative
 
-Generating a waveform is increadibly easy. Below is an example of calling the PhenomD waveform model
+Generating a waveform is increadibly easy. Below is an example of calling the PhenomXAS waveform model
 to get the h_+ and h_x polarizations of the waveform model
 
 We start with some basic imports:
