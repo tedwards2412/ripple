@@ -10,7 +10,7 @@ from ripple.waveforms import IMRPhenomD, IMRPhenomD_utils
 import matplotlib.pyplot as plt
 from ripple.constants import gt
 
-plt.style.use("../plot_style.mplstyle")
+#plt.style.use("../plot_style.mplstyle")
 import numpy as np
 import cProfile
 import lalsimulation as lalsim
