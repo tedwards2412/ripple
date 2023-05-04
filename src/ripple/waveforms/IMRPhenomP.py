@@ -5,7 +5,12 @@ from math import acos, atan2, sqrt, sin, cos, pi, log
 from typing import Tuple
 from scipy.special import factorial
 import numpy as np
-from .IMRPhenomD import Amp as D_Amp
+from .IMRPhenomD import Phase as PhDPhase
+from .IMRPhenomD import Amp as PhDAmp
+from .IMRPhenomD_utils import (
+    get_coeffs,
+    get_transition_frequencies,
+)
 
 #print(jnp.abs(-3))
 
@@ -310,9 +315,26 @@ def ComputeNNLOanglecoeffs(q, chil, chip):
          (1645*m2_4*chil2)/(192.*mtot4*eta))
     return angcoeffs
 
-def PhenomPOneFrequency(f, eta, distance, M, phic, PCparams ):
-    #PhD.Amp(f, (m1, m2, chi1, chi2), )
-    pass
+def PhenomPOneFrequency(fs, m1, m2, chi1, chi2, phic, M):
+    '''
+    m1, m2: in solar masses
+    phic: Orbital phase at the peak of the underlying non precessing model (rad)
+    M: Total mass (Solar masses)
+    '''
+    # These are the parametrs that go into the waveform generator
+    # Note that JAX does not give index errors, so if you pass in the
+    # the wrong array it will behave strangely
+    theta_ripple = jnp.array([m1, m2, chi1, chi2])
+    coeffs = get_coeffs(theta_ripple)
+    transition_freqs = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
+    phase = PhDPhase(fs, theta_ripple, coeffs, transition_freqs)
+    Amp = PhDAmp(fs, theta_ripple, coeffs, transition_freqs)
+    # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
+    phase -= 2. * phic; # line 1316 ???
+    hPhenom = Amp * (jnp.exp(1j * phase))
+    phasing = phase
+    return hPhenom, phasing
+    
 
 def PhenomPcore(m1_SI: float, m2_SI: float, f_ref: float, phiRef: float, incl: float, s1x: float, s1y: float, s1z: float, s2x: float, s2y: float, s2z: float):
     m1_SI, m2_SI, chi1_l, chi2_l, chip, thetaJN, phiJL = LALtoPhenomP(m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y,s2z)
