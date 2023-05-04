@@ -17,7 +17,6 @@ import cProfile
 import lalsimulation as lalsim
 from ripple import ms_to_Mc_eta
 import lal
-print(gt)
 m1_test = 2*10**30
 m2_test = 4*10**30
 f_ref = 30
@@ -31,5 +30,7 @@ s2y = 0.4
 s2z = -0.1
 M = m1_test + m2_test
 fs = np.arange(f_ref, 500, 0.01)
-IMRPhenomP.PhenomPcore(m1_test, m2_test, f_ref, phi_ref, incl, s1x, s1y, s1z, s2x, s2y, s2z)
-IMRPhenomP.PhenomPOneFrequency(fs, m1_test/MSUN, m2_test/MSUN, s1z, s2z, phi_ref, M/MSUN)
+#IMRPhenomP.PhenomPcore(m1_test, m2_test, f_ref, phi_ref, incl, s1x, s1y, s1z, s2x, s2y, s2z)
+#phenom, phasing =IMRPhenomP.PhenomPOneFrequency(fs, m1_test/MSUN, m2_test/MSUN, s1z, s2z, phi_ref, M/MSUN)
+
+#print(phenom, phasing)

@@ -4,6 +4,7 @@ import jax.numpy as jnp
 from math import acos, atan2, sqrt, sin, cos, pi, log
 from typing import Tuple
 from scipy.special import factorial
+from ..constants import gt
 import numpy as np
 from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
@@ -11,8 +12,7 @@ from .IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
 )
-
-#print(jnp.abs(-3))
+from ..typing import Array
 
 LAL_MSUN_SI = 1.9885e30  # Solar mass in kg
 LAL_MTSUN_SI = LAL_MSUN_SI * 4.925491025543575903411922162094833998e-6  # Solar mass times G over c^3 in seconds
@@ -112,6 +112,33 @@ def LALtoPhenomP(
 def comb(a,b):
     temp = factorial(a)/(factorial(b) * factorial(a-b))
     return temp
+
+def get_final_spin(m1, m2, chi1, chi2):
+    "m1 m2 in solar masses"
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta_s = m1_s * m2_s / (M_s ** 2.0)
+    S = (chi1 * m1_s ** 2 + chi2 * m2_s ** 2) / (M_s ** 2.0)
+    eta2 = eta_s * eta_s
+    eta3 = eta2 * eta_s
+    S2 = S * S
+    S3 = S2 * S
+
+    a = eta_s * (
+        3.4641016151377544
+        - 4.399247300629289 * eta_s
+        + 9.397292189321194 * eta2
+        - 13.180949901606242 * eta3
+        + S
+        * (
+            (1.0 / eta_s - 0.0850917821418767 - 5.837029316602263 * eta_s)
+            + (0.1014665242971878 - 2.0967746996832157 * eta_s) * S
+            + (-1.3546806617824356 + 4.108962025369336 * eta_s) * S2
+            + (-0.8676969352555539 + 2.064046835273906 * eta_s) * S3
+        )
+    )
+    return a
 
 def SpinWeightedY(theta, phi, s, l, m):
     'copied from SphericalHarmonics.c in LAL'
@@ -332,12 +359,17 @@ def PhenomPOneFrequency(fs, m1, m2, chi1, chi2, phic, M):
     # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
     phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(1j * phase))
-    phasing = phase
+    phasing = -phase
     return hPhenom, phasing
     
 
-def PhenomPcore(m1_SI: float, m2_SI: float, f_ref: float, phiRef: float, incl: float, s1x: float, s1y: float, s1z: float, s2x: float, s2y: float, s2z: float):
+def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: float, incl: float, s1x: float, s1y: float, s1z: float, 
+                s2x: float, s2y: float, s2z: float, alpha: float):
+    #TODO: maybe need to reverse m1 m2
+    
     m1_SI, m2_SI, chi1_l, chi2_l, chip, thetaJN, phiJL = LALtoPhenomP(m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y,s2z)
+    
+    
     m1 = m1_SI / LAL_MSUN_SI
     m2 = m2_SI / LAL_MSUN_SI
     q = m2 / m1 # q>=1 
@@ -377,28 +409,21 @@ def PhenomPcore(m1_SI: float, m2_SI: float, f_ref: float, phiRef: float, incl: f
     Y22 = SpinWeightedY(thetaJN, 0 , -2, 2, -2)
     Y2 = [Y2m2, Y2m1, Y20, Y21, Y22]
 
-    fCut = 0.0
-    finspin = 0.0
-    f_final = 0.0
-
-    #finspin = FinalSpinIMRPhenomD_all_in_plane_spin_on_larger_BH(m1, m2, chi1_l, chi2_l, chip)
-    #ComputeIMRPhenomDAmplitudeCoefficients(pAmp, eta, chi2_l, chi1_l, finspin)
-    #ComputeIMRPhenomDPhaseCoefficients(pPhi, eta, chi2_l, chi1_l, finspin, extraParams)
+    #finspin = get_final_spin(m1, m2, chi1_l, chi2_l)
+    #print(finspin)
 
 
-    # Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
-    # (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
-    # was not available when PhenomD was tuned.
-    #pn->v[6] -= (Subtract3PNSS(m1, m2, M, eta, chi1_l, chi2_l) * pn->v[0]);
-    
-    #ComputeIMRPhenDPhaseConnectionCoefficients(pPhi, pn, &phi_prefactors, 1.0, 1.0);
-    # This should be the same as the ending frequency in PhenomD
-    #fCut = f_CUT / m_sec
-    #f_final = pAmp->fRD / m_sec
-    
-    hp, hc = PhenomPCoreTwistUp(
-    900, 1+1.5j, eta, chi1_l, chi2_l, chip, M, angcoeffs, Y2, 0, 0, "IMRPhenomPv2_V")
-    print(hp, hc)
+    hPhenomDs = PhenomPOneFrequency(fs, m1, m2, chi1_l, chi2_l, phiRef, M)
+    hps = jnp.zeros(len(fs))
+    hcs = jnp.zeros(len(fs))
+    for i in range(len(fs)):
+        hp, hc = PhenomPCoreTwistUp(fs[i],hPhenomDs[i], eta, chi1_l, chi2_l, chip, M, angcoeffs, Y2, alphaNNLOoffset-alpha0, epsilonNNLOoffset, "IMRPhenomPv2_V")
+        hps[i] = hp
+        hcs[i] = hc
+    #print(hp, hc)
+
+    return hps, hcs
+    #TODO: fix the timeshift part. need to take autodiffs
 
 
 #For test purposes
