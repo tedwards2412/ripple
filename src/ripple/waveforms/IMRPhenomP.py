@@ -381,19 +381,4 @@ def PhenomPcore(m1_SI: float, m2_SI: float, f_ref: float, phiRef: float, incl: f
 
 #For test purposes
 if __name__ == "__main__":
-    m1_test = 2*10**30
-    m2_test = 4*10**30
-    f_ref = 1000
-    phi_ref = 0
-    incl = 0
-    s1x = -0.5
-    s1y = 0.0
-    s1z = 0.2
-    s2x = 0.1
-    s2y = 0.4
-    s2z = -0.1
-
-    #print(LALtoPhenomP(m1_test,m2_test,f_ref,phi_ref,incl,s1x, s1y,s1z,
-    #                   s2x,s2y,s2z))
-    #print(SpinWeightedY(0.5,0.5,-2,2,-2))
-    testsofar(m1_test, m2_test, f_ref, phi_ref, incl, s1x, s1y, s1z, s2x, s2y, s2z)
+   pass
