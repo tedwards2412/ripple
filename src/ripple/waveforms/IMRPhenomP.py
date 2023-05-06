@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from math import acos, atan2, sqrt, sin, cos, pi, log
 from typing import Tuple
 from scipy.special import factorial
-from ..constants import gt
+from ..constants import gt, MSUN
 import numpy as np
 from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
@@ -75,37 +75,111 @@ def LALtoPhenomP(
     S1_perp = m1_2 * sqrt(s1x**2 + s1y**2)
     S2_perp = m2_2 * sqrt(s2x**2 + s2y**2)
 
-    # In-plane spin components
-    deltaPhi = atan2(s2y, s2x) - atan2(s1y, s1x)  # Difference in azimuthal angles
-    chip = (S1_perp * cos(deltaPhi) + S2_perp) / (M * M)  # Effective precession spin
-
-    # Orbital angular momentum
-    L_x = -eta * M * sqrt(1.0 - chip * chip) * sin(incl)
-    L_y = eta * M * sqrt(1.0 - chip * chip) * cos(incl)
-    L_z = (m1 * chi1_l + m2 * chi2_l) / (M * M)  # This is L.N/M^2
-
-    # Total angular momentum
-    J_x = L_x + m1_2 * s1x + m2_2 * s2x
-    J_y = L_y + m1_2 * s1y + m2_2 * s2y
-    J_z = L_z + m1_2 * s1z + m2_2 * s2z
-
-    # Compute spherical coordinates of J
-    J = sqrt(J_x**2 + J_y**2 + J_z**2)
-    if J != 0:
-        thetaJN = acos(J_z / J)
+    A1 = 2 + (3*m2) / (2*m1)
+    A2 = 2 + (3*m1) / (2*m2)
+    ASp1 = A1*S1_perp
+    ASp2 = A2*S2_perp
+    if (ASp2 > ASp1):
+        num = ASp2
     else:
-        thetaJN = 0
+        num = ASp1
+    if (m2 > m1):
+        den = A2*m2_2
+    else:
+        den = A1*m1_2
+    chip = num / den
 
-    # Compute the azimuthal angle of J
-    phiJL = atan2tol(J_y, J_x, MAX_TOL_ATAN)
+    m_sec = M * MSUN
+    piM = jnp.pi * m_sec
+    v_ref = (piM * f_ref)**(1/3)
+    L0 = M*M * L2PNR(v_ref, eta)
+    # Below, _sf indicates source frame components. We will also use _Jf for J frame components
+    J0x_sf = m1_2*s1x + m2_2*s2x
+    J0y_sf = m1_2*s1y + m2_2*s2y
+    J0z_sf = L0 + m1_2*s1z + m2_2*s2z
+    J0 = jnp.sqrt(J0x_sf*J0x_sf + J0y_sf*J0y_sf + J0z_sf*J0z_sf)
+  
+    if J0 < 1e-10: theraJ_sf = 0
+    else: theraJ_sf = jnp.arccos(J0z_sf / J0)
 
-    # Rotate the spins to the J frame
-    s1x, s1y, s1z = ROTATEZ(-phiJL, s1x, s1y, s1z)
-    s1x, s1y, s1z = ROTATEY(-thetaJN, s1x, s1y, s1z)
-    s2x, s2y, s2z = ROTATEZ(-phiJL, s2x, s2y, s2z)
-    s2x, s2y, s2z = ROTATEY(-thetaJN, s2x, s2y, s2z)
+    if abs(J0x_sf) < MAX_TOL_ATAN and abs(J0y_sf) > MAX_TOL_ATAN:
+        phiJ_sf = jnp.pi/2. - phiRef
+    else:
+        phiJ_sf = jnp.arctan2(J0y_sf, J0x_sf)
 
-    return m1_SI, m2_SI, chi1_l, chi2_l, chip, thetaJN, phiJL
+    phi_aligned = - phiJ_sf
+
+    #First we determine kappa
+    #in the source frame, the components of N are given in Eq (35c) of T1500606-v6
+    Nx_sf = jnp.sin(incl)*jnp.cos(jnp.pi/2. - phiRef)
+    Ny_sf = jnp.sin(incl)*jnp.sin(jnp.pi/2. - phiRef)
+    Nz_sf = jnp.cos(incl)
+
+    tmp_x = Nx_sf
+    tmp_y = Ny_sf
+    tmp_z = Nz_sf
+
+    tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEY(-theraJ_sf, tmp_x, tmp_y, tmp_z)
+
+    kappa = - atan2tol(tmp_y,tmp_x, MAX_TOL_ATAN)
+
+    #Then we determine alpha0, by rotating LN
+    tmp_x, tmp_y, tmp_z = 0,0,1
+    tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEY(-theraJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
+
+    if abs(tmp_x) < MAX_TOL_ATAN and abs(tmp_y) < MAX_TOL_ATAN:
+        alpha0 = jnp.pi
+    else:
+        alpha0 = atan2(tmp_y,tmp_x)
+
+    #Finally we determine thetaJ, by rotating N
+    tmp_x, tmp_y, tmp_z = Nx_sf, Ny_sf, Nz_sf
+    tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEY(-theraJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
+    Nx_Jf, Nz_Jf = tmp_x, tmp_z
+    thetaJN = jnp.acos(Nz_Jf)
+
+    #Finally, we need to redefine the polarizations :
+    #PhenomP's polarizations are defined following Arun et al (arXiv:0810.5336)
+    #i.e. projecting the metric onto the P,Q,N triad defined with P=NxJ/|NxJ| (see (2.6) in there).
+    #By contrast, the triad X,Y,N used in LAL
+    #("waveframe" in the nomenclature of T1500606-v6)
+    #is defined in e.g. eq (35) of this document
+    #(via its components in the source frame; note we use the defautl Omega=Pi/2).
+    #Both triads differ from each other by a rotation around N by an angle \zeta
+    #and we need to rotate the polarizations accordingly by 2\zeta
+
+    Xx_sf = -jnp.cos(incl)*jnp.sin(phiRef)
+    Xy_sf = -jnp.cos(incl)*jnp.cos(phiRef)
+    Xz_sf = jnp.sin(incl)
+    tmp_x, tmp_y, tmp_z = Xx_sf, Xy_sf, Xz_sf
+    tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEY(-theraJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
+
+    # Now the tmp_a are the components of X in the J frame
+    # We need the polar angle of that vector in the P,Q basis of Arun et al
+    # P = NxJ/|NxJ| and since we put N in the (pos x)z half plane of the J frame
+    PArunx_Jf = 0.0
+    PAruny_Jf = -1.0
+    PArunz_Jf = 0.0
+
+    # Q = NxP
+    QArunx_Jf = Nz_Jf
+    QAruny_Jf = 0.0
+    QArunz_Jf = -Nx_Jf
+
+    # Calculate the dot products XdotPArun and XdotQArun
+    XdotPArun = tmp_x * PArunx_Jf + tmp_y * PAruny_Jf + tmp_z * PArunz_Jf
+    XdotQArun = tmp_x * QArunx_Jf + tmp_y * QAruny_Jf + tmp_z * QArunz_Jf
+
+    zeta_polariz = jnp.arctan2(XdotQArun, XdotPArun)
+    return chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz
+
 
 
 #helper functions for spin-weighted spherical harmonics:
