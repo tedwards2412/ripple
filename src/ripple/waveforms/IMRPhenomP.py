@@ -14,8 +14,8 @@ from .IMRPhenomD_utils import (
 )
 from ..typing import Array
 
-LAL_MSUN_SI = 1.9885e30  # Solar mass in kg
-LAL_MTSUN_SI = LAL_MSUN_SI * 4.925491025543575903411922162094833998e-6  # Solar mass times G over c^3 in seconds
+#LAL_MSUN_SI = 1.9885e30  # Solar mass in kg
+#LAL_MTSUN_SI = LAL_MSUN_SI * 4.925491025543575903411922162094833998e-6  # Solar mass times G over c^3 in seconds
 
 
 #helper functions for LALtoPhenomP:
@@ -55,8 +55,8 @@ def LALtoPhenomP(
     if abs(s2x**2 + s2y**2 + s2z**2) > 1.0:
         raise ValueError("|S2/m2^2| must be <= 1.")
 
-    m1 = m1_SI / LAL_MSUN_SI  # Masses in solar masses
-    m2 = m2_SI / LAL_MSUN_SI
+    m1 = m1_SI / MSUN  # Masses in solar masses
+    m2 = m2_SI / MSUN
     M = m1 + m2
     m1_2 = m1 * m1
     m2_2 = m2 * m2
@@ -75,6 +75,7 @@ def LALtoPhenomP(
     S1_perp = m1_2 * sqrt(s1x**2 + s1y**2)
     S2_perp = m2_2 * sqrt(s2x**2 + s2y**2)
 
+    #print("perps: ", S1_perp, S2_perp)
     A1 = 2 + (3*m2) / (2*m1)
     A2 = 2 + (3*m1) / (2*m2)
     ASp1 = A1*S1_perp
@@ -89,18 +90,23 @@ def LALtoPhenomP(
         den = A1*m1_2
     chip = num / den
 
-    m_sec = M * MSUN
+    m_sec = M * gt
     piM = jnp.pi * m_sec
+    #print("piM: ", piM)
     v_ref = (piM * f_ref)**(1/3)
     L0 = M*M * L2PNR(v_ref, eta)
+    #print("L0 input: ", v_ref, eta, M)
+    #print("L0: ", L0)
     # Below, _sf indicates source frame components. We will also use _Jf for J frame components
     J0x_sf = m1_2*s1x + m2_2*s2x
     J0y_sf = m1_2*s1y + m2_2*s2y
     J0z_sf = L0 + m1_2*s1z + m2_2*s2z
     J0 = jnp.sqrt(J0x_sf*J0x_sf + J0y_sf*J0y_sf + J0z_sf*J0z_sf)
   
-    if J0 < 1e-10: theraJ_sf = 0
-    else: theraJ_sf = jnp.arccos(J0z_sf / J0)
+    if J0 < 1e-10: thetaJ_sf = 0
+    else: thetaJ_sf = jnp.arccos(J0z_sf / J0)
+
+    #print(thetaJ_sf)
 
     if abs(J0x_sf) < MAX_TOL_ATAN and abs(J0y_sf) > MAX_TOL_ATAN:
         phiJ_sf = jnp.pi/2. - phiRef
@@ -120,16 +126,18 @@ def LALtoPhenomP(
     tmp_z = Nz_sf
 
     tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEY(-theraJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEY(-thetaJ_sf, tmp_x, tmp_y, tmp_z)
 
     kappa = - atan2tol(tmp_y,tmp_x, MAX_TOL_ATAN)
 
+    #print(kappa)
     #Then we determine alpha0, by rotating LN
     tmp_x, tmp_y, tmp_z = 0,0,1
     tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEY(-theraJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEY(-thetaJ_sf, tmp_x, tmp_y, tmp_z)
     tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
 
+    #print(tmp_x, tmp_y)
     if abs(tmp_x) < MAX_TOL_ATAN and abs(tmp_y) < MAX_TOL_ATAN:
         alpha0 = jnp.pi
     else:
@@ -138,10 +146,10 @@ def LALtoPhenomP(
     #Finally we determine thetaJ, by rotating N
     tmp_x, tmp_y, tmp_z = Nx_sf, Ny_sf, Nz_sf
     tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEY(-theraJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEY(-thetaJ_sf, tmp_x, tmp_y, tmp_z)
     tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
     Nx_Jf, Nz_Jf = tmp_x, tmp_z
-    thetaJN = jnp.acos(Nz_Jf)
+    thetaJN = jnp.arccos(Nz_Jf)
 
     #Finally, we need to redefine the polarizations :
     #PhenomP's polarizations are defined following Arun et al (arXiv:0810.5336)
@@ -158,7 +166,7 @@ def LALtoPhenomP(
     Xz_sf = jnp.sin(incl)
     tmp_x, tmp_y, tmp_z = Xx_sf, Xy_sf, Xz_sf
     tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEY(-theraJ_sf, tmp_x, tmp_y, tmp_z)
+    tmp_x, tmp_y, tmp_z = ROTATEY(-thetaJ_sf, tmp_x, tmp_y, tmp_z)
     tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
 
     # Now the tmp_a are the components of X in the J frame
@@ -250,7 +258,8 @@ def PhenomPCoreTwistUp(
     assert angcoeffs is not None
     assert Y2m is not None
 
-    f = fHz * LAL_MTSUN_SI * M  # Frequency in geometric units
+    #here it is used to be LAL_MTSUN_SI 
+    f = fHz * gt * M  # Frequency in geometric units
 
     q = (1.0 + sqrt(1.0 - 4.0 * eta) - 2.0 * eta) / (2.0 * eta)
     m1 = 1.0 / (1.0 + q)  # Mass of the smaller BH for unit total mass M=1.
@@ -438,20 +447,19 @@ def PhenomPOneFrequency(fs, m1, m2, chi1, chi2, phic, M):
     
 
 def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: float, incl: float, s1x: float, s1y: float, s1z: float, 
-                s2x: float, s2y: float, s2z: float, alpha: float):
+                s2x: float, s2y: float, s2z: float):
     #TODO: maybe need to reverse m1 m2
+    chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz = LALtoPhenomP(m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y,s2z)
     
-    m1_SI, m2_SI, chi1_l, chi2_l, chip, thetaJN, phiJL = LALtoPhenomP(m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y,s2z)
     
-    
-    m1 = m1_SI / LAL_MSUN_SI
-    m2 = m2_SI / LAL_MSUN_SI
+    m1 = m1_SI / MSUN
+    m2 = m2_SI / MSUN
     q = m2 / m1 # q>=1 
     M = m1 + m2
     chi_eff = (m1*chi1_l + m2*chi2_l) / M
     chil = (1.0+q)/q * chi_eff
     eta = m1 * m2 / (M*M)
-    m_sec = M * LAL_MTSUN_SI
+    m_sec = M * gt
     piM = np.pi * m_sec
 
 
@@ -487,16 +495,17 @@ def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: flo
     #print(finspin)
 
 
-    hPhenomDs = PhenomPOneFrequency(fs, m1, m2, chi1_l, chi2_l, phiRef, M)
-    hps = jnp.zeros(len(fs))
-    hcs = jnp.zeros(len(fs))
+    hPhenomDs, phasings = PhenomPOneFrequency(fs, m1, m2, chi1_l, chi2_l, phiRef, M)
+    print(len(hPhenomDs), len(fs))
+    hps = []
+    hcs = []
     for i in range(len(fs)):
         hp, hc = PhenomPCoreTwistUp(fs[i],hPhenomDs[i], eta, chi1_l, chi2_l, chip, M, angcoeffs, Y2, alphaNNLOoffset-alpha0, epsilonNNLOoffset, "IMRPhenomPv2_V")
-        hps[i] = hp
-        hcs[i] = hc
+        hps.append(jnp.real(hp))
+        hcs.append(jnp.real(hc))
     #print(hp, hc)
 
-    return hps, hcs
+    return jnp.array(hps), jnp.array(hcs)
     #TODO: fix the timeshift part. need to take autodiffs
 
 
