@@ -275,7 +275,7 @@ def PhenomPCoreTwistUp(
         raise ValueError("Unknown IMRPhenomP version! At present only v1 and v2 and tidal are available.")
 
     omega = pi * f
-    logomega = log(omega)
+    logomega = jnp.log(omega)
     omega_cbrt = (omega)**(1/3)
     omega_cbrt2 = omega_cbrt * omega_cbrt
 
