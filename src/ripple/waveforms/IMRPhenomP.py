@@ -438,7 +438,7 @@ def PhenomPOneFrequency(fs, m1, m2, chi1, chi2, phic, M):
     coeffs = get_coeffs(theta_ripple)
     transition_freqs = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
     phase = PhDPhase(fs, theta_ripple, coeffs, transition_freqs)
-    Amp = PhDAmp(fs, theta_ripple, coeffs, transition_freqs)
+    Amp = PhDAmp(fs, theta_ripple, coeffs, transition_freqs, D=100)
     # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
     phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(1j * phase))
@@ -497,18 +497,10 @@ def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: flo
 
     hPhenomDs, phasings = PhenomPOneFrequency(fs, m1, m2, chi1_l, chi2_l, phiRef, M)
     print(len(hPhenomDs), len(fs))
-    hps = []
-    hcs = []
-    for i in range(len(fs)):
-        hp, hc = PhenomPCoreTwistUp(fs[i],hPhenomDs[i], eta, chi1_l, chi2_l, chip, M, angcoeffs, Y2, alphaNNLOoffset-alpha0, epsilonNNLOoffset, "IMRPhenomPv2_V")
-        hps.append(jnp.real(hp))
-        hcs.append(jnp.real(hc))
+        
+    hp, hc = PhenomPCoreTwistUp(fs, hPhenomDs, eta, chi1_l, chi2_l, chip, M, angcoeffs, Y2, alphaNNLOoffset-alpha0, epsilonNNLOoffset, "IMRPhenomPv2_V")
     #print(hp, hc)
 
-    return jnp.array(hps), jnp.array(hcs)
+    return jnp.array(hp), jnp.array(hc)
     #TODO: fix the timeshift part. need to take autodiffs
 
-
-#For test purposes
-if __name__ == "__main__":
-   pass
