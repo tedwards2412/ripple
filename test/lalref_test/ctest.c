@@ -3,6 +3,8 @@
 #include <math.h>
 #include <float.h>
 #include <string.h>
+#include <complex.h>
+#include <tgmath.h>
 //#include <iostream>
 //#include <lal/LALDatatypes.h>
 
@@ -20,6 +22,7 @@ vy = tmp2
 
 
 #define REAL8 double
+#define COMPLEX16 double complex
 #define MAX_TOL_ATAN 1e-10
 #define XLAL_EFAULT 0
 #define XLAL_EDOM 0
@@ -30,6 +33,14 @@ vy = tmp2
 #define LAL_MTSUN_SI LAL_MSUN_SI*G/(C*C*C)
 #define XLAL_EINVAL  0
 #define XLAL_SUCCESS 0
+
+
+
+typedef struct tagSpinWeightedSphericalHarmonic_l2 {
+   COMPLEX16 Y2m2, Y2m1, Y20, Y21, Y22;
+ } SpinWeightedSphericalHarmonic_l2;
+
+const double sqrt_6 = 2.44948974278317788;
 
 double pow_2_of(double x){
   return x*x;
@@ -89,6 +100,11 @@ void printstr(char *string){
   }
 }
 
+void XLAL_ERROR_VAL(int EINVAL, int number){
+  
+}
+
+
 void XLAL_ERROR(int EINVAL, char *message){
     printstr(message);
     printf("\n");
@@ -100,6 +116,379 @@ void XLAL_CHECK(int statement, int fault, char *message){
       printstr(message);
     }
 }
+
+
+COMPLEX16 XLALSpinWeightedSphericalHarmonic(
+                                    REAL8 theta,  /**< polar angle (rad) */
+                                    REAL8 phi,    /**< azimuthal angle (rad) */
+                                    int s,        /**< spin weight */
+                                    int l,        /**< mode number l */
+                                    int m         /**< mode number m */
+     )
+ {
+   REAL8 fac;
+   COMPLEX16 ans;
+  
+   /* sanity checks ... */
+   if ( l < abs(s) ) 
+   {
+     XLAL_ERROR_VAL(0, XLAL_EINVAL);
+   }
+   if ( l < abs(m) ) 
+   {
+     XLAL_ERROR_VAL(0, XLAL_EINVAL);
+   }
+  
+   if ( s == -2 ) 
+   {
+     if ( l == 2 ) 
+     {
+       switch ( m ) 
+       {
+         case -2:
+           fac = sqrt( 5.0 / ( 64.0 * LAL_PI ) ) * ( 1.0 - cos( theta ))*( 1.0 - cos( theta ));
+           break;
+         case -1:
+           fac = sqrt( 5.0 / ( 16.0 * LAL_PI ) ) * sin( theta )*( 1.0 - cos( theta ));
+           break;
+  
+         case 0:
+           fac = sqrt( 15.0 / ( 32.0 * LAL_PI ) ) * sin( theta )*sin( theta );
+           break;
+  
+         case 1:
+           fac = sqrt( 5.0 / ( 16.0 * LAL_PI ) ) * sin( theta )*( 1.0 + cos( theta ));
+           break;
+  
+         case 2:
+           fac = sqrt( 5.0 / ( 64.0 * LAL_PI ) ) * ( 1.0 + cos( theta ))*( 1.0 + cos( theta ));
+           break;
+         default:
+           XLAL_ERROR_VAL(0, XLAL_EINVAL);
+           break;
+       } /*  switch (m) */
+     }  /* l==2*/
+     else if ( l == 3 ) 
+     {
+       switch ( m ) 
+       {
+         case -3:
+           fac = sqrt(21.0/(2.0*LAL_PI))*cos(theta/2.0)*pow(sin(theta/2.0),5.0);
+           break;
+         case -2:
+           fac = sqrt(7.0/(4.0*LAL_PI))*(2.0 + 3.0*cos(theta))*pow(sin(theta/2.0),4.0);
+           break;
+         case -1:
+           fac = sqrt(35.0/(2.0*LAL_PI))*(sin(theta) + 4.0*sin(2.0*theta) - 3.0*sin(3.0*theta))/32.0;
+           break;
+         case 0:
+           fac = (sqrt(105.0/(2.0*LAL_PI))*cos(theta)*pow(sin(theta),2.0))/4.0;
+           break;
+         case 1:
+           fac = -sqrt(35.0/(2.0*LAL_PI))*(sin(theta) - 4.0*sin(2.0*theta) - 3.0*sin(3.0*theta))/32.0;
+           break;
+  
+         case 2:
+           fac = sqrt(7.0/LAL_PI)*pow(cos(theta/2.0),4.0)*(-2.0 + 3.0*cos(theta))/2.0;
+           break;
+  
+         case 3:
+           fac = -sqrt(21.0/(2.0*LAL_PI))*pow(cos(theta/2.0),5.0)*sin(theta/2.0);
+           break;
+  
+         default:
+           XLAL_ERROR_VAL(0, XLAL_EINVAL);
+           break;
+       }
+     }   /* l==3 */
+     else if ( l == 4 ) 
+     {
+       switch ( m ) 
+       {
+         case -4:
+           fac = 3.0*sqrt(7.0/LAL_PI)*pow(cos(theta/2.0),2.0)*pow(sin(theta/2.0),6.0);
+           break;
+         case -3:
+           fac = 3.0*sqrt(7.0/(2.0*LAL_PI))*cos(theta/2.0)*(1.0 + 2.0*cos(theta))*pow(sin(theta/2.0),5.0);
+           break;
+  
+         case -2:
+           fac = (3.0*(9.0 + 14.0*cos(theta) + 7.0*cos(2.0*theta))*pow(sin(theta/2.0),4.0))/(4.0*sqrt(LAL_PI));
+           break;
+         case -1:
+           fac = (3.0*(3.0*sin(theta) + 2.0*sin(2.0*theta) + 7.0*sin(3.0*theta) - 7.0*sin(4.0*theta)))/(32.0*sqrt(2.0*LAL_PI));
+           break;
+         case 0:
+           fac = (3.0*sqrt(5.0/(2.0*LAL_PI))*(5.0 + 7.0*cos(2.0*theta))*pow(sin(theta),2.0))/16.0;
+           break;
+         case 1:
+           fac = (3.0*(3.0*sin(theta) - 2.0*sin(2.0*theta) + 7.0*sin(3.0*theta) + 7.0*sin(4.0*theta)))/(32.0*sqrt(2.0*LAL_PI));
+           break;
+         case 2:
+           fac = (3.0*pow(cos(theta/2.0),4.0)*(9.0 - 14.0*cos(theta) + 7.0*cos(2.0*theta)))/(4.0*sqrt(LAL_PI));
+           break;
+         case 3:
+           fac = -3.0*sqrt(7.0/(2.0*LAL_PI))*pow(cos(theta/2.0),5.0)*(-1.0 + 2.0*cos(theta))*sin(theta/2.0);
+           break;
+         case 4:
+           fac = 3.0*sqrt(7.0/LAL_PI)*pow(cos(theta/2.0),6.0)*pow(sin(theta/2.0),2.0);
+           break;
+         default:
+           XLAL_ERROR_VAL(0, XLAL_EINVAL);
+           break;
+       }
+     }    /* l==4 */
+     else if ( l == 5 ) 
+     {
+       switch ( m ) 
+       {
+         case -5:
+           fac = sqrt(330.0/LAL_PI)*pow(cos(theta/2.0),3.0)*pow(sin(theta/2.0),7.0);
+           break;
+         case -4:
+           fac = sqrt(33.0/LAL_PI)*pow(cos(theta/2.0),2.0)*(2.0 + 5.0*cos(theta))*pow(sin(theta/2.0),6.0);
+           break;
+         case -3:
+           fac = (sqrt(33.0/(2.0*LAL_PI))*cos(theta/2.0)*(17.0 + 24.0*cos(theta) + 15.0*cos(2.0*theta))*pow(sin(theta/2.0),5.0))/4.0;
+           break;
+         case -2:
+           fac = (sqrt(11.0/LAL_PI)*(32.0 + 57.0*cos(theta) + 36.0*cos(2.0*theta) + 15.0*cos(3.0*theta))*pow(sin(theta/2.0),4.0))/8.0;
+           break;
+         case -1:
+           fac = (sqrt(77.0/LAL_PI)*(2.0*sin(theta) + 8.0*sin(2.0*theta) + 3.0*sin(3.0*theta) + 12.0*sin(4.0*theta) - 15.0*sin(5.0*theta)))/256.0;
+           break;
+         case 0:
+           fac = (sqrt(1155.0/(2.0*LAL_PI))*(5.0*cos(theta) + 3.0*cos(3.0*theta))*pow(sin(theta),2.0))/32.0;
+           break;
+         case 1:
+           fac = sqrt(77.0/LAL_PI)*(-2.0*sin(theta) + 8.0*sin(2.0*theta) - 3.0*sin(3.0*theta) + 12.0*sin(4.0*theta) + 15.0*sin(5.0*theta))/256.0;
+           break;
+         case 2:
+           fac = sqrt(11.0/LAL_PI)*pow(cos(theta/2.0),4.0)*(-32.0 + 57.0*cos(theta) - 36.0*cos(2.0*theta) + 15.0*cos(3.0*theta))/8.0;
+           break;
+         case 3:
+           fac = -sqrt(33.0/(2.0*LAL_PI))*pow(cos(theta/2.0),5.0)*(17.0 - 24.0*cos(theta) + 15.0*cos(2.0*theta))*sin(theta/2.0)/4.0;
+           break;
+         case 4:
+           fac = sqrt(33.0/LAL_PI)*pow(cos(theta/2.0),6.0)*(-2.0 + 5.0*cos(theta))*pow(sin(theta/2.0),2.0);
+           break;
+         case 5:
+           fac = -sqrt(330.0/LAL_PI)*pow(cos(theta/2.0),7.0)*pow(sin(theta/2.0),3.0);
+           break;
+         default:
+           XLAL_ERROR_VAL(0, XLAL_EINVAL);
+           break;
+       }
+     }  /* l==5 */
+     else if ( l == 6 )
+     {
+       switch ( m )
+       {
+         case -6:
+           fac = (3.*sqrt(715./LAL_PI)*pow(cos(theta/2.0),4)*pow(sin(theta/2.0),8))/2.0;
+           break;
+         case -5:
+           fac = (sqrt(2145./LAL_PI)*pow(cos(theta/2.0),3)*(1. + 3.*cos(theta))*pow(sin(theta/2.0),7))/2.0;
+           break;
+         case -4:
+           fac = (sqrt(195./(2.0*LAL_PI))*pow(cos(theta/2.0),2)*(35. + 44.*cos(theta) 
+           + 33.*cos(2.*theta))*pow(sin(theta/2.0),6))/8.0;
+           break;
+         case -3:
+           fac = (3.*sqrt(13./LAL_PI)*cos(theta/2.0)*(98. + 185.*cos(theta) + 110.*cos(2*theta) 
+           + 55.*cos(3.*theta))*pow(sin(theta/2.0),5))/32.0;
+           break;
+         case -2:
+           fac = (sqrt(13./LAL_PI)*(1709. + 3096.*cos(theta) + 2340.*cos(2.*theta) + 1320.*cos(3.*theta) 
+           + 495.*cos(4.*theta))*pow(sin(theta/2.0),4))/256.0;
+           break;
+         case -1:
+           fac = (sqrt(65./(2.0*LAL_PI))*cos(theta/2.0)*(161. + 252.*cos(theta) + 252.*cos(2.*theta) 
+           + 132.*cos(3.*theta) + 99.*cos(4.*theta))*pow(sin(theta/2.0),3))/64.0;
+           break;
+         case 0:
+           fac = (sqrt(1365./LAL_PI)*(35. + 60.*cos(2.*theta) + 33.*cos(4.*theta))*pow(sin(theta),2))/512.0;
+           break;
+         case 1:
+           fac = (sqrt(65./(2.0*LAL_PI))*pow(cos(theta/2.0),3)*(161. - 252.*cos(theta) + 252.*cos(2.*theta) 
+           - 132.*cos(3.*theta) + 99.*cos(4.*theta))*sin(theta/2.0))/64.0;
+           break;
+         case 2:
+           fac = (sqrt(13./LAL_PI)*pow(cos(theta/2.0),4)*(1709. - 3096.*cos(theta) + 2340.*cos(2.*theta) 
+           - 1320*cos(3*theta) + 495*cos(4*theta)))/256.0;
+           break;
+         case 3:
+           fac = (-3.*sqrt(13./LAL_PI)*pow(cos(theta/2.0),5)*(-98. + 185.*cos(theta) - 110.*cos(2*theta) 
+           + 55.*cos(3.*theta))*sin(theta/2.0))/32.0;
+           break;
+         case 4:
+           fac = (sqrt(195./(2.0*LAL_PI))*pow(cos(theta/2.0),6)*(35. - 44.*cos(theta) 
+           + 33.*cos(2*theta))*pow(sin(theta/2.0),2))/8.0;
+           break;
+         case 5:
+           fac = -(sqrt(2145./LAL_PI)*pow(cos(theta/2.0),7)*(-1. + 3.*cos(theta))*pow(sin(theta/2.0),3))/2.0;
+           break;
+         case 6:
+           fac = (3.*sqrt(715./LAL_PI)*pow(cos(theta/2.0),8)*pow(sin(theta/2.0),4))/2.0;
+           break;
+         default:
+           XLAL_ERROR_VAL(0, XLAL_EINVAL);
+           break;
+       }
+     } /* l==6 */
+     else if ( l == 7 )
+     {
+       switch ( m )
+       {
+         case -7:
+           fac = sqrt(15015./(2.0*LAL_PI))*pow(cos(theta/2.0),5)*pow(sin(theta/2.0),9);
+           break;
+         case -6:
+           fac = (sqrt(2145./LAL_PI)*pow(cos(theta/2.0),4)*(2. + 7.*cos(theta))*pow(sin(theta/2.0),8))/2.0;
+           break;
+         case -5:
+           fac = (sqrt(165./(2.0*LAL_PI))*pow(cos(theta/2.0),3)*(93. + 104.*cos(theta) 
+           + 91.*cos(2.*theta))*pow(sin(theta/2.0),7))/8.0;
+           break;
+         case -4:
+           fac = (sqrt(165./(2.0*LAL_PI))*pow(cos(theta/2.0),2)*(140. + 285.*cos(theta) 
+           + 156.*cos(2.*theta) + 91.*cos(3.*theta))*pow(sin(theta/2.0),6))/16.0;
+           break;
+         case -3:
+           fac = (sqrt(15./(2.0*LAL_PI))*cos(theta/2.0)*(3115. + 5456.*cos(theta) + 4268.*cos(2.*theta) 
+           + 2288.*cos(3.*theta) + 1001.*cos(4.*theta))*pow(sin(theta/2.0),5))/128.0;
+           break;
+         case -2:
+           fac = (sqrt(15./LAL_PI)*(5220. + 9810.*cos(theta) + 7920.*cos(2.*theta) + 5445.*cos(3.*theta) 
+           + 2860.*cos(4.*theta) + 1001.*cos(5.*theta))*pow(sin(theta/2.0),4))/512.0;
+           break;
+         case -1:
+           fac = (3.*sqrt(5./(2.0*LAL_PI))*cos(theta/2.0)*(1890. + 4130.*cos(theta) + 3080.*cos(2.*theta) 
+           + 2805.*cos(3.*theta) + 1430.*cos(4.*theta) + 1001.*cos(5*theta))*pow(sin(theta/2.0),3))/512.0;
+           break;
+         case 0:
+           fac = (3.*sqrt(35./LAL_PI)*cos(theta)*(109. + 132.*cos(2.*theta) 
+           + 143.*cos(4.*theta))*pow(sin(theta),2))/512.0;
+           break;
+         case 1:
+           fac = (3.*sqrt(5./(2.0*LAL_PI))*pow(cos(theta/2.0),3)*(-1890. + 4130.*cos(theta) - 3080.*cos(2.*theta) 
+           + 2805.*cos(3.*theta) - 1430.*cos(4.*theta) + 1001.*cos(5.*theta))*sin(theta/2.0))/512.0;
+           break;
+         case 2:
+           fac = (sqrt(15./LAL_PI)*pow(cos(theta/2.0),4)*(-5220. + 9810.*cos(theta) - 7920.*cos(2.*theta) 
+           + 5445.*cos(3.*theta) - 2860.*cos(4.*theta) + 1001.*cos(5.*theta)))/512.0;
+           break;
+         case 3:
+           fac = -(sqrt(15./(2.0*LAL_PI))*pow(cos(theta/2.0),5)*(3115. - 5456.*cos(theta) + 4268.*cos(2.*theta) 
+           - 2288.*cos(3.*theta) + 1001.*cos(4.*theta))*sin(theta/2.0))/128.0;
+           break;  
+         case 4:
+           fac = (sqrt(165./(2.0*LAL_PI))*pow(cos(theta/2.0),6)*(-140. + 285.*cos(theta) - 156.*cos(2*theta) 
+           + 91.*cos(3.*theta))*pow(sin(theta/2.0),2))/16.0;
+           break;
+         case 5:
+           fac = -(sqrt(165./(2.0*LAL_PI))*pow(cos(theta/2.0),7)*(93. - 104.*cos(theta) 
+           + 91.*cos(2.*theta))*pow(sin(theta/2.0),3))/8.0;
+           break;
+         case 6:
+           fac = (sqrt(2145./LAL_PI)*pow(cos(theta/2.0),8)*(-2. + 7.*cos(theta))*pow(sin(theta/2.0),4))/2.0;
+           break;
+         case 7:
+           fac = -(sqrt(15015./(2.0*LAL_PI))*pow(cos(theta/2.0),9)*pow(sin(theta/2.0),5));
+           break;
+         default:
+           XLAL_ERROR_VAL(0, XLAL_EINVAL);
+           break;
+       }
+     } /* l==7 */
+     else if ( l == 8 )
+     {
+       switch ( m )
+       {
+         case -8:
+           fac = sqrt(34034./LAL_PI)*pow(cos(theta/2.0),6)*pow(sin(theta/2.0),10);
+           break;
+         case -7:
+           fac = sqrt(17017./(2.0*LAL_PI))*pow(cos(theta/2.0),5)*(1. + 4.*cos(theta))*pow(sin(theta/2.0),9);
+           break;
+         case -6:
+           fac = sqrt(255255./LAL_PI)*pow(cos(theta/2.0),4)*(1. + 2.*cos(theta))
+           *sin(LAL_PI/4.0 - theta/2.0)*sin(LAL_PI/4.0 + theta/2.0)*pow(sin(theta/2.0),8);
+           break;
+         case -5:
+           fac = (sqrt(12155./(2.0*LAL_PI))*pow(cos(theta/2.0),3)*(19. + 42.*cos(theta) 
+           + 21.*cos(2.*theta) + 14.*cos(3.*theta))*pow(sin(theta/2.0),7))/8.0;
+           break;
+         case -4:
+           fac = (sqrt(935./(2.0*LAL_PI))*pow(cos(theta/2.0),2)*(265. + 442.*cos(theta) + 364.*cos(2.*theta) 
+           + 182.*cos(3.*theta) + 91.*cos(4.*theta))*pow(sin(theta/2.0),6))/32.0;
+           break;
+         case -3:
+           fac = (sqrt(561./(2.0*LAL_PI))*cos(theta/2.0)*(869. + 1660.*cos(theta) + 1300.*cos(2.*theta) 
+           + 910.*cos(3.*theta) + 455.*cos(4.*theta) + 182.*cos(5.*theta))*pow(sin(theta/2.0),5))/128.0;
+           break;
+         case -2:
+           fac = (sqrt(17./LAL_PI)*(7626. + 14454.*cos(theta) + 12375.*cos(2.*theta) + 9295.*cos(3.*theta) 
+           + 6006.*cos(4.*theta) + 3003.*cos(5.*theta) + 1001.*cos(6.*theta))*pow(sin(theta/2.0),4))/512.0;
+           break;
+         case -1:
+           fac = (sqrt(595./(2.0*LAL_PI))*cos(theta/2.0)*(798. + 1386.*cos(theta) + 1386.*cos(2.*theta) 
+           + 1001.*cos(3.*theta) + 858.*cos(4.*theta) + 429.*cos(5.*theta) + 286.*cos(6.*theta))*pow(sin(theta/2.0),3))/512.0;
+           break;
+         case 0:
+           fac = (3.*sqrt(595./LAL_PI)*(210. + 385.*cos(2.*theta) + 286.*cos(4.*theta) 
+           + 143.*cos(6.*theta))*pow(sin(theta),2))/4096.0;
+           break;
+         case 1:
+           fac = (sqrt(595./(2.0*LAL_PI))*pow(cos(theta/2.0),3)*(798. - 1386.*cos(theta) + 1386.*cos(2.*theta) 
+           - 1001.*cos(3.*theta) + 858.*cos(4.*theta) - 429.*cos(5.*theta) + 286.*cos(6.*theta))*sin(theta/2.0))/512.0;
+           break;
+         case 2:
+           fac = (sqrt(17./LAL_PI)*pow(cos(theta/2.0),4)*(7626. - 14454.*cos(theta) + 12375.*cos(2.*theta) 
+           - 9295.*cos(3.*theta) + 6006.*cos(4.*theta) - 3003.*cos(5.*theta) + 1001.*cos(6.*theta)))/512.0;
+           break;
+         case 3:
+           fac = -(sqrt(561./(2.0*LAL_PI))*pow(cos(theta/2.0),5)*(-869. + 1660.*cos(theta) - 1300.*cos(2.*theta) 
+           + 910.*cos(3.*theta) - 455.*cos(4.*theta) + 182.*cos(5.*theta))*sin(theta/2.0))/128.0;
+           break;
+         case 4:
+           fac = (sqrt(935./(2.0*LAL_PI))*pow(cos(theta/2.0),6)*(265. - 442.*cos(theta) + 364.*cos(2.*theta) 
+           - 182.*cos(3.*theta) + 91.*cos(4.*theta))*pow(sin(theta/2.0),2))/32.0;
+           break;
+         case 5:
+           fac = -(sqrt(12155./(2.0*LAL_PI))*pow(cos(theta/2.0),7)*(-19. + 42.*cos(theta) - 21.*cos(2.*theta) 
+           + 14.*cos(3.*theta))*pow(sin(theta/2.0),3))/8.0;
+           break;
+         case 6:
+           fac = sqrt(255255./LAL_PI)*pow(cos(theta/2.0),8)*(-1. + 2.*cos(theta))*sin(LAL_PI/4.0 - theta/2.0)
+           *sin(LAL_PI/4.0 + theta/2.0)*pow(sin(theta/2.0),4);
+           break;
+         case 7:
+           fac = -(sqrt(17017./(2.0*LAL_PI))*pow(cos(theta/2.0),9)*(-1. + 4.*cos(theta))*pow(sin(theta/2.0),5));
+           break;
+         case 8:
+           fac = sqrt(34034./LAL_PI)*pow(cos(theta/2.0),10)*pow(sin(theta/2.0),6);
+           break;
+         default:
+           XLAL_ERROR_VAL(0, XLAL_EINVAL);
+           break;
+       }
+     } /* l==8 */
+     else 
+     {
+       XLAL_ERROR_VAL(0, XLAL_EINVAL);
+     }
+   }
+   else 
+   {
+     XLAL_ERROR_VAL(0, XLAL_EINVAL);
+   }
+   if (m)
+     ans = cexp(1I*m*phi) * fac;
+   else
+     ans = fac;
+   return ans;
+ }
 
 typedef enum tagIMRPhenomP_version_type {
   IMRPhenomPv1_V, /**< version 1: based on IMRPhenomC */
@@ -438,6 +827,172 @@ typedef enum tagIMRPhenomP_version_type {
          (1645*m2_4*chil2)/(192.*mtot4*eta));
  }
 
+ static void WignerdCoefficients_SmallAngleApproximation(
+   REAL8 *cos_beta_half, /**< Output: cos(beta/2) */
+   REAL8 *sin_beta_half, /**< Output: sin(beta/2) */
+   const REAL8 v,        /**< Cubic root of (Pi * Frequency (geometric)) */
+   const REAL8 SL,       /**< Dimensionfull aligned spin */
+   const REAL8 eta,      /**< Symmetric mass-ratio */
+   const REAL8 Sp)       /**< Dimensionfull spin component in the orbital plane */
+ {
+   //XLAL_CHECK_VOID(cos_beta_half != NULL, XLAL_EFAULT);
+   //XLAL_CHECK_VOID(sin_beta_half != NULL, XLAL_EFAULT);
+   REAL8 s = Sp / (L2PNR_v1(v, eta) + SL);  /* s := Sp / (L + SL) */
+   REAL8 s2 = s*s;
+   *cos_beta_half = 1.0/sqrt(1.0 + s2/4.0);           /* cos(beta/2) */
+   *sin_beta_half = sqrt(1.0 - 1.0/(1.0 + s2/4.0));   /* sin(beta/2) */
+ }
+
+  static void WignerdCoefficients(
+   REAL8 *cos_beta_half, /**< [out] cos(beta/2) */
+   REAL8 *sin_beta_half, /**< [out] sin(beta/2) */
+   const REAL8 v,        /**< Cubic root of (Pi * Frequency (geometric)) */
+   const REAL8 SL,       /**< Dimensionfull aligned spin */
+   const REAL8 eta,      /**< Symmetric mass-ratio */
+   const REAL8 Sp)       /**< Dimensionfull spin component in the orbital plane */
+ {
+   //XLAL_CHECK_VOID(cos_beta_half != NULL, XLAL_EFAULT);
+   //XLAL_CHECK_VOID(sin_beta_half != NULL, XLAL_EFAULT);
+   /* We define the shorthand s := Sp / (L + SL) */
+   const REAL8 L = L2PNR(v, eta);
+     // We ignore the sign of L + SL below.
+   REAL8 s = Sp / (L + SL);  /* s := Sp / (L + SL) */
+   REAL8 s2 = s*s;
+   REAL8 cos_beta = 1.0 / sqrt(1.0 + s2);
+   *cos_beta_half = + sqrt( (1.0 + cos_beta) / 2.0 );  /* cos(beta/2) */
+   *sin_beta_half = + sqrt( (1.0 - cos_beta) / 2.0 );  /* sin(beta/2) */
+ }
+
+ static int PhenomPCoreTwistUp(
+   const REAL8 fHz,                            /**< Frequency (Hz) */
+   COMPLEX16 hPhenom,                    /**< [in] IMRPhenom waveform (before precession) */
+   const REAL8 eta,                            /**< Symmetric mass ratio */
+   const REAL8 chi1_l,                         /**< Dimensionless aligned spin on companion 1 */
+   const REAL8 chi2_l,                         /**< Dimensionless aligned spin on companion 2 */
+   const REAL8 chip,                           /**< Dimensionless spin in the orbital plane */
+   const REAL8 M,                              /**< Total mass (Solar masses) */
+   NNLOanglecoeffs *angcoeffs,                 /**< Struct with PN coeffs for the NNLO angles */
+   SpinWeightedSphericalHarmonic_l2 *Y2m,      /**< Struct of l=2 spherical harmonics of spin weight -2 */
+   const REAL8 alphaoffset,                    /**< f_ref dependent offset for alpha angle (azimuthal precession angle) */
+   const REAL8 epsilonoffset,                  /**< f_ref dependent offset for epsilon angle */
+   COMPLEX16 *hp,                              /**< [out] plus polarization \f$\tilde h_+\f$ */
+   COMPLEX16 *hc,                              /**< [out] cross polarization \f$\tilde h_x\f$ */
+   IMRPhenomP_version_type IMRPhenomP_version  /**< IMRPhenomP(v1) uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD, IMRPhenomPv2_NRTidal uses NRTidal framework with IMRPhenomPv2 */
+ )
+ {
+  
+   XLAL_CHECK(angcoeffs != NULL, XLAL_EFAULT,"");
+   XLAL_CHECK(hp != NULL, XLAL_EFAULT,"");
+   XLAL_CHECK(hc != NULL, XLAL_EFAULT,"");
+   XLAL_CHECK(Y2m != NULL, XLAL_EFAULT,"");
+  
+   REAL8 f = fHz*LAL_MTSUN_SI*M; /* Frequency in geometric units */
+  
+   const REAL8 q = (1.0 + sqrt(1.0 - 4.0*eta) - 2.0*eta)/(2.0*eta);
+   const REAL8 m1 = 1.0/(1.0+q);       /* Mass of the smaller BH for unit total mass M=1. */
+   const REAL8 m2 = q/(1.0+q);         /* Mass of the larger BH for unit total mass M=1. */
+   const REAL8 Sperp = chip*(m2*m2);   /* Dimensionfull spin component in the orbital plane. S_perp = S_2_perp */
+   REAL8 SL;                           /* Dimensionfull aligned spin. */
+   const REAL8 chi_eff = (m1*chi1_l + m2*chi2_l); /* effective spin for M=1 */
+  
+   /* Calculate dimensionfull spins */
+   switch (IMRPhenomP_version) {
+     case IMRPhenomPv1_V:
+       SL = chi_eff*m2;        /* Dimensionfull aligned spin of the largest BH. SL = m2^2 chil = m2*M*chi_eff */
+       break;
+     case IMRPhenomPv2_V:
+     case IMRPhenomPv2NRTidal_V:
+       SL = chi1_l*m1*m1 + chi2_l*m2*m2;        /* Dimensionfull aligned spin. */
+       break;    default:
+       XLAL_ERROR( XLAL_EINVAL, "Unknown IMRPhenomP version!\nAt present only v1 and v2 and tidal are available." );
+       break;
+   }
+  
+   /* Compute PN NNLO angles */
+   const REAL8 omega = LAL_PI * f;
+   const REAL8 logomega = log(omega);
+   const REAL8 omega_cbrt = cbrt(omega);
+   const REAL8 omega_cbrt2 = omega_cbrt*omega_cbrt;
+  
+   //printf("step check: %.10f, %.10f, %.10f, %.10f \n", omega, logomega, omega_cbrt, omega_cbrt2);
+   REAL8 alpha = (angcoeffs->alphacoeff1/omega
+               + angcoeffs->alphacoeff2/omega_cbrt2
+               + angcoeffs->alphacoeff3/omega_cbrt
+               + angcoeffs->alphacoeff4*logomega
+               + angcoeffs->alphacoeff5*omega_cbrt) - alphaoffset;
+  
+   REAL8 epsilon = (angcoeffs->epsiloncoeff1/omega
+                 + angcoeffs->epsiloncoeff2/omega_cbrt2
+                 + angcoeffs->epsiloncoeff3/omega_cbrt
+                 + angcoeffs->epsiloncoeff4*logomega
+                 + angcoeffs->epsiloncoeff5*omega_cbrt) - epsilonoffset;
+  
+   /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
+   REAL8 cBetah, sBetah; /* cos(beta/2), sin(beta/2) */
+   switch (IMRPhenomP_version) {
+     case IMRPhenomPv1_V:
+       WignerdCoefficients_SmallAngleApproximation(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
+       break;
+     case IMRPhenomPv2_V:
+     case IMRPhenomPv2NRTidal_V:
+       WignerdCoefficients(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
+       break;
+   default:
+     XLAL_ERROR( XLAL_EINVAL, " Unknown IMRPhenomP version!\nAt present only v1 and v2 and tidal are available." );
+     break;
+   }
+  
+   const REAL8 cBetah2 = cBetah*cBetah;
+   const REAL8 cBetah3 = cBetah2*cBetah;
+   const REAL8 cBetah4 = cBetah3*cBetah;
+   const REAL8 sBetah2 = sBetah*sBetah;
+   const REAL8 sBetah3 = sBetah2*sBetah;
+   const REAL8 sBetah4 = sBetah3*sBetah;
+  
+   /* Compute Wigner d coefficients
+     The expressions below agree with refX [Goldstein?] and Mathematica
+     d2  = Table[WignerD[{2, mp, 2}, 0, -\[Beta], 0], {mp, -2, 2}]
+     dm2 = Table[WignerD[{2, mp, -2}, 0, -\[Beta], 0], {mp, -2, 2}]
+   */
+   COMPLEX16 d2[5]   = {sBetah4, 2*cBetah*sBetah3, sqrt_6*sBetah2*cBetah2, 2*cBetah3*sBetah, cBetah4};
+   COMPLEX16 dm2[5]  = {d2[4], -d2[3], d2[2], -d2[1], d2[0]}; /* Exploit symmetry d^2_{-2,-m} = (-1)^m d^2_{2,m} */
+  
+    //printf("Y2mA: %.10f, %.10f, %.10f, %.10f, %.10f \n", creal(Y2m->Y2m2), creal(Y2m->Y2m1), creal(Y2m->Y20), creal(Y2m->Y21),creal(Y2m->Y22));
+   COMPLEX16 Y2mA[5] = {Y2m->Y2m2, Y2m->Y2m1, Y2m->Y20, Y2m->Y21, Y2m->Y22};
+   //printf("dm2: %.10f, %.10f, %.10f, %.10f, %.10f \n", creal(dm2[0]), creal(dm2[1]), creal(dm2[2]), creal(dm2[3]),creal(dm2[4]));
+   //printf("dm2imag: %.10f, %.10f, %.10f, %.10f, %.10f \n", cimag(dm2[0]), cimag(dm2[1]), cimag(dm2[2]), cimag(dm2[3]),cimag(dm2[4]));
+    //printf("Y2mA: %.10f, %.10f, %.10f, %.10f, %.10f \n", creal(Y2mA[0]), creal(Y2mA[1]), creal(Y2mA[2]), creal(Y2mA[3]),creal(Y2mA[4]));
+
+   COMPLEX16 hp_sum = 0;
+   COMPLEX16 hc_sum = 0;
+  
+   /* Sum up contributions to \tilde h+ and \tilde hx */
+   /* Precompute powers of e^{i m alpha} */
+   COMPLEX16 cexp_i_alpha = cexp(+I*alpha);
+   COMPLEX16 cexp_2i_alpha = cexp_i_alpha*cexp_i_alpha;
+   COMPLEX16 cexp_mi_alpha = 1.0/cexp_i_alpha;
+   COMPLEX16 cexp_m2i_alpha = cexp_mi_alpha*cexp_mi_alpha;
+   COMPLEX16 cexp_im_alpha[5] = {cexp_m2i_alpha, cexp_mi_alpha, 1.0, cexp_i_alpha, cexp_2i_alpha};
+   //printf("epsilon: %.10f + %.10fj \n", creal(epsilon), cimag(epsilon) );
+
+   
+   for(int m=-2; m<=2; m++) {
+     COMPLEX16 T2m   = cexp_im_alpha[-m+2] * dm2[m+2] *      Y2mA[m+2];  /*  = 
+     cexp(-I*m*alpha) * dm2[m+2] *      Y2mA[m+2] */
+     printf("T2m: %.10f + %.10fj \n", creal(T2m), cimag(T2m));
+     COMPLEX16 Tm2m  = cexp_im_alpha[m+2]  * d2[m+2]  * conj(Y2mA[m+2]); /*  = cexp(+I*m*alpha) * d2[m+2]  * conj(Y2mA[m+2]) */
+     hp_sum +=     T2m + Tm2m;
+     hc_sum += +I*(T2m - Tm2m);
+   }
+  
+   COMPLEX16 eps_phase_hP = cexp(-2*I*epsilon) * hPhenom / 2.0;
+   *hp = eps_phase_hP * hp_sum;
+   *hc = eps_phase_hP * hc_sum;
+  
+   return XLAL_SUCCESS;
+  
+ }
+
 int main(){
     REAL8 tmp1, tmp2;
     REAL8 chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz;
@@ -468,16 +1023,38 @@ int main(){
     const REAL8 chi_eff = (m1*chi1_l + m2*chi2_l) / M; /* Effective aligned spin */
     const REAL8 chil = (1.0+q)/q * chi_eff; /* dimensionless aligned spin of the largest BH */
     ComputeNNLOanglecoeffs(&angcoeffs,q,chil,chip);
-    printf("%.10f, %.10f, %.10f, %.10f, %.10f, %.10f %.10f", chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz);
-    printf("\n");  
+    //printf("%.10f, %.10f, %.10f, %.10f, %.10f, %.10f %.10f", chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz);
+    //printf("\n");  
 
-    printf("%.10f, %.10f, %.10f, %.10f, %.10f \n", 
-    angcoeffs.alphacoeff1, angcoeffs.alphacoeff2, angcoeffs.alphacoeff3, 
-    angcoeffs.alphacoeff4, angcoeffs.alphacoeff5);
+    //printf("%.10f, %.10f, %.10f, %.10f, %.10f \n", 
+    //angcoeffs.alphacoeff1, angcoeffs.alphacoeff2, angcoeffs.alphacoeff3, 
+    //angcoeffs.alphacoeff4, angcoeffs.alphacoeff5);
     
-    printf("%.10f, %.10f, %.10f, %.10f, %.10f \n", 
-    angcoeffs.epsiloncoeff1, angcoeffs.epsiloncoeff2, angcoeffs.epsiloncoeff3, 
-    angcoeffs.epsiloncoeff4, angcoeffs.epsiloncoeff5);
+    //printf("%.10f, %.10f, %.10f, %.10f, %.10f \n", 
+    //angcoeffs.epsiloncoeff1, angcoeffs.epsiloncoeff2, angcoeffs.epsiloncoeff3, 
+    //angcoeffs.epsiloncoeff4, angcoeffs.epsiloncoeff5);
+
+    //REAL8 cos_beta_half, sin_beta_half;
+    //WignerdCoefficients(&cos_beta_half, &sin_beta_half, 0.34, 0.52, 0.44, 0.135);
+    //printf("%.10f, %.10f \n",cos_beta_half, sin_beta_half);
+    COMPLEX16 hp, hc;
+    SpinWeightedSphericalHarmonic_l2 Y2m;
+    const REAL8 ytheta  = 0.58763;
+    const REAL8 yphi    = 0;
+   Y2m.Y2m2 = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2, -2);
+   Y2m.Y2m1 = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2, -1);
+   Y2m.Y20  = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  0);
+   Y2m.Y21  = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  1);
+   Y2m.Y22  = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  2);
+   printf("%.10f+%.10fi ", creal(Y2m.Y2m2),cimag(Y2m.Y2m2));
+   printf("%.10f+%.10fi ", creal(Y2m.Y2m1),cimag(Y2m.Y2m1));
+   printf("%.10f+%.10fi ", creal(Y2m.Y20),cimag(Y2m.Y20));
+   printf("%.10f+%.10fi ", creal(Y2m.Y21),cimag(Y2m.Y21));
+   printf("%.10f+%.10fi \n", creal(Y2m.Y22),cimag(Y2m.Y22));
+    PhenomPCoreTwistUp(100, 4I+5, 0.1, 0.3, 0.4, 0.5, 1, &angcoeffs, &Y2m, 1, 1, &hp, &hc,IMRPhenomPv2_V);
+    
+    printf("final result: %.10f + i%.10f, %.10f + i%.10f \n", 
+            creal(hp), cimag(hp),creal(hc), cimag(hc));
 
     return 0;
 }

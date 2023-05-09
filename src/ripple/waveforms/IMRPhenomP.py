@@ -318,10 +318,15 @@ def PhenomPCoreTwistUp(
     cexp_mi_alpha = 1.0 / cexp_i_alpha
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
     cexp_im_alpha = [cexp_m2i_alpha, cexp_mi_alpha, 1.0, cexp_i_alpha, cexp_2i_alpha]
+    #print("alpha:" , cexp_im_alpha)
+    #print("dm2:" , dm2)
+    #print("Y2m:" , Y2mA)
+    
 
     for m in range(-2, 3):
         T2m = cexp_im_alpha[-m + 2] * dm2[m + 2] * Y2mA[m + 2]
-        Tm2m = cexp_im_alpha[m + 2] * d2[m + 2] * np.conj(Y2mA[m + 2])
+        #print("T2m: ",T2m)
+        Tm2m = cexp_im_alpha[m + 2] * d2[m + 2] * jnp.conjugate(Y2mA[m + 2])
         hp_sum += T2m + Tm2m
         #print("m=", m)
         #print(T2m, Tm2m)
@@ -348,8 +353,8 @@ def WignerdCoefficients(v: float, SL: float, eta: float, Sp: float):
     s = Sp / (L + SL)
     s2 = s**2
     cos_beta = 1.0 / (1.0 + s2)**0.5
-    cos_beta_half = (1.0 + cos_beta)**0.5 / 2.0  # cos(beta/2)
-    sin_beta_half = (1.0 - cos_beta)**0.5 / 2.0  # sin(beta/2)
+    cos_beta_half = ( (1.0 + cos_beta) / 2.0 )**0.5  # cos(beta/2)
+    sin_beta_half = ( (1.0 - cos_beta) / 2.0 )**0.5   # sin(beta/2)
     
     return cos_beta_half, sin_beta_half
 
@@ -468,8 +473,6 @@ def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: flo
     omega_ref_cbrt = (piM * f_ref)**(1/3)  # == v0
     omega_ref_cbrt2 = omega_ref_cbrt * omega_ref_cbrt
 
-
-    
     angcoeffs = ComputeNNLOanglecoeffs(q, chil, chip)
 
     alphaNNLOoffset = (angcoeffs["alphacoeff1"] / omega_ref
@@ -496,10 +499,9 @@ def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: flo
 
 
     hPhenomDs, phasings = PhenomPOneFrequency(fs, m1, m2, chi1_l, chi2_l, phiRef, M)
-    print(len(hPhenomDs), len(fs))
         
-    hp, hc = PhenomPCoreTwistUp(fs, hPhenomDs, eta, chi1_l, chi2_l, chip, M, angcoeffs, Y2, alphaNNLOoffset-alpha0, epsilonNNLOoffset, "IMRPhenomPv2_V")
-    #print(hp, hc)
+    hp, hc = PhenomPCoreTwistUp(fs, hPhenomDs, eta, chi1_l, chi2_l, chip, M, angcoeffs, 
+                                Y2, alphaNNLOoffset-alpha0, epsilonNNLOoffset, "IMRPhenomPv2_V")
 
     return jnp.array(hp), jnp.array(hc)
     #TODO: fix the timeshift part. need to take autodiffs
