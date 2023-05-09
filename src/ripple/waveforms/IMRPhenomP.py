@@ -490,8 +490,8 @@ def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: flo
     Y2m2 = SpinWeightedY(thetaJN, 0 , -2, 2, -2)
     Y2m1 = SpinWeightedY(thetaJN, 0 , -2, 2, -1)
     Y20 = SpinWeightedY(thetaJN, 0 , -2, 2, -0)
-    Y21 = SpinWeightedY(thetaJN, 0 , -2, 2, -1)
-    Y22 = SpinWeightedY(thetaJN, 0 , -2, 2, -2)
+    Y21 = SpinWeightedY(thetaJN, 0 , -2, 2, 1)
+    Y22 = SpinWeightedY(thetaJN, 0 , -2, 2, 2)
     Y2 = [Y2m2, Y2m1, Y20, Y21, Y22]
 
     #finspin = get_final_spin(m1, m2, chi1_l, chi2_l)
