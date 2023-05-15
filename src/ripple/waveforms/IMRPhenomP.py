@@ -8,6 +8,7 @@ from ..constants import gt, MSUN
 import numpy as np
 from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
+from .IMRPhenomD import get_IIb_raw_phase
 from .IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
@@ -190,10 +191,6 @@ def LALtoPhenomP(
 
 
 
-#helper functions for spin-weighted spherical harmonics:
-def comb(a,b):
-    temp = factorial(a)/(factorial(b) * factorial(a-b))
-    return temp
 
 def get_final_spin(m1, m2, chi1, chi2):
     "m1 m2 in solar masses"
@@ -430,28 +427,31 @@ def ComputeNNLOanglecoeffs(q, chil, chip):
          (1645*m2_4*chil2)/(192.*mtot4*eta))
     return angcoeffs
 
-def PhenomPOneFrequency(fs, m1, m2, chi1, chi2, phic, M):
+def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, phic, M, dist_mpc):
     '''
     m1, m2: in solar masses
     phic: Orbital phase at the peak of the underlying non precessing model (rad)
     M: Total mass (Solar masses)
     '''
+    # print("inside:", dist_mpc)
     # These are the parametrs that go into the waveform generator
     # Note that JAX does not give index errors, so if you pass in the
     # the wrong array it will behave strangely
+    magicalnumber = 2.0 * jnp.sqrt(5.0 / (64.0 * jnp.pi))
+    f = fsHz # * MSUN * M
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
     transition_freqs = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
-    phase = PhDPhase(fs, theta_ripple, coeffs, transition_freqs)
-    Amp = PhDAmp(fs, theta_ripple, coeffs, transition_freqs, D=100)
+    phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
+    Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc)#/magicalnumber 
     # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
-    phase -= 2. * phic; # line 1316 ???
+    #phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(1j * phase))
     phasing = -phase
     return hPhenom, phasing
     
 
-def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: float, incl: float, s1x: float, s1y: float, s1z: float, 
+def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: float, dist_mpc: float, incl: float, s1x: float, s1y: float, s1z: float, 
                 s2x: float, s2y: float, s2z: float):
     #TODO: maybe need to reverse m1 m2
     chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz = LALtoPhenomP(m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y,s2z)
@@ -498,11 +498,27 @@ def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: flo
     #print(finspin)
 
 
-    hPhenomDs, phasings = PhenomPOneFrequency(fs, m1, m2, chi1_l, chi2_l, phiRef, M)
+    hPhenomDs, phasings = PhenomPOneFrequency(fs, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc)
         
     hp, hc = PhenomPCoreTwistUp(fs, hPhenomDs, eta, chi1_l, chi2_l, chip, M, angcoeffs, 
                                 Y2, alphaNNLOoffset-alpha0, epsilonNNLOoffset, "IMRPhenomPv2_V")
 
-    return jnp.array(hp), jnp.array(hc)
+    # Shift phase so that peak amplitude matches t = 0
+    #theta_intrinsic = jnp.array([m2, m1, chi2_l, chi1_l])
+    #coeffs = get_coeffs(theta_intrinsic)
+    #transition_freqs = get_transition_frequencies(theta_intrinsic, coeffs[5], coeffs[6])
+    #_, _, _, f4, f_RD, f_damp = transition_freqs
+    #t0 = jax.grad(get_IIb_raw_phase)(f_RD * m_sec, theta_intrinsic, coeffs, f_RD, f_damp)
+    ##t0 = jax.grad(PhDPhase)(f_RD * m_sec, theta_intrinsic, coeffs, transition_freqs)
+    #phase_corr = jnp.cos(fs*m_sec  * t0) - 1j *jnp.sin( fs*m_sec *t0 )
+    #hp *= phase_corr
+    #hc *= phase_corr
+    # Lets call the amplitude and phase now
+    #Psi = Phase(f, theta_intrinsic, coeffs, transition_freqs)
+    #Mf_ref = f_ref * M_s
+    #Psi_ref = Phase(f_ref, theta_intrinsic, coeffs, transition_freqs)
+    #Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
+
+    return hp, hc
     #TODO: fix the timeshift part. need to take autodiffs
 

@@ -1002,11 +1002,11 @@ int main(){
     f_ref = 30;
     phiRef = 0.3;
     incl = 0.1;
-    s1x = 0.3;
+    s1x = 0.0;
     s1y = 0;
     s1z = 0.34;
-    s2x = 0.1;
-    s2y = 0.1;
+    s2x = 0.0;
+    s2y = 0.0;
     s2z = 0.5;
 
     //IMRPhenomP_version_type IMRPhenomPv2_V;
@@ -1051,7 +1051,7 @@ int main(){
    printf("%.10f+%.10fi ", creal(Y2m.Y20),cimag(Y2m.Y20));
    printf("%.10f+%.10fi ", creal(Y2m.Y21),cimag(Y2m.Y21));
    printf("%.10f+%.10fi \n", creal(Y2m.Y22),cimag(Y2m.Y22));
-    PhenomPCoreTwistUp(100, 4I+5, 0.1, 0.3, 0.4, 0.5, 1, &angcoeffs, &Y2m, 1, 1, &hp, &hc,IMRPhenomPv2_V);
+    PhenomPCoreTwistUp(100, 1, 0.25, 0., 0., 0.0, 1, &angcoeffs, &Y2m, 0, 0, &hp, &hc,IMRPhenomPv2_V);
     
     printf("final result: %.10f + i%.10f, %.10f + i%.10f \n", 
             creal(hp), cimag(hp),creal(hc), cimag(hc));
