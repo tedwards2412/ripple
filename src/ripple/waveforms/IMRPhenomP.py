@@ -250,7 +250,7 @@ def SpinWeightedY(theta, phi, s, l, m):
 
 
 def PhenomPCoreTwistUp(
-    fHz, hPhenom, eta, chi1_l, chi2_l, chip, M, angcoeffs, Y2m, alphaoffset, epsilonoffset, IMRPhenomP_version):
+    fHz, hPhenom, eta, chi1_l, chi2_l, chip, M, angcoeffs, Y2m, alphaoffset, epsilonoffset):
     
     assert angcoeffs is not None
     assert Y2m is not None
@@ -264,12 +264,8 @@ def PhenomPCoreTwistUp(
     Sperp = chip * (m2 * m2)  # Dimensionfull spin component in the orbital plane. S_perp = S_2_perp
     chi_eff = (m1 * chi1_l + m2 * chi2_l)  # effective spin for M=1
 
-    if IMRPhenomP_version == 'IMRPhenomPv1_V':
-        SL = chi_eff * m2  # Dimensionfull aligned spin of the largest BH. SL = m2^2 chil = m2 * M * chi_eff
-    elif IMRPhenomP_version == 'IMRPhenomPv2_V' or IMRPhenomP_version == 'IMRPhenomPv2NRTidal_V':
-        SL = chi1_l * m1 * m1 + chi2_l * m2 * m2  # Dimensionfull aligned spin.
-    else:
-        raise ValueError("Unknown IMRPhenomP version! At present only v1 and v2 and tidal are available.")
+    SL = chi1_l * m1 * m1 + chi2_l * m2 * m2  # Dimensionfull aligned spin.
+
 
     omega = pi * f
     logomega = jnp.log(omega)
@@ -288,12 +284,7 @@ def PhenomPCoreTwistUp(
                + angcoeffs['epsiloncoeff4'] * logomega
                + angcoeffs['epsiloncoeff5'] * omega_cbrt) - epsilonoffset
 
-    if IMRPhenomP_version == 'IMRPhenomPv1_V':
-        pass
-    elif IMRPhenomP_version == 'IMRPhenomPv2_V' or IMRPhenomP_version == 'IMRPhenomPv2NRTidal_V':
-        cBetah, sBetah = WignerdCoefficients(omega_cbrt, SL, eta, Sperp)
-    else:
-        raise ValueError("Unknown IMRPhenomP version! At present only v1 and v2 and tidal are available.")
+    cBetah, sBetah = WignerdCoefficients(omega_cbrt, SL, eta, Sperp)
 
     cBetah2 = cBetah * cBetah
     cBetah3 = cBetah2 * cBetah
@@ -501,7 +492,7 @@ def PhenomPcore(fs: Array, m1_SI: float, m2_SI: float, f_ref: float, phiRef: flo
     hPhenomDs, phasings = PhenomPOneFrequency(fs, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc)
         
     hp, hc = PhenomPCoreTwistUp(fs, hPhenomDs, eta, chi1_l, chi2_l, chip, M, angcoeffs, 
-                                Y2, alphaNNLOoffset-alpha0, epsilonNNLOoffset, "IMRPhenomPv2_V")
+                                Y2, alphaNNLOoffset-alpha0, epsilonNNLOoffset)
 
     # Shift phase so that peak amplitude matches t = 0
     #theta_intrinsic = jnp.array([m2, m1, chi2_l, chi1_l])

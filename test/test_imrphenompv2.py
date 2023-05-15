@@ -106,7 +106,7 @@ Y2 = [Y2m2, Y2m1, Y20, Y21, Y22]
 #A_test = jnp.array([1+2j, 4+5j, 3-0.3j])
 
 angcoeffs = IMRPhenomP.ComputeNNLOanglecoeffs(q, chil, chip)
-hp,hc = IMRPhenomP.PhenomPCoreTwistUp(100, 1, 0.25, 0.0, 0.0, 0.0, 1, angcoeffs, Y2, 0, 0, 'IMRPhenomPv2_V')
+hp,hc = IMRPhenomP.PhenomPCoreTwistUp(100, 1, 0.25, 0.0, 0.0, 0.0, 1, angcoeffs, Y2, 0, 0)
 print(hp, hc)
 #A_trans = jnp.array(A_trans)
 #print(A_trans/A_test)
