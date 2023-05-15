@@ -432,12 +432,16 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, phic, M, dist_mpc):
     f = fsHz # * MSUN * M
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
+
     transition_freqs = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
+    #print("in OneFrequency:")
+    #print(f, theta_ripple, coeffs, transition_freqs)
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
-    Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc)#/magicalnumber 
+    #print(phase)
+    Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc)/magicalnumber 
     # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
     #phase -= 2. * phic; # line 1316 ???
-    hPhenom = Amp * (jnp.exp(1j * phase))
+    hPhenom = Amp * (jnp.exp(-1j * phase))
     phasing = -phase
     return hPhenom, phasing
     
