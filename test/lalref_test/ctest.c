@@ -997,17 +997,17 @@ int main(){
     REAL8 tmp1, tmp2;
     REAL8 chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz;
     REAL8 m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z;
-    m1_SI = 3e30;
-    m2_SI = 4e30;
+    m1_SI = 4e30;
+    m2_SI = 6e30;
     f_ref = 30;
-    phiRef = 0.3;
-    incl = 0.1;
-    s1x = 0.0;
-    s1y = 0;
-    s1z = 0.34;
+    phiRef = 0.0;
+    incl = 0.0;
+    s1x = 0.5;
+    s1y = -0.2;
+    s1z = 0.3;
     s2x = 0.0;
-    s2y = 0.0;
-    s2z = 0.5;
+    s2y = 0.6;
+    s2z = 0.3;
 
     //IMRPhenomP_version_type IMRPhenomPv2_V;
 
@@ -1022,6 +1022,8 @@ int main(){
     REAL8 q = m2 / m1; /* q >= 1 */
     const REAL8 chi_eff = (m1*chi1_l + m2*chi2_l) / M; /* Effective aligned spin */
     const REAL8 chil = (1.0+q)/q * chi_eff; /* dimensionless aligned spin of the largest BH */
+    const REAL8 eta = m1 * m2 / (M*M);    /* Symmetric mass-ratio */
+    
     ComputeNNLOanglecoeffs(&angcoeffs,q,chil,chip);
     //printf("%.10f, %.10f, %.10f, %.10f, %.10f, %.10f %.10f", chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz);
     //printf("\n");  
@@ -1039,8 +1041,9 @@ int main(){
     //printf("%.10f, %.10f \n",cos_beta_half, sin_beta_half);
     COMPLEX16 hp, hc;
     SpinWeightedSphericalHarmonic_l2 Y2m;
-    const REAL8 ytheta  = 0.58763;
+    const REAL8 ytheta  = thetaJN;
     const REAL8 yphi    = 0;
+    printf("ythetaa: %.10f \n", ytheta);
    Y2m.Y2m2 = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2, -2);
    Y2m.Y2m1 = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2, -1);
    Y2m.Y20  = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  0);
@@ -1051,7 +1054,7 @@ int main(){
    printf("%.10f+%.10fi ", creal(Y2m.Y20),cimag(Y2m.Y20));
    printf("%.10f+%.10fi ", creal(Y2m.Y21),cimag(Y2m.Y21));
    printf("%.10f+%.10fi \n", creal(Y2m.Y22),cimag(Y2m.Y22));
-    PhenomPCoreTwistUp(100, 1, 0.25, 0., 0., 0.0, 1, &angcoeffs, &Y2m, 0, 0, &hp, &hc,IMRPhenomPv2_V);
+    PhenomPCoreTwistUp(100, 1, eta, chi1_l, chi2_l, chip, M, &angcoeffs, &Y2m, 0.01-alpha0, 0.01, &hp, &hc,IMRPhenomPv2_V);
     
     printf("final result: %.10f + i%.10f, %.10f + i%.10f \n", 
             creal(hp), cimag(hp),creal(hc), cimag(hc));
