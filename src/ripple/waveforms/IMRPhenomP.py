@@ -532,7 +532,7 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, phic, M, dist_mpc):
     # These are the parametrs that go into the waveform generator
     # Note that JAX does not give index errors, so if you pass in the
     # the wrong array it will behave strangely
-    magicalnumber = jnp.sqrt(5.0 / (64.0 * jnp.pi))
+    magicalnumber = 2.0 * jnp.sqrt(5.0 / (64.0 * jnp.pi))
     f = fsHz  # * MSUN * M
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
@@ -541,13 +541,49 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, phic, M, dist_mpc):
     # print("in OneFrequency:")
     # print(f, theta_ripple, coeffs, transition_freqs)
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
+    phase -= 2 * phic
     # print(phase)
     Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
     # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
     # phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(-1j * phase))
-    phasing = -phase
-    return hPhenom, phasing
+    return hPhenom, -phase
+
+
+def PhenomPOneFrequency_phase(
+    fsHz: float,
+    m1: float,
+    m2: float,
+    chi1: float,
+    chi2: float,
+    phic: float,
+    M: float,
+    dist_mpc: float,
+):
+    """
+    m1, m2: in solar masses
+    phic: Orbital phase at the peak of the underlying non precessing model (rad)
+    M: Total mass (Solar masses)
+    """
+    # print("inside:", dist_mpc)
+    # These are the parametrs that go into the waveform generator
+    # Note that JAX does not give index errors, so if you pass in the
+    # the wrong array it will behave strangely
+    magicalnumber = 2.0 * jnp.sqrt(5.0 / (64.0 * jnp.pi))
+    f = jnp.array([fsHz])  # * MSUN * M
+    theta_ripple = jnp.array([m1, m2, chi1, chi2])
+    coeffs = get_coeffs(theta_ripple)
+
+    transition_freqs = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
+    # print("in OneFrequency:")
+    # print(f, theta_ripple, coeffs, transition_freqs)
+    phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
+    phase -= 2 * phic
+    # print(phase)
+    # Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
+    # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
+    # phase -= 2. * phic; # line 1316 ???
+    return -phase[0]
 
 
 def PhenomPcore(
@@ -565,6 +601,12 @@ def PhenomPcore(
     s2y: float,
     s2z: float,
 ):
+    print("####################################################################################################")
+    print(
+        "WARNING: a linear-in-frequency phase difference between this code and the LAL implementation exists"
+    )
+    print("####################################################################################################")
+
     # TODO: maybe need to reverse m1 m2
     chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz = LALtoPhenomP(
         m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
@@ -578,10 +620,10 @@ def PhenomPcore(
     chil = (1.0 + q) / q * chi_eff
     eta = m1 * m2 / (M * M)
     m_sec = M * gt
-    piM = np.pi * m_sec
+    piM = jnp.pi * m_sec
 
     omega_ref = piM * f_ref
-    logomega_ref = math.log(omega_ref)
+    logomega_ref = jnp.log(omega_ref)
     omega_ref_cbrt = (piM * f_ref) ** (1 / 3)  # == v0
     omega_ref_cbrt2 = omega_ref_cbrt * omega_ref_cbrt
 
@@ -613,9 +655,7 @@ def PhenomPcore(
     # finspin = get_final_spin(m1, m2, chi1_l, chi2_l)
     # print(finspin)
 
-    hPhenomDs, phasings = PhenomPOneFrequency(
-        fs, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc
-    )
+    hPhenomDs, _ = PhenomPOneFrequency(fs, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc)
 
     hp, hc = PhenomPCoreTwistUp(
         fs,
@@ -638,64 +678,14 @@ def PhenomPcore(
     transition_freqs = get_transition_frequencies(theta_intrinsic, coeffs[5], coeffs[6])
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
 
-    phi_Ins = get_inspiral_phase(fs * m_sec, theta_intrinsic, coeffs)
-
-    # Next lets construct the phase of the late inspiral (region IIa)
-    # beta0 is found by matching the phase between the region I and IIa
-    # C(1) continuity must be preserved. We therefore need to solve for an additional
-    # contribution to beta1
-    # Note that derivatives seem to be d/d(fm_sec), not d/df
-
-    # Here I've now defined
-    # phi_IIa(f1*m_sec) + beta0 + beta1_correction*(f1*m_sec) = phi_Ins(f1*m_sec)
-    # ==> phi_IIa'(f1*m_sec) + beta1_correction = phi_Ins'(f1*m_sec)
-    # ==> beta1_correction = phi_Ins'(f1*m_sec) - phi_IIa'(f1*m_sec)
-    # ==> beta0 = phi_Ins(f1*m_sec) - phi_IIa(f1*m_sec) - beta1_correction*(f1*m_sec)
-    phi_Ins_f1, dphi_Ins_f1 = jax.value_and_grad(get_inspiral_phase)(
-        f1 * m_sec, theta_intrinsic, coeffs
+    phi_IIb = lambda f: PhenomPOneFrequency_phase(
+        f, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc
     )
-    phi_IIa_f1, dphi_IIa_f1 = jax.value_and_grad(get_IIa_raw_phase)(
-        f1 * m_sec, theta_intrinsic, coeffs
-    )
-
-    beta1_correction = dphi_Ins_f1 - dphi_IIa_f1
-    beta0 = phi_Ins_f1 - beta1_correction * (f1 * m_sec) - phi_IIa_f1
-
-    phi_IIa_func = (
-        lambda fm_sec: get_IIa_raw_phase(fm_sec, theta_intrinsic, coeffs)
-        + beta1_correction * fm_sec
-    )
-
-    # And finally, we do the same thing to get the phase of the merger-ringdown (region IIb)
-    # phi_IIb(f2*m_sec) + a0 + a1_correction*(f2*m_sec) = phi_IIa(f2*m_sec)
-    # ==> phi_IIb'(f2*m_sec) + a1_correction = phi_IIa'(f2*m_sec)
-    # ==> a1_correction = phi_IIa'(f2*m_sec) - phi_IIb'(f2*m_sec)
-    # ==> a0 = phi_IIa(f2*m_sec) - phi_IIb(f2*m_sec) - beta1_correction*(f2*m_sec)
-    phi_IIa_f2, dphi_IIa_f2 = jax.value_and_grad(phi_IIa_func)(f2 * m_sec)
-    phi_IIb_f2, dphi_IIb_f2 = jax.value_and_grad(get_IIb_raw_phase)(
-        f2 * m_sec, theta_intrinsic, coeffs, f_RD, f_damp
-    )
-
-    a1_correction = dphi_IIa_f2 - dphi_IIb_f2
-    a0 = phi_IIa_f2 + beta0 - a1_correction * (f2 * m_sec) - phi_IIb_f2
-
-    phi_IIb = (
-        lambda fM_s: get_IIb_raw_phase(fM_s, theta_intrinsic, coeffs, f_RD, f_damp)
-        + a0
-        + a1_correction * (fM_s)
-    )
-
-    t0 = jax.grad(phi_IIb)(f_RD * m_sec)
+    t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
     # t0 = jax.grad(PhDPhase)(f_RD * m_sec, theta_intrinsic, coeffs, transition_freqs)
-    phase_corr = jnp.cos(-fs * m_sec * t0) - 1j * jnp.sin(-fs * m_sec * t0)
+    phase_corr = jnp.cos(2 * jnp.pi * fs * t0) - 1j * jnp.sin(2 * jnp.pi * fs * t0)
     hp *= phase_corr
     hc *= phase_corr
-    # Lets call the amplitude and phase now
-    # Mf_ref = f_ref * m_sec
-    # Psi_ref = PhDPhase(f_ref, theta_intrinsic, coeffs, transition_freqs)
-    # Psi -= t0 * ((fs * m_sec) - Mf_ref) + Psi_ref
-    # ext_phase_contrib = 2.0 * jnp.pi * fs * dist_mpc - 2 * tc
-    # Psi += ext_phase_contrib
 
     return hp, hc
     # TODO: fix the timeshift part. need to take autodiffs

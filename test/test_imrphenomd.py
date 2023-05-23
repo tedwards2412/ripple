@@ -219,8 +219,8 @@ def test_phase_phenomD():
 def test_Amp_phenomD():
     theta = np.array(
         [
-            7.765270965631057720e01,
-            4.909567250892310142e01,
+            7.765270965631057720e00,
+            4.909567250892310142e00,
             3.969370946508115061e-01,
             4.405203497762351095e-01,
         ]
@@ -299,11 +299,11 @@ def test_Amp_phenomD():
 
     plt.figure(figsize=(7, 5))
     plt.plot(
-        freq[f_mask] * ((theta[0] + theta[1]) * 4.92549094830932e-6),
-        abs(hp.data.data)[f_mask],
+        freq[f_mask], #* ((theta[0] + theta[1]) * 4.92549094830932e-6),
+        hp.data.data[f_mask],
         label="lalsuite",
     )
-    plt.loglog(Mf, abs(hp_ripple), label="ripple")
+    plt.plot(f, hp_ripple, label="ripple", alpha=0.5, linewidth=3)
     # plt.axvline(x=f3 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
     # plt.axvline(x=f4 * (theta[0] + theta[1]) * 4.92549094830932e-6, ls="--", color="C0")
     plt.legend()
@@ -782,7 +782,7 @@ if __name__ == "__main__":
     test_Amp_phenomD()
     test_phase_phenomD()
     # test_frequency_calc()
-    # plot_waveforms()
+    #plot_waveforms()
     # benchmark_waveform_call()
-    # random_match_waveforms(n=1000)
+    #random_match_waveforms(n=1000)
     None
