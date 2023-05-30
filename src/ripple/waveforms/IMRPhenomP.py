@@ -336,16 +336,18 @@ def PhenomPCoreTwistUp(
     sBetah3 = sBetah2 * sBetah
     sBetah4 = sBetah3 * sBetah
 
-    d2 = [
-        sBetah4,
-        2 * cBetah * sBetah3,
-        sqrt(6) * sBetah2 * cBetah2,
-        2 * cBetah3 * sBetah,
-        cBetah4,
-    ]
-    dm2 = [d2[4], -d2[3], d2[2], -d2[1], d2[0]]
+    d2 = jnp.array(
+        [
+            sBetah4,
+            2 * cBetah * sBetah3,
+            sqrt(6) * sBetah2 * cBetah2,
+            2 * cBetah3 * sBetah,
+            cBetah4,
+        ]
+    )
+    dm2 = jnp.array([d2[4], -d2[3], d2[2], -d2[1], d2[0]])
 
-    Y2mA = Y2m  # this change means you need to pass Y2m in a 5-component list
+    Y2mA = jnp.array(Y2m)  # need to pass Y2m in a 5-component list
     hp_sum = 0
     hc_sum = 0
 
@@ -353,22 +355,33 @@ def PhenomPCoreTwistUp(
     cexp_2i_alpha = cexp_i_alpha * cexp_i_alpha
     cexp_mi_alpha = 1.0 / cexp_i_alpha
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
-    cexp_im_alpha = [cexp_m2i_alpha, cexp_mi_alpha, 1.0, cexp_i_alpha, cexp_2i_alpha]
+    ones = jnp.ones(len(cexp_i_alpha))
+    cexp_im_alpha = jnp.array(
+        [cexp_m2i_alpha, cexp_mi_alpha, ones, cexp_i_alpha, cexp_2i_alpha]
+    )
+    cexp_im_alpha_reverse = jnp.array(
+        [cexp_2i_alpha, cexp_i_alpha, ones, cexp_mi_alpha, cexp_m2i_alpha]
+    )
     # print("alpha:" , cexp_im_alpha)
     # print("dm2:" , dm2)
     # print("Y2m:" , Y2mA)
 
-    for m in range(-2, 3):
-        T2m = cexp_im_alpha[-m + 2] * dm2[m + 2] * Y2mA[m + 2]
-        # print("T2m: ",T2m)
-        Tm2m = cexp_im_alpha[m + 2] * d2[m + 2] * jnp.conjugate(Y2mA[m + 2])
-        hp_sum += T2m + Tm2m
-        # print("m=", m)
-        # print(T2m, Tm2m)
-        hc_sum += 1j * (T2m - Tm2m)
-        # print(hc_sum)
-        # print("end")
-
+    # for m in range(-2, 3):
+    #    T2m = cexp_im_alpha[-m + 2] * dm2[m + 2] * Y2mA[m + 2]
+    #    # print("T2m: ",T2m)
+    #    Tm2m = cexp_im_alpha[m + 2] * d2[m + 2] * jnp.conjugate(Y2mA[m + 2])
+    #    hp_sum += T2m + Tm2m
+    #    # print("m=", m)
+    #    # print(T2m, Tm2m)
+    #    hc_sum += 1j * (T2m - Tm2m)
+    #    # print(hc_sum)
+    #    # print("end")
+    print(cexp_im_alpha_reverse.shape, dm2.shape, Y2mA.shape)
+    T2m = (cexp_im_alpha_reverse * dm2).T * Y2mA
+    print(T2m.shape)
+    Tm2m = (cexp_im_alpha * d2).T * jnp.conjugate(Y2mA)
+    hp_sum = jnp.sum(T2m + Tm2m, axis=1)
+    hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
     eps_phase_hP = np.exp(-2j * epsilon) * hPhenom / 2.0
     hp = eps_phase_hP * hp_sum
     hc = eps_phase_hP * hc_sum
@@ -586,6 +599,11 @@ def PhenomPOneFrequency_phase(
     return -phase[0]
 
 
+# utility for switching two quantities
+def switching(x, y):
+    return y, x
+
+
 def PhenomPcore(
     fs: Array,
     m1_SI: float,
@@ -601,13 +619,23 @@ def PhenomPcore(
     s2y: float,
     s2z: float,
 ):
-    print("####################################################################################################")
+    print(
+        "####################################################################################################"
+    )
     print(
         "WARNING: a linear-in-frequency phase difference between this code and the LAL implementation exists"
     )
-    print("####################################################################################################")
+    print(
+        "####################################################################################################"
+    )
+    # maybe need to reverse m1 m2
+    # convention: m1 < m2
+    if m1_SI > m2_SI:
+        m1_SI, m2_SI = switching(m1_SI, m2_SI)
+        s1x, s2x = switching(s1x, s2x)
+        s1y, s2y = switching(s1y, s2y)
+        s1z, s2z = switching(s1z, s2z)
 
-    # TODO: maybe need to reverse m1 m2
     chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz = LALtoPhenomP(
         m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
     )
