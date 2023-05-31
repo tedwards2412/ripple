@@ -25,22 +25,19 @@ from ..typing import Array
 
 # helper functions for LALtoPhenomP:
 def ROTATEZ(angle, x, y, z):
-    tmp_x = x * cos(angle) - y * sin(angle)
-    tmp_y = x * sin(angle) + y * cos(angle)
+    tmp_x = x * jnp.cos(angle) - y * jnp.sin(angle)
+    tmp_y = x * jnp.sin(angle) + y * jnp.cos(angle)
     return tmp_x, tmp_y, z
 
 
 def ROTATEY(angle, x, y, z):
-    tmp_x = x * cos(angle) + z * sin(angle)
-    tmp_z = -x * sin(angle) + z * cos(angle)
+    tmp_x = x * jnp.cos(angle) + z * jnp.sin(angle)
+    tmp_z = -x * jnp.sin(angle) + z * jnp.cos(angle)
     return tmp_x, y, tmp_z
 
 
 def atan2tol(y, x, tol):
-    if abs(x) < tol and abs(y) < tol:
-        return 0.0
-    else:
-        return atan2(y, x)
+    return jnp.arctan2(y, x)
 
 
 def LALtoPhenomP(
@@ -59,16 +56,16 @@ def LALtoPhenomP(
     MAX_TOL_ATAN = 1e-10
 
     # Check arguments for sanity
-    if f_ref <= 0:
-        raise ValueError("Reference frequency must be positive.")
-    if m1_SI <= 0:
-        raise ValueError("m1 must be positive.")
-    if m2_SI <= 0:
-        raise ValueError("m2 must be positive.")
-    if abs(s1x**2 + s1y**2 + s1z**2) > 1.0:
-        raise ValueError("|S1/m1^2| must be <= 1.")
-    if abs(s2x**2 + s2y**2 + s2z**2) > 1.0:
-        raise ValueError("|S2/m2^2| must be <= 1.")
+    #if f_ref <= 0:
+    #    raise ValueError("Reference frequency must be positive.")
+    #if m1_SI <= 0:
+    #    raise ValueError("m1 must be positive.")
+    #if m2_SI <= 0:
+    #    raise ValueError("m2 must be positive.")
+    #if abs(s1x**2 + s1y**2 + s1z**2) > 1.0:
+    #    raise ValueError("|S1/m1^2| must be <= 1.")
+    #if abs(s2x**2 + s2y**2 + s2z**2) > 1.0:
+    #    raise ValueError("|S2/m2^2| must be <= 1.")
 
     m1 = m1_SI / MSUN  # Masses in solar masses
     m2 = m2_SI / MSUN
@@ -87,22 +84,16 @@ def LALtoPhenomP(
     chi2_l = s2z  # Dimensionless aligned spin on BH 2
 
     # Magnitude of the spin projections in the orbital plane
-    S1_perp = m1_2 * sqrt(s1x**2 + s1y**2)
-    S2_perp = m2_2 * sqrt(s2x**2 + s2y**2)
+    S1_perp = m1_2 * jnp.sqrt(s1x**2 + s1y**2)
+    S2_perp = m2_2 * jnp.sqrt(s2x**2 + s2y**2)
 
     # print("perps: ", S1_perp, S2_perp)
     A1 = 2 + (3 * m2) / (2 * m1)
     A2 = 2 + (3 * m1) / (2 * m2)
     ASp1 = A1 * S1_perp
     ASp2 = A2 * S2_perp
-    if ASp2 > ASp1:
-        num = ASp2
-    else:
-        num = ASp1
-    if m2 > m1:
-        den = A2 * m2_2
-    else:
-        den = A1 * m1_2
+    num = jnp.maximum(ASp1, ASp2)
+    den = A1 * m1_2 # warning: this assumes m1 > m2
     chip = num / den
 
     m_sec = M * gt
@@ -118,17 +109,12 @@ def LALtoPhenomP(
     J0z_sf = L0 + m1_2 * s1z + m2_2 * s2z
     J0 = jnp.sqrt(J0x_sf * J0x_sf + J0y_sf * J0y_sf + J0z_sf * J0z_sf)
 
-    if J0 < 1e-10:
-        thetaJ_sf = 0
-    else:
-        thetaJ_sf = jnp.arccos(J0z_sf / J0)
+
+    thetaJ_sf = jnp.arccos(J0z_sf / J0)
 
     # print(thetaJ_sf)
 
-    if abs(J0x_sf) < MAX_TOL_ATAN and abs(J0y_sf) > MAX_TOL_ATAN:
-        phiJ_sf = jnp.pi / 2.0 - phiRef
-    else:
-        phiJ_sf = jnp.arctan2(J0y_sf, J0x_sf)
+    phiJ_sf = jnp.arctan2(J0y_sf, J0x_sf)
 
     phi_aligned = -phiJ_sf
 
@@ -155,10 +141,7 @@ def LALtoPhenomP(
     tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
 
     # print(tmp_x, tmp_y)
-    if abs(tmp_x) < MAX_TOL_ATAN and abs(tmp_y) < MAX_TOL_ATAN:
-        alpha0 = jnp.pi
-    else:
-        alpha0 = atan2(tmp_y, tmp_x)
+    alpha0 = jnp.arctan2(tmp_y, tmp_x)
 
     # Finally we determine thetaJ, by rotating N
     tmp_x, tmp_y, tmp_z = Nx_sf, Ny_sf, Nz_sf
@@ -296,7 +279,7 @@ def PhenomPCoreTwistUp(
     # here it is used to be LAL_MTSUN_SI
     f = fHz * gt * M  # Frequency in geometric units
 
-    q = (1.0 + sqrt(1.0 - 4.0 * eta) - 2.0 * eta) / (2.0 * eta)
+    q = (1.0 + jnp.sqrt(1.0 - 4.0 * eta) - 2.0 * eta) / (2.0 * eta)
     m1 = 1.0 / (1.0 + q)  # Mass of the smaller BH for unit total mass M=1.
     m2 = q / (1.0 + q)  # Mass of the larger BH for unit total mass M=1.
     Sperp = chip * (
@@ -351,7 +334,7 @@ def PhenomPCoreTwistUp(
     hp_sum = 0
     hc_sum = 0
 
-    cexp_i_alpha = np.exp(1j * alpha)
+    cexp_i_alpha = jnp.exp(1j * alpha)
     cexp_2i_alpha = cexp_i_alpha * cexp_i_alpha
     cexp_mi_alpha = 1.0 / cexp_i_alpha
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
@@ -382,7 +365,7 @@ def PhenomPCoreTwistUp(
     Tm2m = (cexp_im_alpha * d2).T * jnp.conjugate(Y2mA)
     hp_sum = jnp.sum(T2m + Tm2m, axis=1)
     hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
-    eps_phase_hP = np.exp(-2j * epsilon) * hPhenom / 2.0
+    eps_phase_hP = jnp.exp(-2j * epsilon) * hPhenom / 2.0
     hp = eps_phase_hP * hp_sum
     hc = eps_phase_hP * hc_sum
 
@@ -606,18 +589,8 @@ def switching(x, y):
 
 def PhenomPcore(
     fs: Array,
-    m1_SI: float,
-    m2_SI: float,
-    f_ref: float,
-    phiRef: float,
-    dist_mpc: float,
-    incl: float,
-    s1x: float,
-    s1y: float,
-    s1z: float,
-    s2x: float,
-    s2y: float,
-    s2z: float,
+    theta: Array,
+
 ):
     print(
         "####################################################################################################"
@@ -630,11 +603,24 @@ def PhenomPcore(
     )
     # maybe need to reverse m1 m2
     # convention: m1 < m2
-    if m1_SI > m2_SI:
-        m1_SI, m2_SI = switching(m1_SI, m2_SI)
-        s1x, s2x = switching(s1x, s2x)
-        s1y, s2y = switching(s1y, s2y)
-        s1z, s2z = switching(s1z, s2z)
+    #if m1_SI > m2_SI:
+    #    m1_SI, m2_SI = switching(m1_SI, m2_SI)
+    #    s1x, s2x = switching(s1x, s2x)
+    #    s1y, s2y = switching(s1y, s2y)
+    #    s1z, s2z = switching(s1z, s2z)
+
+    m1_SI = theta[0]
+    m2_SI = theta[1]
+    f_ref = theta[2]
+    phiRef = theta[3]
+    dist_mpc = theta[4]
+    incl = theta[5]
+    s1x = theta[6]
+    s1y = theta[7]
+    s1z = theta[8]
+    s2x = theta[9]
+    s2y = theta[10]
+    s2z = theta[11]
 
     chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz = LALtoPhenomP(
         m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
@@ -642,7 +628,7 @@ def PhenomPcore(
 
     m1 = m1_SI / MSUN
     m2 = m2_SI / MSUN
-    q = m2 / m1  # q>=1
+    q = m1 / m2  # q>=1
     M = m1 + m2
     chi_eff = (m1 * chi1_l + m2 * chi2_l) / M
     chil = (1.0 + q) / q * chi_eff
@@ -683,14 +669,14 @@ def PhenomPcore(
     # finspin = get_final_spin(m1, m2, chi1_l, chi2_l)
     # print(finspin)
 
-    hPhenomDs, _ = PhenomPOneFrequency(fs, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc)
+    hPhenomDs, _ = PhenomPOneFrequency(fs, m1, m2, chi1_l, chi2_l, phiRef, M, dist_mpc)
 
     hp, hc = PhenomPCoreTwistUp(
         fs,
         hPhenomDs,
         eta,
-        chi1_l,
         chi2_l,
+        chi1_l,
         chip,
         M,
         angcoeffs,
@@ -707,7 +693,7 @@ def PhenomPcore(
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
 
     phi_IIb = lambda f: PhenomPOneFrequency_phase(
-        f, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc
+        f, m1, m2, chi1_l, chi2_l, phiRef, M, dist_mpc
     )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
     # t0 = jax.grad(PhDPhase)(f_RD * m_sec, theta_intrinsic, coeffs, transition_freqs)
