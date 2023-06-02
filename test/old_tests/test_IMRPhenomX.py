@@ -640,7 +640,7 @@ def test_full_waveform_XAS(
     )
 
 
-def random_match_waveforms(n=10):
+def random_match_waveforms(n=100):
     # Get a frequency domain waveform
     thetas = []
     matches = []
@@ -657,6 +657,18 @@ def random_match_waveforms(n=10):
         dist_mpc = 440
         inclination = np.pi / 2.0
         phi_ref = 0
+        Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+
+        events = {
+            "Mc": np.array([Mc]),
+            "dL": np.array([1000.0]),
+            "iota": np.array([0.0]),
+            "eta": np.array([eta]),
+            "chi1z": np.array([s1]),
+            "chi2z": np.array([s2]),
+            "Lambda1": np.array([0.0]),
+            "Lambda2": np.array([0.0]),
+        }
 
         ################################
         # Need to normalise the frequency
@@ -678,7 +690,7 @@ def random_match_waveforms(n=10):
 
         f_l = 32.0
         f_u = 1024.0
-        del_f = 0.0125
+        del_f = 0.125
 
         f_l_idx = round(f_l / del_f)
         f_u_idx = f_u // del_f
@@ -728,10 +740,13 @@ def random_match_waveforms(n=10):
         )
         freqs = np.arange(len(hp.data.data)) * del_f
 
-        Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
-
         theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic])
         h0_ripple = IMRPhenomXAS.gen_IMRPhenomXAS(fs, theta_ripple, f_ref)
+        # tmpWF = waveforms.IMRPhenomXAS()
+        # hp_wfpy, hp_wfpy = tmpWF.hphc(fs, **events)
+        # phase_wf4py = waveforms.IMRPhenomXAS().Phi(fs, **events)
+        # Amp_wf4py = waveforms.IMRPhenomXAS().Ampl(fs, **events)
+        # h0_wfpy = Amp_wf4py * np.exp(1j * phase_wf4py)
         pad_low, pad_high = get_eff_pads(fs)
         PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
 
@@ -769,7 +784,7 @@ def random_match_waveforms(n=10):
     matches = np.array(matches)
 
     # np.savetxt(thetas)
-    np.savetxt("ripple_phenomXAS_matches.txt", np.c_[thetas, matches])
+    # np.savetxt("ripple_phenomXAS_matches.txt", np.c_[thetas, matches])
 
     plt.figure(figsize=(7, 5))
     cm = plt.cm.get_cmap("inferno")
@@ -985,5 +1000,5 @@ if __name__ == "__main__":
     # test_gen_phenomXAS()
     # test_amplitude_XAS()
     # test_full_waveform_XAS()
-    # random_match_waveforms()
-    plot_waveforms()
+    random_match_waveforms()
+    # plot_waveforms()
