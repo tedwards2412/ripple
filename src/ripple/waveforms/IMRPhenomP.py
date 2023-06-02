@@ -37,7 +37,10 @@ def ROTATEY(angle, x, y, z):
 
 
 def atan2tol(y, x, tol):
-    return jnp.arctan2(y, x)
+    if abs(x) < tol and abs(y) < tol:
+        return 0.0
+    else:
+        return jnp.arctan2(y, x)
 
 
 def LALtoPhenomP(
@@ -92,8 +95,16 @@ def LALtoPhenomP(
     A2 = 2 + (3 * m1) / (2 * m2)
     ASp1 = A1 * S1_perp
     ASp2 = A2 * S2_perp
-    num = jnp.maximum(ASp1, ASp2)
-    den = A1 * m1_2 # warning: this assumes m1 > m2
+    if ASp2 > ASp1:
+        num = ASp2
+    else:
+        num = ASp1
+    if m2 > m1:
+        den = A2 * m2_2
+    else:
+        den = A1 * m1_2
+    #num = jnp.maximum(ASp1, ASp2)
+    #den = A2 * m2_2 # warning: this assumes m2 > m1
     chip = num / den
 
     m_sec = M * gt
@@ -359,9 +370,9 @@ def PhenomPCoreTwistUp(
     #    hc_sum += 1j * (T2m - Tm2m)
     #    # print(hc_sum)
     #    # print("end")
-    print(cexp_im_alpha_reverse.shape, dm2.shape, Y2mA.shape)
+    #print(cexp_im_alpha_reverse.shape, dm2.shape, Y2mA.shape)
     T2m = (cexp_im_alpha_reverse * dm2).T * Y2mA
-    print(T2m.shape)
+    #print(T2m.shape)
     Tm2m = (cexp_im_alpha * d2).T * jnp.conjugate(Y2mA)
     hp_sum = jnp.sum(T2m + Tm2m, axis=1)
     hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
@@ -388,7 +399,7 @@ def L2PNR(v: float, eta: float) -> float:
 
 def WignerdCoefficients(v: float, SL: float, eta: float, Sp: float):
     # We define the shorthand s := Sp / (L + SL)
-    L = L2PNR(v, eta)
+    L = L2PNR(v, eta)             
     s = Sp / (L + SL)
     s2 = s**2
     cos_beta = 1.0 / (1.0 + s2) ** 0.5
@@ -578,7 +589,6 @@ def PhenomPOneFrequency_phase(
     # print(phase)
     # Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
     # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
-    # phase -= 2. * phic; # line 1316 ???
     return -phase[0]
 
 
@@ -609,8 +619,8 @@ def PhenomPcore(
     #    s1y, s2y = switching(s1y, s2y)
     #    s1z, s2z = switching(s1z, s2z)
 
-    m1_SI = theta[0]
-    m2_SI = theta[1]
+    m1 = theta[0]
+    m2 = theta[1]
     f_ref = theta[2]
     phiRef = theta[3]
     dist_mpc = theta[4]
@@ -622,13 +632,22 @@ def PhenomPcore(
     s2y = theta[10]
     s2z = theta[11]
 
+    # flip m1 m2
+    m1, m2 = m2, m1
+    s1x, s2x = s2x, s1x
+    s1y, s2y = s2y, s1y
+    s1z, s2z = s2z, s1z
+
+    m1_SI = m1 * MSUN
+    m2_SI = m2 * MSUN
     chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz = LALtoPhenomP(
         m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
     )
 
-    m1 = m1_SI / MSUN
-    m2 = m2_SI / MSUN
-    q = m1 / m2  # q>=1
+    #m1 = m1_SI / MSUN
+    #m2 = m2_SI / MSUN
+    #print("m1, m2: ", m1, m2)
+    q = m2 / m1  # q>=1
     M = m1 + m2
     chi_eff = (m1 * chi1_l + m2 * chi2_l) / M
     chil = (1.0 + q) / q * chi_eff
@@ -669,14 +688,14 @@ def PhenomPcore(
     # finspin = get_final_spin(m1, m2, chi1_l, chi2_l)
     # print(finspin)
 
-    hPhenomDs, _ = PhenomPOneFrequency(fs, m1, m2, chi1_l, chi2_l, phiRef, M, dist_mpc)
+    hPhenomDs, _ = PhenomPOneFrequency(fs, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc)
 
     hp, hc = PhenomPCoreTwistUp(
         fs,
         hPhenomDs,
         eta,
-        chi2_l,
         chi1_l,
+        chi2_l,
         chip,
         M,
         angcoeffs,
@@ -693,7 +712,7 @@ def PhenomPcore(
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
 
     phi_IIb = lambda f: PhenomPOneFrequency_phase(
-        f, m1, m2, chi1_l, chi2_l, phiRef, M, dist_mpc
+        f, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc
     )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
     # t0 = jax.grad(PhDPhase)(f_RD * m_sec, theta_intrinsic, coeffs, transition_freqs)

@@ -535,7 +535,7 @@ def random_match_waveforms(n=1000):
             theta = np.array([m1, m2, s1, s2])
         else:
             raise ValueError("Something went wrong with the parameters")
-        approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomD")
+        approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomPv2")
 
         # coeffs = IMRPhenomD_utils.get_coeffs(theta)
         # _, _, f3, f4, _, _ = IMRPhenomD_utils.get_transition_frequencies(
@@ -779,10 +779,10 @@ if __name__ == "__main__":
     # stats = pstats.Stats(profiler).sort_stats("cumtime")
     # stats.print_stats()
     # profile_grad()
-    test_Amp_phenomD()
-    test_phase_phenomD()
+    # test_Amp_phenomD()
+    # test_phase_phenomD()
     # test_frequency_calc()
     #plot_waveforms()
     # benchmark_waveform_call()
-    #random_match_waveforms(n=1000)
+    random_match_waveforms(n=400)
     None
