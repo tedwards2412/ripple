@@ -135,10 +135,10 @@ def lal_phenomD_phenomP_test():
 
 def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
     dist_mpc = 1
-    m1_test = 10 * 10**30
-    m2_test = 10 * 10**30
-    m1_msun = m1_test / MSUN
-    m2_msun = m2_test / MSUN
+    m1_test = 6.0
+    m2_test = 3.0
+    m1_SI = m1_test * MSUN
+    m2_SI = m2_test * MSUN
     f_ref = 32
     # phi_ref = 0.7
     # incl = 0.3
@@ -175,8 +175,8 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
 
     approximant = lalsim.SimInspiralGetApproximantFromString("IMRPhenomPv2")
     hpP_lal, hcP_lal = lalsim.SimInspiralChooseFDWaveform(
-        m1_test,
-        m2_test,
+        m1_SI,
+        m2_SI,
         s1x,
         s1y,
         s1z,
@@ -803,9 +803,9 @@ def benchmark_waveform_call():
 
 
 # benchmark_waveform_call()
-#my_phenomP_test(phi_ref=0.2, s1z=0.76, s2z=0.89)
+my_phenomP_test(phi_ref=0.2, s1z=0.76, s2z=0.89)
 #random_match_waveforms_debug(n=400)
-lal_phenomD_phenomP_test()
+#lal_phenomD_phenomP_test()
 # s1z_list = np.linspace(0,1, 30)
 # b_list = []
 # for s1z in s1z_list:

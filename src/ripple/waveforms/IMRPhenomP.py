@@ -1,7 +1,7 @@
 import math
 import jax
 import jax.numpy as jnp
-from math import acos, atan2, sqrt, sin, cos, pi, log
+#from math import acos, atan2, sqrt, sin, cos, pi, log
 from typing import Tuple
 from scipy.special import factorial
 from ..constants import gt, MSUN
@@ -300,7 +300,7 @@ def PhenomPCoreTwistUp(
 
     SL = chi1_l * m1 * m1 + chi2_l * m2 * m2  # Dimensionfull aligned spin.
 
-    omega = pi * f
+    omega = jnp.pi * f
     logomega = jnp.log(omega)
     omega_cbrt = (omega) ** (1 / 3)
     omega_cbrt2 = omega_cbrt * omega_cbrt
@@ -334,7 +334,7 @@ def PhenomPCoreTwistUp(
         [
             sBetah4,
             2 * cBetah * sBetah3,
-            sqrt(6) * sBetah2 * cBetah2,
+            jnp.sqrt(6) * sBetah2 * cBetah2,
             2 * cBetah3 * sBetah,
             cBetah4,
         ]
@@ -453,8 +453,8 @@ def ComputeNNLOanglecoeffs(q, chil, chip):
     )
 
     angcoeffs["alphacoeff4"] = (
-        -(35 * pi) / 48.0
-        - (5 * dm * pi) / (16.0 * m2)
+        -(35 * jnp.pi) / 48.0
+        - (5 * dm * jnp.pi) / (16.0 * m2)
         + (5 * dm2 * chil) / (16.0 * mtot2)
         + (5 * dm * m2 * chil) / (3.0 * mtot2)
         + (2545 * m2_2 * chil) / (1152.0 * mtot2)
@@ -481,8 +481,8 @@ def ComputeNNLOanglecoeffs(q, chil, chip):
         + (15 * dm3 * eta2) / (1024.0 * m2_3)
         + (35 * dm2 * eta2) / (256.0 * m2_2)
         + (2725 * dm * eta2) / (3072.0 * m2)
-        - (15 * dm * m2 * pi * chil) / (16.0 * mtot2 * eta)
-        - (35 * m2_2 * pi * chil) / (16.0 * mtot2 * eta)
+        - (15 * dm * m2 * jnp.pi * chil) / (16.0 * mtot2 * eta)
+        - (35 * m2_2 * jnp.pi * chil) / (16.0 * mtot2 * eta)
         + (15 * chip2 * dm * m2_7 * chil2) / (128.0 * mtot8 * eta4)
         + (35 * chip2 * m2_8 * chil2) / (128.0 * mtot8 * eta4)
         + (375 * dm2 * m2_2 * chil2) / (256.0 * mtot4 * eta)
@@ -502,8 +502,8 @@ def ComputeNNLOanglecoeffs(q, chil, chip):
         - (175 * dm * eta) / (256.0 * m2)
     )
     angcoeffs["epsiloncoeff4"] = (
-        -(35 * pi) / 48.0
-        - (5 * dm * pi) / (16.0 * m2)
+        -(35 * jnp.pi) / 48.0
+        - (5 * dm * jnp.pi) / (16.0 * m2)
         + (5 * dm2 * chil) / (16.0 * mtot2)
         + (5 * dm * m2 * chil) / (3.0 * mtot2)
         + (2545 * m2_2 * chil) / (1152.0 * mtot2)
@@ -520,8 +520,8 @@ def ComputeNNLOanglecoeffs(q, chil, chip):
         + (15 * dm3 * eta2) / (1024.0 * m2_3)
         + (35 * dm2 * eta2) / (256.0 * m2_2)
         + (2725 * dm * eta2) / (3072.0 * m2)
-        - (15 * dm * m2 * pi * chil) / (16.0 * mtot2 * eta)
-        - (35 * m2_2 * pi * chil) / (16.0 * mtot2 * eta)
+        - (15 * dm * m2 * jnp.pi * chil) / (16.0 * mtot2 * eta)
+        - (35 * m2_2 * jnp.pi * chil) / (16.0 * mtot2 * eta)
         + (375 * dm2 * m2_2 * chil2) / (256.0 * mtot4 * eta)
         + (1815 * dm * m2_3 * chil2) / (256.0 * mtot4 * eta)
         + (1645 * m2_4 * chil2) / (192.0 * mtot4 * eta)
@@ -602,6 +602,10 @@ def PhenomPcore(
     theta: Array,
 
 ):
+    '''
+    Thetas are waveform parameters. 
+    m1 must be larger than m2.
+    '''
     print(
         "####################################################################################################"
     )
