@@ -111,7 +111,7 @@ void XLAL_ERROR(int EINVAL, char *message){
 }
 
 void XLAL_CHECK(int statement, int fault, char *message){
-    if (statement =0){
+    if (statement == 0){
       printf("error \n");
       printstr(message);
     }
@@ -979,7 +979,7 @@ typedef enum tagIMRPhenomP_version_type {
    for(int m=-2; m<=2; m++) {
      COMPLEX16 T2m   = cexp_im_alpha[-m+2] * dm2[m+2] *      Y2mA[m+2];  /*  = 
      cexp(-I*m*alpha) * dm2[m+2] *      Y2mA[m+2] */
-     printf("T2m: %.10f + %.10fj \n", creal(T2m), cimag(T2m));
+     //printf("T2m: %.10f + %.10fj \n", creal(T2m), cimag(T2m));
      COMPLEX16 Tm2m  = cexp_im_alpha[m+2]  * d2[m+2]  * conj(Y2mA[m+2]); /*  = cexp(+I*m*alpha) * d2[m+2]  * conj(Y2mA[m+2]) */
      hp_sum +=     T2m + Tm2m;
      hc_sum += +I*(T2m - Tm2m);
@@ -997,17 +997,21 @@ int main(){
     REAL8 tmp1, tmp2;
     REAL8 chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz;
     REAL8 m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z;
-    m1_SI = 4e30;
-    m2_SI = 6e30;
+    // IMPORTANT: ripple's phenomP assumes m1 > m2, 
+    // but all functions here assume m1 < m2.
+    // So the parameters here needs to be reversed
+    
+    m1_SI = 3 * LAL_MSUN_SI;
+    m2_SI = 6 * LAL_MSUN_SI;
     f_ref = 30;
     phiRef = 0.0;
-    incl = 0.0;
+    incl = LAL_PI/2.0;
     s1x = 0.5;
     s1y = -0.2;
-    s1z = 0.3;
-    s2x = 0.0;
+    s1z = -0.5;
+    s2x = 0.1;
     s2y = 0.6;
-    s2z = 0.3;
+    s2z = 0.5;
 
     //IMRPhenomP_version_type IMRPhenomPv2_V;
 
