@@ -592,11 +592,6 @@ def PhenomPOneFrequency_phase(
     return -phase[0]
 
 
-# utility for switching two quantities
-def switching(x, y):
-    return y, x
-
-
 def PhenomPcore(
     fs: Array,
     theta: Array,
