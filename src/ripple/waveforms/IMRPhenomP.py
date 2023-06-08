@@ -584,7 +584,7 @@ def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
 
     return fRD / M_s, fdamp / M_s
 
-def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, phic, M, dist_mpc):
+def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc):
     """
     m1, m2: in solar masses
     phic: Orbital phase at the peak of the underlying non precessing model (rad)
@@ -600,8 +600,11 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, phic, M, dist_mpc):
     coeffs = get_coeffs(theta_ripple)
 
     transition_freqs = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
+    # unpack transition_freqs
+    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
     # print("in OneFrequency:")
-    # print(f, theta_ripple, coeffs, transition_freqs)
+    f_RD, f_damp = phP_get_fRD_fdamp(m1, m2, chi1, chi2, chip)
+    transition_freqs = f1, f2, f3, f4, f_RD, f_damp
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
     phase -= 2 * phic
     # print(phase)
@@ -618,6 +621,7 @@ def PhenomPOneFrequency_phase(
     m2: float,
     chi1: float,
     chi2: float,
+    chip: float,
     phic: float,
     M: float,
     dist_mpc: float,
@@ -637,8 +641,17 @@ def PhenomPOneFrequency_phase(
     coeffs = get_coeffs(theta_ripple)
 
     transition_freqs = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
-    # print("in OneFrequency:")
+    
+    print("inside one frequency: ", m1, m2, chi1, chi2, chip )
+
+    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
+    print("before change: ", f_RD, f_damp)
+
     # print(f, theta_ripple, coeffs, transition_freqs)
+    f_RD, f_damp = phP_get_fRD_fdamp(m1, m2, chi1, chi2, chip)
+    print("after change: ", f_RD, f_damp)
+
+    transition_freqs = f1, f2, f3, f4, f_RD, f_damp
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
     phase -= 2 * phic
     # print(phase)
@@ -742,7 +755,7 @@ def PhenomPcore(
     # finspin = get_final_spin(m1, m2, chi1_l, chi2_l)
     # print(finspin)
 
-    hPhenomDs, _ = PhenomPOneFrequency(fs, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc)
+    hPhenomDs, _ = PhenomPOneFrequency(fs, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc)
 
     hp, hc = PhenomPCoreTwistUp(
         fs,
@@ -766,7 +779,7 @@ def PhenomPcore(
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
 
     phi_IIb = lambda f: PhenomPOneFrequency_phase(
-        f, m2, m1, chi2_l, chi1_l, phiRef, M, dist_mpc
+        f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
     )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
     # t0 = jax.grad(PhDPhase)(f_RD * m_sec, theta_intrinsic, coeffs, transition_freqs)
