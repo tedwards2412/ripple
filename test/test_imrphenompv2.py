@@ -142,11 +142,11 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
     f_ref = 32
     # phi_ref = 0.7
     # incl = 0.3
-    s1x = -0.0
-    s1y = 0.0
+    s1x = -0.2
+    s1y = 0.4
     #s1z = 0.1
     s2x = -0.0
-    s2y = 0.0
+    s2y = 0.5
     #s2z = 0.1
     M = m1_test + m2_test
     f_l = f_ref
@@ -803,7 +803,7 @@ def benchmark_waveform_call():
 
 
 # benchmark_waveform_call()
-# my_phenomP_test(phi_ref=0.2, s1z=0.76, s2z=0.89)
+my_phenomP_test(phi_ref=0.2, s1z=0.47, s2z=0.69)
 #random_match_waveforms_debug(n=400)
 #lal_phenomD_phenomP_test()
 # s1z_list = np.linspace(0,1, 30)

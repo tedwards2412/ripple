@@ -57,6 +57,8 @@ print(
     zeta_polariz,
 )
 
+finspin = IMRPhenomP.FinalSpin_inplane(m2, m1, chi2_l, chi1_l, chip)
+print("finspin func output: ", finspin)
 
 # The following codes are directly copied from phenompcore
 q = m2 / m1  # q>=1

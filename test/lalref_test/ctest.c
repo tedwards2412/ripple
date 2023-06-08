@@ -1004,6 +1004,71 @@ typedef enum tagIMRPhenomP_version_type {
   
  }
 
+
+ // Final Spin and Radiated Energy formulas described in 1508.07250
+  
+ /**
+  * Formula to predict the final spin. Equation 3.6 arXiv:1508.07250
+  * s defined around Equation 3.6.
+  */
+ static double FinalSpin0815_s(double eta, double s) {
+   double eta2 = eta*eta;
+   double eta3 = eta2*eta;
+   double s2 = s*s;
+   double s3 = s2*s;
+  
+ /* FIXME: there are quite a few int's withouth a . in this file */
+ //FP: eta2, eta3 can be avoided
+ return eta*(3.4641016151377544 - 4.399247300629289*eta +
+       9.397292189321194*eta2 - 13.180949901606242*eta3 +
+       s*((1.0/eta - 0.0850917821418767 - 5.837029316602263*eta) +
+       (0.1014665242971878 - 2.0967746996832157*eta)*s +
+       (-1.3546806617824356 + 4.108962025369336*eta)*s2 +
+       (-0.8676969352555539 + 2.064046835273906*eta)*s3));
+ }
+  
+ /**
+  * Wrapper function for FinalSpin0815_s.
+  */
+ static double FinalSpin0815(double eta, double chi1, double chi2) {
+   // Convention m1 >= m2
+   double Seta = sqrt(1.0 - 4.0*eta);
+   double m1 = 0.5 * (1.0 + Seta);
+   double m2 = 0.5 * (1.0 - Seta);
+   double m1s = m1*m1;
+   double m2s = m2*m2;
+   // s defined around Equation 3.6 arXiv:1508.07250
+   double s = (m1s * chi1 + m2s * chi2);
+   return FinalSpin0815_s(eta, s);
+ }
+ static REAL8 FinalSpinIMRPhenomD_all_in_plane_spin_on_larger_BH(
+   const REAL8 m1,     /**< Mass of companion 1 (solar masses) */
+   const REAL8 m2,     /**< Mass of companion 2 (solar masses) */
+   const REAL8 chi1_l, /**< Aligned spin of BH 1 */
+   const REAL8 chi2_l, /**< Aligned spin of BH 2 */
+   const REAL8 chip)   /**< Dimensionless spin in the orbital plane */
+ {
+   const REAL8 M = m1+m2;
+   REAL8 eta = m1*m2/(M*M);
+   //if (eta > 0.25) nudge(&eta, 0.25, 1e-6);
+  
+   REAL8 af_parallel, q_factor;
+   if (m1 >= m2) {
+     q_factor = m1/M;
+     af_parallel = FinalSpin0815(eta, chi1_l, chi2_l);
+   }
+   else {
+     q_factor = m2/M;
+     af_parallel = FinalSpin0815(eta, chi2_l, chi1_l);
+   }
+  
+   REAL8 Sperp = chip * q_factor*q_factor;
+   REAL8 af = copysign(1.0, af_parallel) * sqrt(Sperp*Sperp + af_parallel*af_parallel);
+   return af;
+ }
+
+
+
 int main(){
     REAL8 tmp1, tmp2;
     REAL8 chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz;
@@ -1038,9 +1103,14 @@ int main(){
     const REAL8 chi_eff = (m1*chi1_l + m2*chi2_l) / M; /* Effective aligned spin */
     const REAL8 chil = (1.0+q)/q * chi_eff; /* dimensionless aligned spin of the largest BH */
     const REAL8 eta = m1 * m2 / (M*M);    /* Symmetric mass-ratio */
+    ///////////////
+    // Final spin calculation
+    /////////////// 
+    double finspin = FinalSpinIMRPhenomD_all_in_plane_spin_on_larger_BH(m1, m2, chi1_l, chi2_l, chip);
+    printf("finspin: %.10f \n", finspin);
     
     ComputeNNLOanglecoeffs(&angcoeffs,q,chil,chip);
-    printf("Here are the output of LALtoPhenomP: \n");
+    //printf("Here are the output of LALtoPhenomP: \n");
     printf("%.10f, %.10f, %.10f, %.10f, %.10f, %.10f %.10f", chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz);
     printf("\n");  
 

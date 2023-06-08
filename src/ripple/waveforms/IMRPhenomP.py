@@ -16,8 +16,11 @@ from .IMRPhenomD import (
 from .IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
+    EradRational0815,
 )
 from ..typing import Array
+from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
+
 
 # LAL_MSUN_SI = 1.9885e30  # Solar mass in kg
 # LAL_MTSUN_SI = LAL_MSUN_SI * 4.925491025543575903411922162094833998e-6  # Solar mass times G over c^3 in seconds
@@ -321,7 +324,7 @@ def PhenomPCoreTwistUp(
         + angcoeffs["epsiloncoeff5"] * omega_cbrt
     ) - epsilonoffset
 
-    print("alpha, epsilon: ", alpha, epsilon)
+    #print("alpha, epsilon: ", alpha, epsilon)
     cBetah, sBetah = WignerdCoefficients(omega_cbrt, SL, eta, Sperp)
 
     cBetah2 = cBetah * cBetah
@@ -341,7 +344,7 @@ def PhenomPCoreTwistUp(
         ]
     )
     dm2 = jnp.array([d2[4], -d2[3], d2[2], -d2[1], d2[0]])
-    print("dm2[4]: ", dm2[4])
+    #print("dm2[4]: ", dm2[4])
     Y2mA = jnp.array(Y2m)  # need to pass Y2m in a 5-component list
     hp_sum = 0
     hc_sum = 0
@@ -376,12 +379,12 @@ def PhenomPCoreTwistUp(
     Tm2m = (cexp_im_alpha * d2).T * jnp.conjugate(Y2mA)
 
     hp_sum = jnp.sum(T2m + Tm2m, axis=1)
-    print("hpsum:",hp_sum)
+    #print("hpsum:",hp_sum)
     hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
     eps_phase_hP = jnp.exp(-2j * epsilon) * hPhenom / 2.0
-    print("temp:")
-    print( hPhenom)
-    print("eps_phase:", eps_phase_hP)
+    #print("temp:")
+    #print( hPhenom)
+    #print("eps_phase:", eps_phase_hP)
     hp = eps_phase_hP * hp_sum
     hc = eps_phase_hP * hc_sum
 
@@ -533,6 +536,53 @@ def ComputeNNLOanglecoeffs(q, chil, chip):
     )
     return angcoeffs
 
+def FinalSpin0815_s(eta, s):
+    eta2 = eta * eta
+    eta3 = eta2 * eta
+    s2 = s * s
+    s3 = s2 * s
+    return eta*(3.4641016151377544 - 4.399247300629289*eta +
+       9.397292189321194*eta2 - 13.180949901606242*eta3 +
+       s*((1.0/eta - 0.0850917821418767 - 5.837029316602263*eta) +
+       (0.1014665242971878 - 2.0967746996832157*eta)*s +
+       (-1.3546806617824356 + 4.108962025369336*eta)*s2 +
+       (-0.8676969352555539 + 2.064046835273906*eta)*s3))
+
+def FinalSpin0815(eta, chi1, chi2):
+    Seta = jnp.sqrt(1.0 - 4.0 * eta)
+    m1 = 0.5 * (1.0 + Seta)
+    m2 = 0.5 * (1.0 - Seta)
+    m1s = m1 * m1
+    m2s = m2 * m2
+    s = (m1s * chi1 + m2s * chi2)
+    return FinalSpin0815_s(eta, s)
+
+def FinalSpin_inplane(m1, m2, chi1_l, chi2_l, chip):
+    M = m1 + m2
+    eta = m1 * m2 / (M * M)
+    # Here I assume m1 > m2, the convention used in phenomD 
+    # (not the convention of internal phenomP)
+    q_factor = m1 / M
+    af_parallel = FinalSpin0815(eta, chi1_l, chi2_l)
+    Sperp = chip * q_factor*q_factor
+    af = jnp.copysign(1.0, af_parallel) * jnp.sqrt(Sperp*Sperp + af_parallel*af_parallel)
+    return af
+
+def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
+    # m1 > m2 should hold here
+    finspin = FinalSpin_inplane(m1, m2, chi1_l, chi2_l, chip)
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta_s = m1_s * m2_s / (M_s ** 2.0)
+    fRD = jnp.interp(finspin, QNMData_a, QNMData_fRD) / (
+        1.0 - EradRational0815(eta_s, chi1_l, chi2_l)
+    )
+    fdamp = jnp.interp(finspin, QNMData_a, QNMData_fdamp) / (
+        1.0 - EradRational0815(eta_s, chi1_l, chi2_l)
+    )
+
+    return fRD / M_s, fdamp / M_s
 
 def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, phic, M, dist_mpc):
     """
