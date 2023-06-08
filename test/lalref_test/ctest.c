@@ -880,7 +880,9 @@ typedef enum tagIMRPhenomP_version_type {
    IMRPhenomP_version_type IMRPhenomP_version  /**< IMRPhenomP(v1) uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD, IMRPhenomPv2_NRTidal uses NRTidal framework with IMRPhenomPv2 */
  )
  {
-  
+  printf("\n\nWhat is even my hPhenom?\n");
+   printf("temp: %.10f + %.10fj \n", 
+        creal( hPhenom), cimag( hPhenom));
    XLAL_CHECK(angcoeffs != NULL, XLAL_EFAULT,"");
    XLAL_CHECK(hp != NULL, XLAL_EFAULT,"");
    XLAL_CHECK(hc != NULL, XLAL_EFAULT,"");
@@ -927,6 +929,7 @@ typedef enum tagIMRPhenomP_version_type {
                  + angcoeffs->epsiloncoeff4*logomega
                  + angcoeffs->epsiloncoeff5*omega_cbrt) - epsilonoffset;
   
+    printf("\n\nalpha epsilon: %.10f, %.10f\n\n", alpha, epsilon);
    /* Calculate intermediate expressions cos(beta/2), sin(beta/2) and powers thereof for Wigner d's. */
    REAL8 cBetah, sBetah; /* cos(beta/2), sin(beta/2) */
    switch (IMRPhenomP_version) {
@@ -962,7 +965,9 @@ typedef enum tagIMRPhenomP_version_type {
    //printf("dm2: %.10f, %.10f, %.10f, %.10f, %.10f \n", creal(dm2[0]), creal(dm2[1]), creal(dm2[2]), creal(dm2[3]),creal(dm2[4]));
    //printf("dm2imag: %.10f, %.10f, %.10f, %.10f, %.10f \n", cimag(dm2[0]), cimag(dm2[1]), cimag(dm2[2]), cimag(dm2[3]),cimag(dm2[4]));
     //printf("Y2mA: %.10f, %.10f, %.10f, %.10f, %.10f \n", creal(Y2mA[0]), creal(Y2mA[1]), creal(Y2mA[2]), creal(Y2mA[3]),creal(Y2mA[4]));
-
+   //printf("\n\ndm2[4]: %.10f + i %.10f \n\n", 
+   //         creal(dm2[4]), cimag(dm2[4]));
+   
    COMPLEX16 hp_sum = 0;
    COMPLEX16 hc_sum = 0;
   
@@ -981,11 +986,17 @@ typedef enum tagIMRPhenomP_version_type {
      cexp(-I*m*alpha) * dm2[m+2] *      Y2mA[m+2] */
      //printf("T2m: %.10f + %.10fj \n", creal(T2m), cimag(T2m));
      COMPLEX16 Tm2m  = cexp_im_alpha[m+2]  * d2[m+2]  * conj(Y2mA[m+2]); /*  = cexp(+I*m*alpha) * d2[m+2]  * conj(Y2mA[m+2]) */
+     //printf("Tm2m: %.10f + %.10fj \n", creal(T2m), cimag(T2m));
      hp_sum +=     T2m + Tm2m;
      hc_sum += +I*(T2m - Tm2m);
    }
+    printf("hp_sum: %.10f + %.10fj \n", creal(hp_sum), cimag(hp_sum));
   
    COMPLEX16 eps_phase_hP = cexp(-2*I*epsilon) * hPhenom / 2.0;
+    printf("temp: %.10f + %.10fj \n", 
+        creal( hPhenom), cimag( hPhenom));
+
+    printf("eps_phase: %.10f + %.10fj \n", creal(eps_phase_hP), cimag(eps_phase_hP));
    *hp = eps_phase_hP * hp_sum;
    *hc = eps_phase_hP * hc_sum;
   
@@ -1084,7 +1095,7 @@ int main(){
    printf("%.10f+%.10fi \n", creal(Y2m.Y22),cimag(Y2m.Y22));
 
 
-   double fake_hPhenom[4], fake_fHz[4];
+   COMPLEX16 fake_hPhenom[4], fake_fHz[4];
    fake_hPhenom[0] = 1;
    fake_hPhenom[1] = 1+3I;
    fake_hPhenom[2] = 0.04-95I;

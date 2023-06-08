@@ -103,6 +103,7 @@ print("harmonics: ", Y2[0], Y2[1], Y2[2], Y2[3], Y2[4])
 print("offsets: ", alphaNNLOoffset, epsilonNNLOoffset)
 fake_hPhenom = jnp.array([1, 1 + 3j, 0.04 - 95j, -3.87 - 0.001j])
 fake_fHz = jnp.array([100, 25, 96.699, 238.75565])
+print("parameters of twistup:", eta, chi1_l, chi2_l, chip, M)
 hp, hc = IMRPhenomP.PhenomPCoreTwistUp(
     fake_fHz,
     fake_hPhenom,

@@ -321,6 +321,7 @@ def PhenomPCoreTwistUp(
         + angcoeffs["epsiloncoeff5"] * omega_cbrt
     ) - epsilonoffset
 
+    print("alpha, epsilon: ", alpha, epsilon)
     cBetah, sBetah = WignerdCoefficients(omega_cbrt, SL, eta, Sperp)
 
     cBetah2 = cBetah * cBetah
@@ -340,7 +341,7 @@ def PhenomPCoreTwistUp(
         ]
     )
     dm2 = jnp.array([d2[4], -d2[3], d2[2], -d2[1], d2[0]])
-
+    print("dm2[4]: ", dm2[4])
     Y2mA = jnp.array(Y2m)  # need to pass Y2m in a 5-component list
     hp_sum = 0
     hc_sum = 0
@@ -372,11 +373,15 @@ def PhenomPCoreTwistUp(
     #    # print("end")
     #print(cexp_im_alpha_reverse.shape, dm2.shape, Y2mA.shape)
     T2m = (cexp_im_alpha_reverse * dm2).T * Y2mA
-    #print(T2m.shape)
     Tm2m = (cexp_im_alpha * d2).T * jnp.conjugate(Y2mA)
+
     hp_sum = jnp.sum(T2m + Tm2m, axis=1)
+    print("hpsum:",hp_sum)
     hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
     eps_phase_hP = jnp.exp(-2j * epsilon) * hPhenom / 2.0
+    print("temp:")
+    print( hPhenom)
+    print("eps_phase:", eps_phase_hP)
     hp = eps_phase_hP * hp_sum
     hc = eps_phase_hP * hc_sum
 
