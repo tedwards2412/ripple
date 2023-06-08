@@ -1001,8 +1001,8 @@ int main(){
     // but all functions here assume m1 < m2.
     // So the parameters here needs to be reversed
     
-    m1_SI = 3 * LAL_MSUN_SI;
-    m2_SI = 6 * LAL_MSUN_SI;
+    m1_SI = 6 * LAL_MSUN_SI;
+    m2_SI = 10 * LAL_MSUN_SI;
     f_ref = 30;
     phiRef = 0.0;
     incl = LAL_PI/2.0;
@@ -1029,20 +1029,43 @@ int main(){
     const REAL8 eta = m1 * m2 / (M*M);    /* Symmetric mass-ratio */
     
     ComputeNNLOanglecoeffs(&angcoeffs,q,chil,chip);
-    //printf("%.10f, %.10f, %.10f, %.10f, %.10f, %.10f %.10f", chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz);
-    //printf("\n");  
+    printf("Here are the output of LALtoPhenomP: \n");
+    printf("%.10f, %.10f, %.10f, %.10f, %.10f, %.10f %.10f", chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz);
+    printf("\n");  
 
-    //printf("%.10f, %.10f, %.10f, %.10f, %.10f \n", 
-    //angcoeffs.alphacoeff1, angcoeffs.alphacoeff2, angcoeffs.alphacoeff3, 
-    //angcoeffs.alphacoeff4, angcoeffs.alphacoeff5);
+    printf("\n Here are the outputs of NNLOanglecoeffs:  \n");
+    printf("%.10f, %.10f, %.10f, %.10f, %.10f \n", 
+    angcoeffs.alphacoeff1, angcoeffs.alphacoeff2, angcoeffs.alphacoeff3, 
+    angcoeffs.alphacoeff4, angcoeffs.alphacoeff5);
     
-    //printf("%.10f, %.10f, %.10f, %.10f, %.10f \n", 
-    //angcoeffs.epsiloncoeff1, angcoeffs.epsiloncoeff2, angcoeffs.epsiloncoeff3, 
-    //angcoeffs.epsiloncoeff4, angcoeffs.epsiloncoeff5);
+    printf("%.10f, %.10f, %.10f, %.10f, %.10f \n", 
+    angcoeffs.epsiloncoeff1, angcoeffs.epsiloncoeff2, angcoeffs.epsiloncoeff3, 
+    angcoeffs.epsiloncoeff4, angcoeffs.epsiloncoeff5);
 
-    //REAL8 cos_beta_half, sin_beta_half;
-    //WignerdCoefficients(&cos_beta_half, &sin_beta_half, 0.34, 0.52, 0.44, 0.135);
-    //printf("%.10f, %.10f \n",cos_beta_half, sin_beta_half);
+    REAL8 cos_beta_half, sin_beta_half;
+    WignerdCoefficients(&cos_beta_half, &sin_beta_half, 0.34, 0.52, 0.44, 0.135);
+    printf("WignerdCoeffs: \n");
+    printf("%.10f, %.10f \n",cos_beta_half, sin_beta_half);
+
+   const REAL8 piM = LAL_PI * m_sec;
+
+  /* Compute the offsets due to the choice of integration constant in alpha and epsilon PN formula */
+   const REAL8 omega_ref = piM * f_ref;
+   const REAL8 logomega_ref = log(omega_ref);
+   const REAL8 omega_ref_cbrt = cbrt(piM * f_ref); // == v0
+   const REAL8 omega_ref_cbrt2 = omega_ref_cbrt*omega_ref_cbrt;
+   const REAL8 alphaNNLOoffset = (angcoeffs.alphacoeff1/omega_ref
+                               + angcoeffs.alphacoeff2/omega_ref_cbrt2
+                               + angcoeffs.alphacoeff3/omega_ref_cbrt
+                               + angcoeffs.alphacoeff4*logomega_ref
+                               + angcoeffs.alphacoeff5*omega_ref_cbrt);
+  
+   const REAL8 epsilonNNLOoffset = (angcoeffs.epsiloncoeff1/omega_ref
+                                 + angcoeffs.epsiloncoeff2/omega_ref_cbrt2
+                                 + angcoeffs.epsiloncoeff3/omega_ref_cbrt
+                                 + angcoeffs.epsiloncoeff4*logomega_ref
+                                 + angcoeffs.epsiloncoeff5*omega_ref_cbrt);
+
     COMPLEX16 hp, hc;
     SpinWeightedSphericalHarmonic_l2 Y2m;
     const REAL8 ytheta  = thetaJN;
@@ -1053,15 +1076,36 @@ int main(){
    Y2m.Y20  = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  0);
    Y2m.Y21  = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  1);
    Y2m.Y22  = XLALSpinWeightedSphericalHarmonic(ytheta, yphi, -2, 2,  2);
+   printf("Here are the -2Ylms: \n");
    printf("%.10f+%.10fi ", creal(Y2m.Y2m2),cimag(Y2m.Y2m2));
    printf("%.10f+%.10fi ", creal(Y2m.Y2m1),cimag(Y2m.Y2m1));
    printf("%.10f+%.10fi ", creal(Y2m.Y20),cimag(Y2m.Y20));
    printf("%.10f+%.10fi ", creal(Y2m.Y21),cimag(Y2m.Y21));
    printf("%.10f+%.10fi \n", creal(Y2m.Y22),cimag(Y2m.Y22));
-    PhenomPCoreTwistUp(100, 1, eta, chi1_l, chi2_l, chip, M, &angcoeffs, &Y2m, 0.01-alpha0, 0.01, &hp, &hc,IMRPhenomPv2_V);
+
+
+   double fake_hPhenom[4], fake_fHz[4];
+   fake_hPhenom[0] = 1;
+   fake_hPhenom[1] = 1+3I;
+   fake_hPhenom[2] = 0.04-95I;
+   fake_hPhenom[3] = -3.87-0.001I;
+   fake_fHz[0] = 100;
+   fake_fHz[1] = 25.0;
+   fake_fHz[2] = 96.699;
+   fake_fHz[3] = 238.75565;
+
+   printf("offsets: %.10f %.10f \n", alphaNNLOoffset, epsilonNNLOoffset);
+   printf("parameters of twistup: %.10f %.10f %.10f %.10f %.10f \n",
+          eta, chi1_l, chi2_l, chip, M);
+   for (int i=0; i < 4; i++){
+       PhenomPCoreTwistUp(fake_fHz[i], fake_hPhenom[i], eta, chi1_l, chi2_l, chip, M,
+                          &angcoeffs, &Y2m, alphaNNLOoffset-alpha0,
+                          epsilonNNLOoffset, &hp, &hc,IMRPhenomPv2_V);
+       printf("%d iteration hp and hc : %.10f + i%.10f, %.10f + i%.10f \n", 
+            i, creal(hp), cimag(hp),creal(hc), cimag(hc));
+   }
     
-    printf("final result: %.10f + i%.10f, %.10f + i%.10f \n", 
-            creal(hp), cimag(hp),creal(hc), cimag(hc));
+
 
     return 0;
 }

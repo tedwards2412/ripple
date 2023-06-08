@@ -803,7 +803,7 @@ def benchmark_waveform_call():
 
 
 # benchmark_waveform_call()
-my_phenomP_test(phi_ref=0.2, s1z=0.76, s2z=0.89)
+# my_phenomP_test(phi_ref=0.2, s1z=0.76, s2z=0.89)
 #random_match_waveforms_debug(n=400)
 #lal_phenomD_phenomP_test()
 # s1z_list = np.linspace(0,1, 30)
@@ -814,19 +814,10 @@ my_phenomP_test(phi_ref=0.2, s1z=0.76, s2z=0.89)
 # plt.show()
 
 
-# OLD TEST
-# thetaJN = 0.58763
-# Y2m2 = IMRPhenomP.SpinWeightedY(thetaJN, 0 , -2, 2, -2)
-# Y2m1 = IMRPhenomP.SpinWeightedY(thetaJN, 0 , -2, 2, -1)
-# Y20 = IMRPhenomP.SpinWeightedY(thetaJN, 0 , -2, 2, -0)
-# Y21 = IMRPhenomP.SpinWeightedY(thetaJN, 0 , -2, 2, 1)
-# Y22 = IMRPhenomP.SpinWeightedY(thetaJN, 0 , -2, 2, 2)
-# Y2 = [Y2m2, Y2m1, Y20, Y21, Y22]
 # print("thetaJN, ", thetaJN)
 # print(Y2)
 # A_test = jnp.array([1+2j, 4+5j, 3-0.3j])
 
-# angcoeffs = IMRPhenomP.ComputeNNLOanglecoeffs(q, chil, chip)
 # hp,hc = IMRPhenomP.PhenomPCoreTwistUp(100, 1, eta, chi1_l, chi2_l, chip, M, angcoeffs, Y2, 0.01-alpha0, 0.01)
 # print(hp, hc)
 # A_trans = jnp.array(A_trans)
