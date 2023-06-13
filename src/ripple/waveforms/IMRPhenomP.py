@@ -1,7 +1,8 @@
 import math
 import jax
 import jax.numpy as jnp
-#from math import acos, atan2, sqrt, sin, cos, pi, log
+
+# from math import acos, atan2, sqrt, sin, cos, pi, log
 from typing import Tuple
 from scipy.special import factorial
 from ..constants import gt, MSUN
@@ -62,15 +63,15 @@ def LALtoPhenomP(
     MAX_TOL_ATAN = 1e-10
 
     # Check arguments for sanity
-    #if f_ref <= 0:
+    # if f_ref <= 0:
     #    raise ValueError("Reference frequency must be positive.")
-    #if m1_SI <= 0:
+    # if m1_SI <= 0:
     #    raise ValueError("m1 must be positive.")
-    #if m2_SI <= 0:
+    # if m2_SI <= 0:
     #    raise ValueError("m2 must be positive.")
-    #if abs(s1x**2 + s1y**2 + s1z**2) > 1.0:
+    # if abs(s1x**2 + s1y**2 + s1z**2) > 1.0:
     #    raise ValueError("|S1/m1^2| must be <= 1.")
-    #if abs(s2x**2 + s2y**2 + s2z**2) > 1.0:
+    # if abs(s2x**2 + s2y**2 + s2z**2) > 1.0:
     #    raise ValueError("|S2/m2^2| must be <= 1.")
 
     m1 = m1_SI / MSUN  # Masses in solar masses
@@ -106,8 +107,8 @@ def LALtoPhenomP(
         den = A2 * m2_2
     else:
         den = A1 * m1_2
-    #num = jnp.maximum(ASp1, ASp2)
-    #den = A2 * m2_2 # warning: this assumes m2 > m1
+    # num = jnp.maximum(ASp1, ASp2)
+    # den = A2 * m2_2 # warning: this assumes m2 > m1
     chip = num / den
 
     m_sec = M * gt
@@ -122,7 +123,6 @@ def LALtoPhenomP(
     J0y_sf = m1_2 * s1y + m2_2 * s2y
     J0z_sf = L0 + m1_2 * s1z + m2_2 * s2z
     J0 = jnp.sqrt(J0x_sf * J0x_sf + J0y_sf * J0y_sf + J0z_sf * J0z_sf)
-
 
     thetaJ_sf = jnp.arccos(J0z_sf / J0)
 
@@ -324,7 +324,7 @@ def PhenomPCoreTwistUp(
         + angcoeffs["epsiloncoeff5"] * omega_cbrt
     ) - epsilonoffset
 
-    #print("alpha, epsilon: ", alpha, epsilon)
+    # print("alpha, epsilon: ", alpha, epsilon)
     cBetah, sBetah = WignerdCoefficients(omega_cbrt, SL, eta, Sperp)
 
     cBetah2 = cBetah * cBetah
@@ -344,7 +344,7 @@ def PhenomPCoreTwistUp(
         ]
     )
     dm2 = jnp.array([d2[4], -d2[3], d2[2], -d2[1], d2[0]])
-    #print("dm2[4]: ", dm2[4])
+    # print("dm2[4]: ", dm2[4])
     Y2mA = jnp.array(Y2m)  # need to pass Y2m in a 5-component list
     hp_sum = 0
     hc_sum = 0
@@ -374,17 +374,17 @@ def PhenomPCoreTwistUp(
     #    hc_sum += 1j * (T2m - Tm2m)
     #    # print(hc_sum)
     #    # print("end")
-    #print(cexp_im_alpha_reverse.shape, dm2.shape, Y2mA.shape)
+    # print(cexp_im_alpha_reverse.shape, dm2.shape, Y2mA.shape)
     T2m = (cexp_im_alpha_reverse * dm2).T * Y2mA
     Tm2m = (cexp_im_alpha * d2).T * jnp.conjugate(Y2mA)
 
     hp_sum = jnp.sum(T2m + Tm2m, axis=1)
-    #print("hpsum:",hp_sum)
+    # print("hpsum:",hp_sum)
     hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
     eps_phase_hP = jnp.exp(-2j * epsilon) * hPhenom / 2.0
-    #print("temp:")
-    #print( hPhenom)
-    #print("eps_phase:", eps_phase_hP)
+    # print("temp:")
+    # print( hPhenom)
+    # print("eps_phase:", eps_phase_hP)
     hp = eps_phase_hP * hp_sum
     hc = eps_phase_hP * hc_sum
 
@@ -407,7 +407,7 @@ def L2PNR(v: float, eta: float) -> float:
 
 def WignerdCoefficients(v: float, SL: float, eta: float, Sp: float):
     # We define the shorthand s := Sp / (L + SL)
-    L = L2PNR(v, eta)             
+    L = L2PNR(v, eta)
     s = Sp / (L + SL)
     s2 = s**2
     cos_beta = 1.0 / (1.0 + s2) ** 0.5
@@ -536,17 +536,26 @@ def ComputeNNLOanglecoeffs(q, chil, chip):
     )
     return angcoeffs
 
+
 def FinalSpin0815_s(eta, s):
     eta2 = eta * eta
     eta3 = eta2 * eta
     s2 = s * s
     s3 = s2 * s
-    return eta*(3.4641016151377544 - 4.399247300629289*eta +
-       9.397292189321194*eta2 - 13.180949901606242*eta3 +
-       s*((1.0/eta - 0.0850917821418767 - 5.837029316602263*eta) +
-       (0.1014665242971878 - 2.0967746996832157*eta)*s +
-       (-1.3546806617824356 + 4.108962025369336*eta)*s2 +
-       (-0.8676969352555539 + 2.064046835273906*eta)*s3))
+    return eta * (
+        3.4641016151377544
+        - 4.399247300629289 * eta
+        + 9.397292189321194 * eta2
+        - 13.180949901606242 * eta3
+        + s
+        * (
+            (1.0 / eta - 0.0850917821418767 - 5.837029316602263 * eta)
+            + (0.1014665242971878 - 2.0967746996832157 * eta) * s
+            + (-1.3546806617824356 + 4.108962025369336 * eta) * s2
+            + (-0.8676969352555539 + 2.064046835273906 * eta) * s3
+        )
+    )
+
 
 def FinalSpin0815(eta, chi1, chi2):
     Seta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -554,19 +563,23 @@ def FinalSpin0815(eta, chi1, chi2):
     m2 = 0.5 * (1.0 - Seta)
     m1s = m1 * m1
     m2s = m2 * m2
-    s = (m1s * chi1 + m2s * chi2)
+    s = m1s * chi1 + m2s * chi2
     return FinalSpin0815_s(eta, s)
+
 
 def FinalSpin_inplane(m1, m2, chi1_l, chi2_l, chip):
     M = m1 + m2
     eta = m1 * m2 / (M * M)
-    # Here I assume m1 > m2, the convention used in phenomD 
+    # Here I assume m1 > m2, the convention used in phenomD
     # (not the convention of internal phenomP)
     q_factor = m1 / M
     af_parallel = FinalSpin0815(eta, chi1_l, chi2_l)
-    Sperp = chip * q_factor*q_factor
-    af = jnp.copysign(1.0, af_parallel) * jnp.sqrt(Sperp*Sperp + af_parallel*af_parallel)
+    Sperp = chip * q_factor * q_factor
+    af = jnp.copysign(1.0, af_parallel) * jnp.sqrt(
+        Sperp * Sperp + af_parallel * af_parallel
+    )
     return af
+
 
 def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
     # m1 > m2 should hold here
@@ -574,7 +587,7 @@ def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta_s = m1_s * m2_s / (M_s ** 2.0)
+    eta_s = m1_s * m2_s / (M_s**2.0)
     fRD = jnp.interp(finspin, QNMData_a, QNMData_fRD) / (
         1.0 - EradRational0815(eta_s, chi1_l, chi2_l)
     )
@@ -583,6 +596,43 @@ def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
     )
 
     return fRD / M_s, fdamp / M_s
+
+
+def phP_get_transition_frequencies(
+    theta: Array,
+    gamma2: float,
+    gamma3: float,
+    chip: float,
+) -> Tuple[float, float, float, float, float, float]:
+    # m1 > m2 should hold here
+
+    m1, m2, chi1, chi2 = theta
+    M = m1 + m2
+    f_RD, f_damp = phP_get_fRD_fdamp(m1, m2, chi1, chi2, chip)
+
+    # Phase transition frequencies
+    f1 = 0.018 / (M * gt)
+    f2 = 0.5 * f_RD
+
+    # Amplitude transition frequencies
+    f3 = 0.014 / (M * gt)
+    f4_gammaneg_gtr_1 = lambda f_RD_, f_damp_, gamma3_, gamma2_: jnp.abs(
+        f_RD_ + (-f_damp_ * gamma3_) / gamma2_
+    )
+    f4_gammaneg_less_1 = lambda f_RD_, f_damp_, gamma3_, gamma2_: jnp.abs(
+        f_RD_ + (f_damp_ * (-1 + jnp.sqrt(1 - (gamma2_) ** 2.0)) * gamma3_) / gamma2_
+    )
+    f4 = jax.lax.cond(
+        gamma2 >= 1,
+        f4_gammaneg_gtr_1,
+        f4_gammaneg_less_1,
+        f_RD,
+        f_damp,
+        gamma3,
+        gamma2,
+    )
+    return f1, f2, f3, f4, f_RD, f_damp
+
 
 def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc):
     """
@@ -599,12 +649,12 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc):
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
 
-    transition_freqs = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
+    transition_freqs = phP_get_transition_frequencies(
+        theta_ripple, coeffs[5], coeffs[6], chip
+    )
     # unpack transition_freqs
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
-    # print("in OneFrequency:")
-    f_RD, f_damp = phP_get_fRD_fdamp(m1, m2, chi1, chi2, chip)
-    transition_freqs = f1, f2, f3, f4, f_RD, f_damp
+
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
     phase -= 2 * phic
     # print(phase)
@@ -640,16 +690,15 @@ def PhenomPOneFrequency_phase(
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
 
-    transition_freqs = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
-    
-    print("inside one frequency: ", m1, m2, chi1, chi2, chip )
+    transition_freqs = phP_get_transition_frequencies(
+        theta_ripple, coeffs[5], coeffs[6], chip
+    )
+    transition_freqs_old = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
+    print("old frequency: ", transition_freqs_old)
 
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
-    print("before change: ", f_RD, f_damp)
+    print("new frequency: ", transition_freqs)
 
-    # print(f, theta_ripple, coeffs, transition_freqs)
-    f_RD, f_damp = phP_get_fRD_fdamp(m1, m2, chi1, chi2, chip)
-    print("after change: ", f_RD, f_damp)
 
     transition_freqs = f1, f2, f3, f4, f_RD, f_damp
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
@@ -663,12 +712,11 @@ def PhenomPOneFrequency_phase(
 def PhenomPcore(
     fs: Array,
     theta: Array,
-
 ):
-    '''
-    Thetas are waveform parameters. 
+    """
+    Thetas are waveform parameters.
     m1 must be larger than m2.
-    '''
+    """
     print(
         "####################################################################################################"
     )
@@ -680,7 +728,7 @@ def PhenomPcore(
     )
     # maybe need to reverse m1 m2
     # convention: m1 < m2
-    #if m1_SI > m2_SI:
+    # if m1_SI > m2_SI:
     #    m1_SI, m2_SI = switching(m1_SI, m2_SI)
     #    s1x, s2x = switching(s1x, s2x)
     #    s1y, s2y = switching(s1y, s2y)
@@ -711,9 +759,9 @@ def PhenomPcore(
         m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
     )
 
-    #m1 = m1_SI / MSUN
-    #m2 = m2_SI / MSUN
-    #print("m1, m2: ", m1, m2)
+    # m1 = m1_SI / MSUN
+    # m2 = m2_SI / MSUN
+    # print("m1, m2: ", m1, m2)
     q = m2 / m1  # q>=1
     M = m1 + m2
     chi_eff = (m1 * chi1_l + m2 * chi2_l) / M
@@ -755,7 +803,9 @@ def PhenomPcore(
     # finspin = get_final_spin(m1, m2, chi1_l, chi2_l)
     # print(finspin)
 
-    hPhenomDs, _ = PhenomPOneFrequency(fs, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc)
+    hPhenomDs, _ = PhenomPOneFrequency(
+        fs, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
+    )
 
     hp, hc = PhenomPCoreTwistUp(
         fs,

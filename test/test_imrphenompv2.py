@@ -803,7 +803,7 @@ def benchmark_waveform_call():
 
 
 # benchmark_waveform_call()
-my_phenomP_test(phi_ref=0.2, s1z=0.47, s2z=0.69)
+my_phenomP_test(phi_ref=0.2, s1z=0.47, s2z=0.69, incl=jnp.pi/2)
 #random_match_waveforms_debug(n=400)
 #lal_phenomD_phenomP_test()
 # s1z_list = np.linspace(0,1, 30)
