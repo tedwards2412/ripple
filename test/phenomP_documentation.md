@@ -3,7 +3,6 @@
 - ROTATEY (angle rotation along y axis, used in LALtoPhenomP, indirectly tested)
 - atan2tol (atan2 with tol built in, used in LALtoPhenomP, indirectly tested)
 - LALtoPhenomP (translate params into constant angles, used in PhenomPCore, tested)
-- get_final_spin (calculate the final spin, not used, not tested)
 - SpinWeightedY ( get -2Ylm, used in phenomPCore, tested)
 - PhenomPCoreTwistUp (used in phenoPCore, tested)
 - L2PNR (calculate orbital angular momentum, used in WignerdCoefficients and PhenomPCore, indirectly tested)

@@ -203,32 +203,6 @@ def LALtoPhenomP(
     return chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz
 
 
-def get_final_spin(m1, m2, chi1, chi2):
-    "m1 m2 in solar masses"
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    m_sec = m1_s + m2_s
-    eta_s = m1_s * m2_s / (m_sec**2.0)
-    S = (chi1 * m1_s**2 + chi2 * m2_s**2) / (m_sec**2.0)
-    eta2 = eta_s * eta_s
-    eta3 = eta2 * eta_s
-    S2 = S * S
-    S3 = S2 * S
-
-    a = eta_s * (
-        3.4641016151377544
-        - 4.399247300629289 * eta_s
-        + 9.397292189321194 * eta2
-        - 13.180949901606242 * eta3
-        + S
-        * (
-            (1.0 / eta_s - 0.0850917821418767 - 5.837029316602263 * eta_s)
-            + (0.1014665242971878 - 2.0967746996832157 * eta_s) * S
-            + (-1.3546806617824356 + 4.108962025369336 * eta_s) * S2
-            + (-0.8676969352555539 + 2.064046835273906 * eta_s) * S3
-        )
-    )
-    return a
 
 
 def SpinWeightedY(theta, phi, s, l, m):
