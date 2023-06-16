@@ -9,11 +9,6 @@ from ..constants import gt, MSUN
 import numpy as np
 from .IMRPhenomD import Phase as PhDPhase
 from .IMRPhenomD import Amp as PhDAmp
-from .IMRPhenomD import (
-    get_IIb_raw_phase,
-    get_inspiral_phase,
-    get_IIa_raw_phase,
-)
 from .IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
@@ -266,7 +261,6 @@ def PhenomPCoreTwistUp(
 
     # here it is used to be LAL_MTSUN_SI
     f = fHz * gt * M  # Frequency in geometric units
-
     q = (1.0 + jnp.sqrt(1.0 - 4.0 * eta) - 2.0 * eta) / (2.0 * eta)
     m1 = 1.0 / (1.0 + q)  # Mass of the smaller BH for unit total mass M=1.
     m2 = q / (1.0 + q)  # Mass of the larger BH for unit total mass M=1.
@@ -622,7 +616,7 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc):
     f = fsHz  # * MSUN * M
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
-
+    #print("coeffs: ", coeffs)
     transition_freqs = phP_get_transition_frequencies(
         theta_ripple, coeffs[5], coeffs[6], chip
     )
@@ -630,9 +624,13 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc):
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
 
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
+    print("phase before twistup: ", phase)
+
     phase -= 2 * phic
     # print(phase)
     Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
+    print("Amp before twistup: ", Amp)
+    
     # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
     # phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(-1j * phase))
@@ -667,8 +665,6 @@ def PhenomPOneFrequency_phase(
     transition_freqs = phP_get_transition_frequencies(
         theta_ripple, coeffs[5], coeffs[6], chip
     )
-    transition_freqs_old = get_transition_frequencies(theta_ripple, coeffs[5], coeffs[6])
-    print("old frequency: ", transition_freqs_old)
 
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
     print("new frequency: ", transition_freqs)
