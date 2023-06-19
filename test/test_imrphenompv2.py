@@ -134,27 +134,26 @@ def lal_phenomD_phenomP_test():
 
 
 def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
-    dist_mpc = 1
-    m1_test = 6.0
-    m2_test = 3.0
+    dist_mpc = 600
+    m1_test = 18.0
+    m2_test = 4.0
     m1_SI = m1_test * MSUN
     m2_SI = m2_test * MSUN
-    f_ref = 32
-    # phi_ref = 0.7
-    # incl = 0.3
-    s1x = -0.2
+    f_ref = 20
+    phi_ref = 2.
+    incl = jnp.pi/2.0
+    s1x = 0.1
     s1y = 0.4
-    #s1z = 0.1
-    s2x = -0.0
-    s2y = 0.5
-
-    #s2z = 0.1
+    s1z = 0.5
+    s2x = 0.3
+    s2y = -0.7
+    s2z = -0.3
     M = m1_test + m2_test
     f_l = f_ref
-    f_u = 300
+    f_u = 2000
     df = 0.005
     fs = np.arange(f_ref, f_u, df)
-    #fs = np.array([75.04])
+    #fs = np.array([100.876])
     theta = [
         m1_test,
         m2_test,
@@ -205,7 +204,7 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
 
     # plt.plot(fs, hcs, "--", label="ripple_hcs")
     # plt.plot(fs, hcsD, "--", label="ripple_hcsD")
-    plt.plot(fs, hp_ripple, "--", label="hp_ripple")
+    plt.plot(fs, hp_ripple,  label="hp_ripple", linewidth = 2, alpha=0.5)
     plt.plot(freq[f_mask], hpP_lal.data.data[f_mask], "--", label="lal_hpP", alpha=0.6)
     phi_lal_P = np.unwrap(np.angle(hpP_lal.data.data))[f_mask]
     # plt.legend()
@@ -805,7 +804,7 @@ def benchmark_waveform_call():
 
 
 # benchmark_waveform_call()
-my_phenomP_test(phi_ref=0.0, s1z=0.0, s2z=0.0, incl=jnp.pi/2)
+my_phenomP_test(phi_ref=0.0, s1z=0.4, s2z=0.4, incl=jnp.pi/2)
 #random_match_waveforms_debug(n=400)
 #lal_phenomD_phenomP_test()
 # s1z_list = np.linspace(0,1, 30)

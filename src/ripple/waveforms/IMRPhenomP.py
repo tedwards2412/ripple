@@ -246,6 +246,8 @@ def SpinWeightedY(theta, phi, s, l, m):
 def PhenomPCoreTwistUp(
     fHz,
     hPhenom,
+    phase,
+    Amp,
     eta,
     chi1_l,
     chi2_l,
@@ -350,9 +352,8 @@ def PhenomPCoreTwistUp(
     # print("hpsum:",hp_sum)
     hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
     eps_phase_hP = jnp.exp(-2j * epsilon) * hPhenom / 2.0
-    # print("temp:")
-    # print( hPhenom)
-    # print("eps_phase:", eps_phase_hP)
+
+
     hp = eps_phase_hP * hp_sum
     hc = eps_phase_hP * hc_sum
 
@@ -599,6 +600,7 @@ def phP_get_transition_frequencies(
         gamma3,
         gamma2,
     )
+    #print("frequencies: ", f1, f2, f3, f4)
     return f1, f2, f3, f4, f_RD, f_damp
 
 
@@ -624,17 +626,15 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc):
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
 
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
-    print("phase before twistup: ", phase)
 
-    phase -= 2 * phic
-    # print(phase)
+    phase -= phic
     Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
-    print("Amp before twistup: ", Amp)
+
     
     # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
     # phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(-1j * phase))
-    return hPhenom, -phase
+    return hPhenom, phase, Amp
 
 
 def PhenomPOneFrequency_phase(
@@ -658,25 +658,21 @@ def PhenomPOneFrequency_phase(
     # Note that JAX does not give index errors, so if you pass in the
     # the wrong array it will behave strangely
     magicalnumber = 2.0 * jnp.sqrt(5.0 / (64.0 * jnp.pi))
-    f = jnp.array([fsHz])  # * MSUN * M
+    f = fsHz  # * MSUN * M
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
-
+    #print("coeffs: ", coeffs)
     transition_freqs = phP_get_transition_frequencies(
         theta_ripple, coeffs[5], coeffs[6], chip
     )
-
+    # unpack transition_freqs
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
-    print("new frequency: ", transition_freqs)
 
-
-    transition_freqs = f1, f2, f3, f4, f_RD, f_damp
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
-    phase -= 2 * phic
-    # print(phase)
-    # Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
-    # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
-    return -phase[0]
+
+    #Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
+    
+    return -phase
 
 
 def PhenomPcore(
@@ -728,7 +724,7 @@ def PhenomPcore(
     chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz = LALtoPhenomP(
         m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
     )
-
+    phic = 2 * phi_aligned
     # m1 = m1_SI / MSUN
     # m2 = m2_SI / MSUN
     # print("m1, m2: ", m1, m2)
@@ -773,13 +769,15 @@ def PhenomPcore(
     # finspin = get_final_spin(m1, m2, chi1_l, chi2_l)
     # print(finspin)
 
-    hPhenomDs, _ = PhenomPOneFrequency(
-        fs, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
+    hPhenomDs, phase, Amp = PhenomPOneFrequency(
+        fs, m2, m1, chi2_l, chi1_l, chip, phic, M, dist_mpc
     )
 
     hp, hc = PhenomPCoreTwistUp(
         fs,
         hPhenomDs,
+        phase,
+        Amp,
         eta,
         chi1_l,
         chi2_l,
@@ -795,7 +793,12 @@ def PhenomPcore(
     theta_intrinsic = jnp.array([m2, m1, chi2_l, chi1_l])
     coeffs = get_coeffs(theta_intrinsic)
 
-    transition_freqs = get_transition_frequencies(theta_intrinsic, coeffs[5], coeffs[6])
+    theta_ripple = jnp.array([m2, m1, chi2_l, chi1_l])
+
+    transition_freqs = phP_get_transition_frequencies(
+        theta_ripple, coeffs[5], coeffs[6], chip
+    )
+    # unpack transition_freqs
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
 
     phi_IIb = lambda f: PhenomPOneFrequency_phase(
@@ -807,5 +810,10 @@ def PhenomPcore(
     hp *= phase_corr
     hc *= phase_corr
 
-    return hp, hc
-    # TODO: fix the timeshift part. need to take autodiffs
+
+    # final touches to hp and hc, stolen from Scott
+    c2z = jnp.cos(2 * zeta_polariz)
+    s2z = jnp.sin(2 * zeta_polariz)
+    final_hp = c2z * hp + s2z * hc
+    final_hc = c2z * hc - s2z * hp
+    return final_hp, final_hc
