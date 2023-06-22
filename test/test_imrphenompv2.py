@@ -139,21 +139,21 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
     m2_test = 4.0
     m1_SI = m1_test * MSUN
     m2_SI = m2_test * MSUN
-    f_ref = 20
-    phi_ref = 2.
-    incl = jnp.pi/2.0
-    s1x = 0.1
-    s1y = 0.4
-    s1z = 0.5
-    s2x = 0.3
-    s2y = -0.7
-    s2z = -0.3
+    f_ref = 32
+    #phi_ref = 2.
+    #incl = jnp.pi/2.0
+    s1x = 0.000000001
+    s1y = 0.0
+    #s1z = 0.5
+    s2x = 0.0
+    s2y = -0.00000000
+    #s2z = -0.3
     M = m1_test + m2_test
     f_l = f_ref
-    f_u = 2000
-    df = 0.005
+    f_u = 1024
+    df = 0.0125
     fs = np.arange(f_ref, f_u, df)
-    #fs = np.array([100.876])
+    #fs = np.array([200.876])
     theta = [
         m1_test,
         m2_test,
@@ -255,7 +255,7 @@ def random_match_waveforms(n=1000):
         tc = 0.0
         phic = 0.0
         dist_mpc = 440
-        inclination = np.pi / 2.0
+        inclination = jnp.pi / 2.0
         phi_ref = 0
 
         ################################
@@ -293,35 +293,35 @@ def random_match_waveforms(n=1000):
         if m1 < m2:
             theta = np.array(
                 [
-                    m2_kg,
-                    m1_kg,
+                    m2,
+                    m1,
                     f_ref,
                     phi_ref,
                     dist_mpc,
                     inclination,
-                    0, #s2x,
-                    0, #s2y,
-                    s2, #s2z,
-                    0, #s1x,
-                    0, #s1y,
-                    s1, #s1z,
+                    s2x,
+                    s2y,
+                    s2z,
+                    s1x,
+                    s1y,
+                    s1z,
                 ]
             )
         elif m1 > m2:
             theta = np.array(
                 [
-                    m1_kg,
-                    m2_kg,
+                    m1,
+                    m2,
                     f_ref,
                     phi_ref,
                     dist_mpc,
                     inclination,
-                    0, #s1x,
-                    0, #s1y,
-                    s1, #s1z,
-                    0, #s2x,
-                    0, #s2y,
-                    s2, #s2z,
+                    s1x,
+                    s1y,
+                    s1z,
+                    s2x,
+                    s2y,
+                    s2z,
                 ]
             )
         else:
@@ -334,8 +334,8 @@ def random_match_waveforms(n=1000):
         # )
 
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
-            theta[0],
-            theta[1],
+            theta[0]*lal.MSUN_SI,
+            theta[1]*lal.MSUN_SI,
             theta[6],
             theta[7],
             theta[8],
@@ -408,6 +408,7 @@ def random_match_waveforms(n=1000):
     cm = plt.cm.get_cmap("inferno")
     q = thetas[:, 1] / thetas[:, 0]
     mask = matches == 1.0
+    small_mask = matches < 1.0
     Mtot = thetas[:, 0] + thetas[:, 1]
         # Magnitude of the spin projections in the orbital plane
     S1_perp = thetas[:,0]**2 * jnp.sqrt(thetas[:,6]**2 + thetas[:,7]**2)
@@ -424,16 +425,33 @@ def random_match_waveforms(n=1000):
     chieff = (thetas[:, 0] * thetas[:, 8] + thetas[:, 1] * thetas[:, 11]) / (
         thetas[:, 0] + thetas[:, 1]
     )
-    sc = plt.scatter(Mtot, chieff, c=np.log10(1.0 - matches), cmap=cm)
+
+    plt.figure()
+    sc = plt.scatter(Mtot[small_mask], 
+                     chieff[small_mask], 
+                     c=np.log10(1.0 - matches[small_mask]), cmap=cm)
     plt.scatter(Mtot[mask], chieff[mask], color="C0")
     plt.colorbar(sc, label=r"$\log_{10}(1-\mathrm{Match})$")
     plt.xlabel(r"Total Mass, $M$")
-    plt.ylabel(r"Effective Spin, $\chi_{\rm eff}$")
+    plt.ylabel(r"Effectie Spin, $\chi_{\rm eff}$")
     # plt.xlim(1, 50)
     # plt.ylim(, 50)
 
-    plt.savefig("../figures/test_match_vs_lalsuite_qchieff.pdf", bbox_inches="tight")
+    plt.savefig("../figures/test_match_vs_lalsuite_chieff.pdf", bbox_inches="tight")
+    
+    plt.figure()
+    sc = plt.scatter(Mtot[small_mask], 
+                     chip[small_mask], 
+                     c=np.log10(1.0 - matches[small_mask]), cmap=cm)
+    plt.scatter(Mtot[mask], chip[mask], color="C0")
+    plt.colorbar(sc, label=r"$\log_{10}(1-\mathrm{Match})$")
+    plt.xlabel(r"Total Mass, $M$")
+    plt.ylabel(r"In-plane Spin, $\chi_{\rm p}$")
+    # plt.xlim(1, 50)
+    # plt.ylim(, 50)
 
+    plt.savefig("../figures/test_match_vs_lalsuite_chip.pdf", bbox_inches="tight")
+    
     # plt.figure(figsize=(7, 5))
     # cm = plt.cm.get_cmap("inferno")
     # sc = plt.scatter(thetas[:, 0], thetas[:, 1], c=np.log10(1.0 - matches), cmap=cm)
@@ -804,8 +822,8 @@ def benchmark_waveform_call():
 
 
 # benchmark_waveform_call()
-my_phenomP_test(phi_ref=0.0, s1z=0.4, s2z=0.4, incl=jnp.pi/2)
-#random_match_waveforms_debug(n=400)
+my_phenomP_test(phi_ref=2.0, s1z=0.03, s2z=0.08, incl=2.0)
+# random_match_waveforms(n=1000)
 #lal_phenomD_phenomP_test()
 # s1z_list = np.linspace(0,1, 30)
 # b_list = []

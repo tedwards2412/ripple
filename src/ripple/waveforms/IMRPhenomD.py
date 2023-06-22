@@ -138,16 +138,17 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     v = (PI * fM_s) ** (1.0 / 3.0)
 
     phi_TF2 = (
-        phi0 * ((PI * fM_s) ** -(5.0 / 3.0))
+        (phi5 - PI / 4.0)
+        + phi0 * ((PI * fM_s) ** -(5.0 / 3.0))
         + phi1 * ((PI * fM_s) ** -(4.0 / 3.0))
         + phi2 * ((PI * fM_s) ** -1.0)
         + phi3 * ((PI * fM_s) ** -(2.0 / 3.0))
         + phi4 * ((PI * fM_s) ** -(1.0 / 3.0))
-        + phi5_log * jnp.log(v) + phi5
+        + phi5_log * jnp.log(v)
         + phi6_log * jnp.log(v) * ((PI * fM_s) ** (1.0 / 3.0))
         + phi6 * ((PI * fM_s) ** (1.0 / 3.0))
         + phi7 * ((PI * fM_s) ** (2.0 / 3.0))
-    ) * (3.0 / (128.0 * eta)) - PI/4.0
+    ) * (3.0 / (128.0 * eta))
     phi_Ins = (
         phi_TF2
         + (
