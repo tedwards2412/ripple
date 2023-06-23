@@ -340,7 +340,7 @@ def plot_waveforms():
     # Get a frequency domain waveform
     # source parameters
     m1_msun = 15.0
-    m2_msun = 14.9
+    m2_msun = 15.0
     chi1 = [0, 0, 0.5]
     chi2 = [0, 0, 0.5]
     tc = 0.0

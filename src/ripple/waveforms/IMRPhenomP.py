@@ -198,6 +198,8 @@ def LALtoPhenomP(
     return chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz
 
 
+
+
 def SpinWeightedY(theta, phi, s, l, m):
     "copied from SphericalHarmonics.c in LAL"
     if s == -2:
@@ -350,6 +352,7 @@ def PhenomPCoreTwistUp(
     # print("hpsum:",hp_sum)
     hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
     eps_phase_hP = jnp.exp(-2j * epsilon) * hPhenom / 2.0
+
 
     hp = eps_phase_hP * hp_sum
     hc = eps_phase_hP * hc_sum
@@ -597,7 +600,7 @@ def phP_get_transition_frequencies(
         gamma3,
         gamma2,
     )
-    # print("frequencies: ", f1, f2, f3, f4)
+    #print("frequencies: ", f1, f2, f3, f4)
     return f1, f2, f3, f4, f_RD, f_damp
 
 
@@ -615,7 +618,7 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc):
     f = fsHz  # * MSUN * M
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
-    # print("coeffs: ", coeffs)
+    #print("coeffs: ", coeffs)
     transition_freqs = phP_get_transition_frequencies(
         theta_ripple, coeffs[5], coeffs[6], chip
     )
@@ -623,10 +626,11 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc):
     f1, f2, f3, f4, f_RD, f_damp = transition_freqs
 
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
-    #print("phase: ", phase)
+
     phase -= phic
     Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
 
+    
     # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
     # phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(-1j * phase))
@@ -657,7 +661,7 @@ def PhenomPOneFrequency_phase(
     f = fsHz  # * MSUN * M
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
-    # print("coeffs: ", coeffs)
+    #print("coeffs: ", coeffs)
     transition_freqs = phP_get_transition_frequencies(
         theta_ripple, coeffs[5], coeffs[6], chip
     )
@@ -666,8 +670,8 @@ def PhenomPOneFrequency_phase(
 
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
 
-    # Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
-
+    #Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
+    
     return -phase
 
 
@@ -679,15 +683,15 @@ def PhenomPcore(
     Thetas are waveform parameters.
     m1 must be larger than m2.
     """
-    # print(
-    #    "####################################################################################################"
-    # )
-    # print(
-    #    "WARNING: a linear-in-frequency phase difference between this code and the LAL implementation exists"
-    # )
-    # print(
-    #    "####################################################################################################"
-    # )
+    print(
+        "####################################################################################################"
+    )
+    print(
+        "WARNING: a linear-in-frequency phase difference between this code and the LAL implementation exists"
+    )
+    print(
+        "####################################################################################################"
+    )
     # maybe need to reverse m1 m2
     # convention: m1 < m2
     # if m1_SI > m2_SI:
@@ -801,15 +805,12 @@ def PhenomPcore(
         f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
     )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
-    # print("t0: ",t0)
-    # print("phic: ",phic)
     # t0 = jax.grad(PhDPhase)(f_RD * m_sec, theta_intrinsic, coeffs, transition_freqs)
     phase_corr = jnp.cos(2 * jnp.pi * fs * t0) - 1j * jnp.sin(2 * jnp.pi * fs * t0)
     hp *= phase_corr
     hc *= phase_corr
 
-    # print("hp: ", hp)
-    # print("zeta_polariz:", zeta_polariz)
+
     # final touches to hp and hc, stolen from Scott
     c2z = jnp.cos(2 * zeta_polariz)
     s2z = jnp.sin(2 * zeta_polariz)
