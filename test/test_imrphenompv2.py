@@ -277,7 +277,7 @@ def random_match_waveforms(n=1000):
         # del_f = 0.0125
 
         f_l = 32.0
-        f_u = 1024.0
+        f_u = 2048.0
         del_f = 0.0125
 
         f_l_idx = round(f_l / del_f)
@@ -293,35 +293,35 @@ def random_match_waveforms(n=1000):
         if m1 < m2:
             theta = np.array(
                 [
-                    m2_kg,
-                    m1_kg,
+                    m2,
+                    m1,
                     f_ref,
                     phi_ref,
                     dist_mpc,
                     inclination,
-                    0, #s2x,
-                    0, #s2y,
-                    s2, #s2z,
-                    0, #s1x,
-                    0, #s1y,
-                    s1, #s1z,
+                    s2x,
+                    s2y,
+                    s2z,
+                    s1x,
+                    s1y,
+                    s1z,
                 ]
             )
         elif m1 > m2:
             theta = np.array(
                 [
-                    m1_kg,
-                    m2_kg,
+                    m1,
+                    m2,
                     f_ref,
                     phi_ref,
                     dist_mpc,
                     inclination,
-                    0, #s1x,
-                    0, #s1y,
-                    s1, #s1z,
-                    0, #s2x,
-                    0, #s2y,
-                    s2, #s2z,
+                    s1x,
+                    s1y,
+                    s1z,
+                    s2x,
+                    s2y,
+                    s2z,
                 ]
             )
         else:
@@ -334,8 +334,8 @@ def random_match_waveforms(n=1000):
         # )
 
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
-            theta[0],
-            theta[1],
+            theta[0]*lal.MSUN_SI,
+            theta[1]*lal.MSUN_SI,
             theta[6],
             theta[7],
             theta[8],
@@ -432,7 +432,7 @@ def random_match_waveforms(n=1000):
     # plt.xlim(1, 50)
     # plt.ylim(, 50)
 
-    plt.savefig("../figures/test_match_vs_lalsuite_qchieff.pdf", bbox_inches="tight")
+    plt.savefig("../figures/phenomP_match_vs_lalsuite_qchieff.pdf", bbox_inches="tight")
 
     # plt.figure(figsize=(7, 5))
     # cm = plt.cm.get_cmap("inferno")
@@ -804,8 +804,8 @@ def benchmark_waveform_call():
 
 
 # benchmark_waveform_call()
-my_phenomP_test(phi_ref=0.0, s1z=0.4, s2z=0.4, incl=jnp.pi/2)
-#random_match_waveforms_debug(n=400)
+# my_phenomP_test(phi_ref=0.0, s1z=0.4, s2z=0.4, incl=jnp.pi/2)
+random_match_waveforms(n=400)
 #lal_phenomD_phenomP_test()
 # s1z_list = np.linspace(0,1, 30)
 # b_list = []

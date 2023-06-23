@@ -683,15 +683,15 @@ def PhenomPcore(
     Thetas are waveform parameters.
     m1 must be larger than m2.
     """
-    print(
-        "####################################################################################################"
-    )
-    print(
-        "WARNING: a linear-in-frequency phase difference between this code and the LAL implementation exists"
-    )
-    print(
-        "####################################################################################################"
-    )
+    #print(
+    #    "####################################################################################################"
+    #)
+    #print(
+    #    "WARNING: a linear-in-frequency phase difference between this code and the LAL implementation exists"
+    #)
+    #print(
+    #    "####################################################################################################"
+    #)
     # maybe need to reverse m1 m2
     # convention: m1 < m2
     # if m1_SI > m2_SI:
