@@ -141,7 +141,7 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
     m2_SI = m2_test * MSUN
     f_ref = 20
     phi_ref = 2.
-    incl = jnp.pi/2.0
+    incl = 2.
     s1x = 0.1
     s1y = 0.4
     s1z = 0.5
@@ -152,8 +152,8 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
     f_l = f_ref
     f_u = 2000
     df = 0.005
-    fs = np.arange(f_ref, f_u, df)
-    #fs = np.array([100.876])
+    #fs = np.arange(f_ref, f_u, df)
+    fs = np.array([213.876])
     theta = [
         m1_test,
         m2_test,
@@ -218,9 +218,9 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
     phase_diff = phi_ripple_p - phi_lal_P
     fit_params = np.polyfit(fs, phase_diff, 1)
     plt.plot(fs, phase_diff, label="diff angle")
-    print(fit_params)
+    #print(fit_params)
     plt.plot(fs, fit_params[0] * fs + fit_params[1], "--")
-    plt.show()
+    #plt.show()
     return fit_params[1]
 
 
@@ -805,7 +805,7 @@ def benchmark_waveform_call():
 
 # benchmark_waveform_call()
 # my_phenomP_test(phi_ref=0.0, s1z=0.4, s2z=0.4, incl=jnp.pi/2)
-random_match_waveforms(n=400)
+random_match_waveforms(n=1000)
 #lal_phenomD_phenomP_test()
 # s1z_list = np.linspace(0,1, 30)
 # b_list = []

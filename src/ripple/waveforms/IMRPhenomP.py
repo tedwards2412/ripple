@@ -16,7 +16,7 @@ from .IMRPhenomD_utils import (
 )
 from ..typing import Array
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
-
+from scipy.interpolate import CubicSpline
 
 # LAL_MSUN_SI = 1.9885e30  # Solar mass in kg
 # LAL_MTSUN_SI = LAL_MSUN_SI * 4.925491025543575903411922162094833998e-6  # Solar mass times G over c^3 in seconds
@@ -674,6 +674,56 @@ def PhenomPOneFrequency_phase(
     
     return -phase
 
+def time_corr(m1, m2, chi1_l, chi2_l, chip, phiRef, M, dist_mpc):
+    '''
+    here m1 > m2
+    '''
+    theta_intrinsic = jnp.array([m1, m2, chi1_l, chi2_l])
+    coeffs = get_coeffs(theta_intrinsic)
+
+    theta_ripple = jnp.array([m1, m2, chi1_l, chi2_l])
+
+    transition_freqs = phP_get_transition_frequencies(
+        theta_ripple, coeffs[5], coeffs[6], chip
+    )
+    # unpack transition_freqs
+    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
+    phi_IIb = lambda f: PhenomPOneFrequency_phase(
+        f, m1, m2, chi1_l, chi2_l, chip, phiRef, M, dist_mpc
+    )
+    t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
+    return t0
+
+def time_corr_coarse(m1, m2, chi1_l, chi2_l, chip, phiRef, M, dist_mpc):
+    '''
+    here m1 > m2
+    '''
+    theta_intrinsic = jnp.array([m1, m2, chi1_l, chi2_l])
+    coeffs = get_coeffs(theta_intrinsic)
+
+    theta_ripple = jnp.array([m1, m2, chi1_l, chi2_l])
+
+    transition_freqs = phP_get_transition_frequencies(
+        theta_ripple, coeffs[5], coeffs[6], chip
+    )
+    # unpack transition_freqs
+    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
+
+    phi_IIb = lambda f: PhenomPOneFrequency_phase(
+        f, m1, m2, chi1_l, chi2_l, chip, phiRef, M, dist_mpc
+    )
+    n_fixed = 10
+    f_final = f_RD
+    f_start = 0.8 * f_final
+    f_end = 1.2 * f_final
+    f_sequence = jnp.linspace(f_start, f_end, n_fixed)
+    #print("f_sequence: ", f_sequence)
+    phi_sequence = phi_IIb(f_sequence)
+    #print("phi numbers: ", phi_sequence)
+    cs = CubicSpline(f_sequence, phi_sequence, bc_type='natural')
+    t0 = cs(f_final, 1) / (2 * jnp.pi)
+
+    return t0
 
 def PhenomPcore(
     fs: Array,
@@ -790,25 +840,29 @@ def PhenomPcore(
     )
 
     # Shift phase so that peak amplitude matches t = 0
-    theta_intrinsic = jnp.array([m2, m1, chi2_l, chi1_l])
-    coeffs = get_coeffs(theta_intrinsic)
-
-    theta_ripple = jnp.array([m2, m1, chi2_l, chi1_l])
-
-    transition_freqs = phP_get_transition_frequencies(
-        theta_ripple, coeffs[5], coeffs[6], chip
-    )
-    # unpack transition_freqs
-    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
-
-    phi_IIb = lambda f: PhenomPOneFrequency_phase(
-        f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
-    )
-    t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
+    #theta_intrinsic = jnp.array([m2, m1, chi2_l, chi1_l])
+    #coeffs = get_coeffs(theta_intrinsic)
+#
+    #theta_ripple = jnp.array([m2, m1, chi2_l, chi1_l])
+#
+    #transition_freqs = phP_get_transition_frequencies(
+    #    theta_ripple, coeffs[5], coeffs[6], chip
+    #)
+    ## unpack transition_freqs
+    #f1, f2, f3, f4, f_RD, f_damp = transition_freqs
+#
+    #phi_IIb = lambda f: PhenomPOneFrequency_phase(
+    #    f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
+    #)
+    #t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
+    t0 = time_corr_coarse(m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc)
+    #t0_legacy = time_corr_coarse(m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc)
+    #print("time comparison: ", t0, t0_legacy)
     # t0 = jax.grad(PhDPhase)(f_RD * m_sec, theta_intrinsic, coeffs, transition_freqs)
     phase_corr = jnp.cos(2 * jnp.pi * fs * t0) - 1j * jnp.sin(2 * jnp.pi * fs * t0)
     hp *= phase_corr
     hc *= phase_corr
+    #print("time corrected hp: %.15e %.15e" % (hp.real, hp.imag))
 
 
     # final touches to hp and hc, stolen from Scott
