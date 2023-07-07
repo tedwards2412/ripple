@@ -6,7 +6,7 @@ import jax
 from jax import grad, vmap
 
 from ripple import get_eff_pads, get_match_arr
-from ripple.waveforms import PPE_IMRPhenomD, IMRPhenomD_utils
+from ripple.waveforms import PPE_IMRPhenomD, IMRPhenomD, IMRPhenomD_utils
 import matplotlib.pyplot as plt
 from ripple.constants import gt
 
@@ -91,7 +91,7 @@ def test_phase_phenomD():
     f_ref = f_l
 
     # Amp = IMRPhenomD.Amp(f, theta)
-    hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(f, theta_ripple, f_ref)
+    hp_ripple, hc_ripple = PPE_IMRPhenomD.gen_IMRPhenomD_polar(f, theta_ripple, f_ref)
 
     # print(Mf[0])
     m1_kg = theta[0] * lal.MSUN_SI
@@ -340,7 +340,7 @@ def plot_waveforms():
     # Get a frequency domain waveform
     # source parameters
     m1_msun = 15.0
-    m2_msun = 15.0
+    m2_msun = 10.0
     chi1 = [0, 0, 0.5]
     chi2 = [0, 0, 0.5]
     tc = 0.0
@@ -354,6 +354,9 @@ def plot_waveforms():
     theta_ripple = np.array(
         [Mc, eta, chi1[2], chi2[2], dist_mpc, tc, phic, inclination]
     )
+
+    #ppes = np.random.uniform(0,1e-5, 15)
+    #print(ppes)
 
     theta = np.array([m1_msun, m2_msun, chi1[2], chi2[2]])
     f_l = 32.0
@@ -398,7 +401,7 @@ def plot_waveforms():
     freqs = np.arange(len(hp.data.data)) * del_f
     mask_lal = (freqs >= f_l) & (freqs < f_u)
 
-    hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
+    hp_ripple, hc_ripple = PPE_IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, ppes, f_ref)
 
     plt.figure(figsize=(15, 5))
     plt.plot(
@@ -435,6 +438,7 @@ def plot_waveforms():
     plt.xlim(0, 300)
     plt.xlabel("Frequency [Hz]")
     plt.ylabel("Strain")
+    plt.show()
     plt.savefig("../figures/waveform_comparison_hp.pdf", bbox_inches="tight")
 
     plt.figure(figsize=(15, 5))
@@ -574,10 +578,9 @@ def random_match_waveforms(n=1000):
         # fs = np.arange(f_l, f_u, del_f)
         Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
 
-        theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic,
-                                 0,0,0,0, 0,0,0,0, 0,0,0,0,
-                                 0,0,0])
-        h0_ripple = PPE_IMRPhenomD.gen_IMRPhenomD(fs, theta_ripple, f_ref)
+        theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic])
+        ppes = np.zeros(15)
+        h0_ripple = PPE_IMRPhenomD.gen_IMRPhenomD(fs, theta_ripple, ppes, f_ref)
         # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
         pad_low, pad_high = get_eff_pads(fs)
         PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
@@ -784,7 +787,7 @@ if __name__ == "__main__":
     # test_Amp_phenomD()
     # test_phase_phenomD()
     # test_frequency_calc()
-    #plot_waveforms()
+    plot_waveforms()
     # benchmark_waveform_call()
-    random_match_waveforms(n=400)
+    # random_match_waveforms(n=400)
     None

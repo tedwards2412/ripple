@@ -559,7 +559,7 @@ def _gen_IMRPhenomD(
 
 
 # @jax.jit
-def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomD(f: Array, params: Array, ppes: Array, f_ref: float):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -582,20 +582,13 @@ def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     theta_intrinsic = jnp.array([m1, m2, params[2], params[3]])
     theta_extrinsic = jnp.array([params[4], params[5], params[6]])
-    ppes = jnp.array([
-                      params[7], params[8], params[9], params[10],
-                      params[11], params[12], params[13], params[14],
-                      params[15], params[16], params[17], params[18],
-                      params[19], params[20], params[21]
-                      ])
-
     coeffs = get_coeffs(theta_intrinsic)
     h0 = _gen_IMRPhenomD(f, theta_intrinsic, theta_extrinsic, ppes, coeffs, f_ref)
     return h0
 
 
 # @jax.jit
-def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomD_polar(f: Array, params: Array, ppes: Array, f_ref: float):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -617,7 +610,7 @@ def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref: float):
       hc (array): Strain of the cross polarization
     """
     iota = params[7]
-    h0 = gen_IMRPhenomD(f, params, f_ref)
+    h0 = gen_IMRPhenomD(f, params, ppes, f_ref)
 
     hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
     hc = -1j * h0 * jnp.cos(iota)
