@@ -6,7 +6,7 @@ import jax
 from jax import grad, vmap
 
 from ripple import get_eff_pads, get_match_arr
-from ripple.waveforms import IMRPhenomD, IMRPhenomD_utils
+from ripple.waveforms import PPE_IMRPhenomD, IMRPhenomD_utils
 import matplotlib.pyplot as plt
 from ripple.constants import gt
 
@@ -574,8 +574,10 @@ def random_match_waveforms(n=1000):
         # fs = np.arange(f_l, f_u, del_f)
         Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
 
-        theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic])
-        h0_ripple = IMRPhenomD.gen_IMRPhenomD(fs, theta_ripple, f_ref)
+        theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic,
+                                 0,0,0,0, 0,0,0,0, 0,0,0,0,
+                                 0,0,0])
+        h0_ripple = PPE_IMRPhenomD.gen_IMRPhenomD(fs, theta_ripple, f_ref)
         # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
         pad_low, pad_high = get_eff_pads(fs)
         PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
@@ -784,5 +786,5 @@ if __name__ == "__main__":
     # test_frequency_calc()
     #plot_waveforms()
     # benchmark_waveform_call()
-    random_match_waveforms(n=1000)
+    random_match_waveforms(n=400)
     None
