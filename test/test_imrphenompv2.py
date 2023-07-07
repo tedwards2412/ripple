@@ -7,7 +7,7 @@ from jax import grad, vmap
 
 from ripple import get_eff_pads, get_match_arr
 from ripple.waveforms import IMRPhenomD, IMRPhenomD_utils
-from ripple.waveforms import IMRPhenomP
+from ripple.waveforms import PPE_IMRPhenomP, IMRPhenomP
 import matplotlib.pyplot as plt
 from ripple.constants import gt, MSUN
 
@@ -152,8 +152,8 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
     f_l = f_ref
     f_u = 2000
     df = 0.005
-    #fs = np.arange(f_ref, f_u, df)
-    fs = np.array([213.876])
+    fs = np.arange(f_ref, f_u, df)
+    #fs = np.array([213.876])
     theta = [
         m1_test,
         m2_test,
@@ -168,7 +168,8 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
         s2y,
         s2z,
     ]
-    hp_ripple, hc_ripple = IMRPhenomP.PhenomPcore(fs, theta)
+    ppes = np.zeros(15)
+    hp_ripple, hc_ripple = IMRPhenomP.PhenomPcore(fs, theta, ppes)
     phi_ripple_p = np.unwrap(np.angle(hp_ripple))
 
     # print(hps)
@@ -361,7 +362,8 @@ def random_match_waveforms(n=1000):
         # Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
 
         # theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic])
-        hp_ripple, hc_ripple = IMRPhenomP.PhenomPcore(fs, theta)
+        ppes = np.zeros(15)
+        hp_ripple, hc_ripple = PPE_IMRPhenomP.PhenomPcore(fs, theta, ppes)
         h0_ripple = 2.0 * hp_ripple
         # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
         pad_low, pad_high = get_eff_pads(fs)
@@ -580,7 +582,8 @@ def random_match_waveforms_debug(n=1000):
 
         theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic])
         #hp_ripple, hc_ripple = IMRPhenomD.PhenomPcore(fs, theta)
-        h0_ripple = IMRPhenomD.gen_IMRPhenomD(fs, theta_ripple, f_ref)
+        ppes = np.zeros(15)
+        h0_ripple = PPE_IMRPhenomD.gen_IMRPhenomD(fs, theta_ripple, f_ref, ppes)
         # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
         pad_low, pad_high = get_eff_pads(fs)
         PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
