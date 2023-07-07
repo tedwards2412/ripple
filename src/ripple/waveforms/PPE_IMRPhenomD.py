@@ -24,7 +24,11 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     """
     # First lets calculate some of the vairables that will be used below
     # Mass variables
-    m1, m2, chi1, chi2 = theta
+    m1, m2, chi1, chi2, ppes = theta
+    # ppes is in the form of 
+    # [dpsi_{-2}, dpsi_0, dpsi_1, dpsi_2, dpsi_3, dpsi_4, dpsi_5l, dpsi_6,
+    #  dpsi_6l, dpsi_7, dbeta_2, dbeta_3, dalpha_2, dalpha_3, dalpha_4]
+    # see eq.2 in 1712.08772
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
@@ -35,7 +39,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     m2M = m2_s / M_s
 
     phi0 = 1.0
-    phi1 = 0.0
+    phi1 = 0.0 
     phi2 = 5.0 * (74.3 / 8.4 + 11.0 * eta) / 9.0
     phi3 = -16.0 * PI + (
         m1M * (25.0 + 38.0 / 3.0 * m1M) * chi1 + m2M * (25.0 + 38.0 / 3.0 * m2M) * chi2
@@ -138,15 +142,16 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     v = (PI * fM_s) ** (1.0 / 3.0)
 
     phi_TF2 = (
-        phi0 * ((PI * fM_s) ** -(5.0 / 3.0))
-        + phi1 * ((PI * fM_s) ** -(4.0 / 3.0))
-        + phi2 * ((PI * fM_s) ** -1.0)
-        + phi3 * ((PI * fM_s) ** -(2.0 / 3.0))
-        + phi4 * ((PI * fM_s) ** -(1.0 / 3.0))
-        + phi5_log * jnp.log(v) + phi5
-        + phi6_log * jnp.log(v) * ((PI * fM_s) ** (1.0 / 3.0))
-        + phi6 * ((PI * fM_s) ** (1.0 / 3.0))
-        + phi7 * ((PI * fM_s) ** (2.0 / 3.0))
+        ppes[0] * ((PI * fM_s) ** -(7.0 / 3.0))
+        (phi0+ ppes[1]) * ((PI * fM_s) ** -(5.0 / 3.0))
+        + (phi1 + ppes[2]) * ((PI * fM_s) ** -(4.0 / 3.0))
+        + (phi2 + ppes[3]) * ((PI * fM_s) ** -1.0)
+        + (phi3 + ppes[4]) * ((PI * fM_s) ** -(2.0 / 3.0))
+        + (phi4 + ppes[5])* ((PI * fM_s) ** -(1.0 / 3.0))
+        + (phi5_log + ppes[6]) * jnp.log(v) + phi5
+        + (phi6_log + ppes[8]) * jnp.log(v) * ((PI * fM_s) ** (1.0 / 3.0))
+        + (phi6 + ppes[7]) * ((PI * fM_s) ** (1.0 / 3.0))
+        + (phi7 + ppes[9]) * ((PI * fM_s) ** (2.0 / 3.0))
     ) * (3.0 / (128.0 * eta)) - PI/4.0
     phi_Ins = (
         phi_TF2
@@ -162,16 +167,16 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
 
 def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
-    m1, m2, _, _ = theta
+    m1, m2, _, _, ppes = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
 
     phi_IIa_raw = (
-        coeffs[11] * fM_s
-        + coeffs[12] * jnp.log(fM_s)
-        - coeffs[13] * (fM_s**-3.0) / 3.0
+        coeffs[11] * fM_s # beta_1
+        + (coeffs[12] + ppes[10]) * jnp.log(fM_s) # beta_2
+        - (coeffs[13] + ppes[11])* (fM_s**-3.0) / 3.0 # beta_3
     ) / eta
 
     return phi_IIa_raw
@@ -189,9 +194,9 @@ def get_IIb_raw_phase(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) ->
 
     phi_IIb_raw = (
         coeffs[14] * fM_s
-        - coeffs[15] * (fM_s**-1.0)
-        + 4.0 * coeffs[16] * (fM_s ** (3.0 / 4.0)) / 3.0
-        + coeffs[17] * jnp.arctan((fM_s - coeffs[18] * f_RDM_s) / f_dampM_s)
+        - (coeffs[15] + ppes[12]) * (fM_s**-1.0) # alpha_2
+        + 4.0 * (coeffs[16] + ppes[13]) * (fM_s ** (3.0 / 4.0)) / 3.0 # alpha_3
+        + (coeffs[17]+ppes[14]) * jnp.arctan((fM_s - coeffs[18] * f_RDM_s) / f_dampM_s) # alpha_4
     ) / eta
 
     return phi_IIb_raw
@@ -207,7 +212,10 @@ def get_Amp0(fM_s: Array, eta: float) -> Array:
 def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     # Below is taken from https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimIMRPhenomD_internals.c
     # Lines 302 --> 351
-    m1, m2, chi1, chi2 = theta
+    # for ppe, theta has to include all the additional factors
+    # should be packaged into a list
+    m1, m2, chi1, chi2, _ = theta
+    # ppes are not used in amps
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
@@ -330,7 +338,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 def get_IIa_Amp(
     fM_s: Array, theta: Array, coeffs: Array, f1, f3, f_RD, f_damp
 ) -> Array:
-    m1, m2, _, _ = theta
+    m1, m2, _, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
@@ -362,7 +370,7 @@ def get_IIa_Amp(
 
 
 def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array:
-    m1, m2, _, _ = theta
+    m1, m2, _, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
@@ -394,7 +402,7 @@ def Phase(f: Array, theta: Array, coeffs: Array, transition_freqs: Array) -> Arr
     """
     # First lets calculate some of the vairables that will be used below
     # Mass variables
-    m1, m2, _, _ = theta
+    m1, m2, _, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
