@@ -15,7 +15,6 @@ def benchmark_waveform_call(IMRphenom: str):
     # Get a frequency domain waveform
     f_l = 16
     f_u = 512
-    del_f = 0.0125
     T = 16
 
     if IMRphenom == "IMRPhenomD":
@@ -32,7 +31,8 @@ def benchmark_waveform_call(IMRphenom: str):
     delta_t = 1 / f_sampling
     tlen = int(round(T / delta_t))
     freqs = np.fft.rfftfreq(tlen, delta_t)
-    freqs = freqs[(freqs > f_l) & (freqs < f_u)]
+    fs = freqs[(freqs > f_l) & (freqs < f_u)]
+    f_ref = f_l
 
     n = 1_000_000
     # Intrinsic parameters
@@ -60,9 +60,6 @@ def benchmark_waveform_call(IMRphenom: str):
             inclination,
         ]
     )
-
-    fs = np.arange(f_l, f_u, del_f)
-    f_ref = f_l
 
     @jax.jit
     def waveform(theta):
