@@ -134,7 +134,9 @@ def test_phase_phenomD():
 
     plt.figure(figsize=(7, 5))
     plt.plot(
-        freq[f_mask], np.unwrap(np.angle(hp.data.data))[f_mask], label="lalsuite",
+        freq[f_mask],
+        np.unwrap(np.angle(hp.data.data))[f_mask],
+        label="lalsuite",
     )
 
     plt.plot(
@@ -151,7 +153,8 @@ def test_phase_phenomD():
     plt.savefig("../figures/test_phase.pdf", bbox_inches="tight")
 
     print(
-        "Ripple Phase:", np.unwrap(np.angle(hp_ripple)),
+        "Ripple Phase:",
+        np.unwrap(np.angle(hp_ripple)),
     )
     print("Lalsuite Phase:", np.unwrap(np.angle(hp.data.data))[f_mask])
 
@@ -412,7 +415,11 @@ def plot_waveforms():
     )
 
     plt.plot(
-        fs, hp_ripple.real, label="hp ripple real", alpha=0.8, color="C0",
+        fs,
+        hp_ripple.real,
+        label="hp ripple real",
+        alpha=0.8,
+        color="C0",
     )
 
     plt.plot(
@@ -426,7 +433,11 @@ def plot_waveforms():
     )
 
     plt.plot(
-        fs, hp_ripple.imag, label="hp ripple imag", alpha=0.8, color="C1",
+        fs,
+        hp_ripple.imag,
+        label="hp ripple imag",
+        alpha=0.8,
+        color="C1",
     )
 
     plt.axvline(x=f3, ls="--")
@@ -449,7 +460,11 @@ def plot_waveforms():
     )
 
     plt.plot(
-        fs, hc_ripple.real, label="hc ripple real", alpha=0.3, color="C0",
+        fs,
+        hc_ripple.real,
+        label="hc ripple real",
+        alpha=0.3,
+        color="C0",
     )
 
     plt.plot(
@@ -463,7 +478,11 @@ def plot_waveforms():
     )
 
     plt.plot(
-        fs, hc_ripple.imag, label="hc ripple imag", alpha=0.3, color="C1",
+        fs,
+        hc_ripple.imag,
+        label="hc ripple imag",
+        alpha=0.3,
+        color="C1",
     )
 
     plt.axvline(x=f3, ls="--")
@@ -478,7 +497,11 @@ def plot_waveforms():
 
     print(
         get_match_arr(
-            pad_low, pad_high, np.ones_like(fs), hp_ripple, hp.data.data[mask_lal],
+            pad_low,
+            pad_high,
+            np.ones_like(fs),
+            hp_ripple,
+            hp.data.data[mask_lal],
         )
     )
 
@@ -679,12 +702,34 @@ def benchmark_waveform_call():
             theta.append(np.array([m2[i], m1[i], s1[i], s2[i]]))
             Mc, eta = ms_to_Mc_eta(jnp.array([m2[i], m1[i]]))
             theta_ripple.append(
-                np.array([Mc, eta, s1[i], s2[i], dist_mpc, tc, phic, inclination,])
+                np.array(
+                    [
+                        Mc,
+                        eta,
+                        s1[i],
+                        s2[i],
+                        dist_mpc,
+                        tc,
+                        phic,
+                        inclination,
+                    ]
+                )
             )
         elif m1[i] > m2[i]:
             Mc, eta = ms_to_Mc_eta(jnp.array([m1[i], m2[i]]))
             theta_ripple.append(
-                np.array([Mc, eta, s1[i], s2[i], dist_mpc, tc, phic, inclination,])
+                np.array(
+                    [
+                        Mc,
+                        eta,
+                        s1[i],
+                        s2[i],
+                        dist_mpc,
+                        tc,
+                        phic,
+                        inclination,
+                    ]
+                )
             )
             theta.append(np.array([m1[i], m2[i], s1[i], s2[i]]))
         else:
