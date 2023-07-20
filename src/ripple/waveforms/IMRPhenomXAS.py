@@ -72,33 +72,33 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
         4.0 / 3.0
     )
     phi5 = 0.0
-    phi5L = ((5 * (46374 - 6552 * eta) * PI) / 4536.0) * PI ** (5.0 / 3.0) + (
+    phi5L = ((5.0 * (46374.0 - 6552.0 * eta) * PI) / 4536.0) * PI ** (5.0 / 3.0) + (
         (
-            -732985 * (chi1 + chi2 + chi1 * delta - chi2 * delta)
-            - 560 * (-1213 * (chi1 + chi2) + 63 * (chi1 - chi2) * delta) * eta
-            + 85680 * (chi1 + chi2) * eta2
+            -732985.0 * (chi1 + chi2 + chi1 * delta - chi2 * delta)
+            - 560.0 * (-1213.0 * (chi1 + chi2) + 63.0 * (chi1 - chi2) * delta) * eta
+            + 85680.0 * (chi1 + chi2) * eta2
         )
         / 4536.0
     ) * PI ** (5.0 / 3.0)
-    phi6L = (-6848 / 63.0) * PI**2.0
+    phi6L = (-6848.0 / 63.0) * PI**2.0
     phi6 = (
         (
-            11583231236531 / 4.69421568e9
-            - (5 * eta * (3147553127 + 588 * eta * (-45633 + 102260 * eta)))
+            11583231236531.0 / 4.69421568e9
+            - (5.0 * eta * (3147553127.0 + 588.0 * eta * (-45633.0 + 102260.0 * eta)))
             / 3.048192e6
-            - (6848 * EulerGamma) / 21.0
-            - (640 * PI**2.0) / 3.0
-            + (2255 * eta * PI**2.0) / 12.0
-            - (13696 * jnp.log(2)) / 21.0
-            - (6848 * jnp.log(PI)) / 63.0
+            - (6848.0 * EulerGamma) / 21.0
+            - (640.0 * PI**2.0) / 3.0
+            + (2255.0 * eta * PI**2.0) / 12.0
+            - (13696.0 * jnp.log(2.0)) / 21.0
+            - (6848.0 * jnp.log(PI)) / 63.0
         )
         * PI**2.0
         + (
             (
                 5
                 * (
-                    227 * (chi1 + chi2 + chi1 * delta - chi2 * delta)
-                    - 156 * (chi1 + chi2) * eta
+                    227.0 * (chi1 + chi2 + chi1 * delta - chi2 * delta)
+                    - 156.0 * (chi1 + chi2) * eta
                 )
                 * PI
             )
@@ -107,22 +107,22 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
         * PI**2.0
         + (
             (
-                5
+                5.0
                 * (
-                    20 * chi1L2L * eta * (11763 + 12488 * eta)
-                    + 7
+                    20.0 * chi1L2L * eta * (11763.0 + 12488.0 * eta)
+                    + 7.0
                     * chi2L2
                     * (
-                        -15103 * (-1 + delta)
-                        + 2 * (-21683 + 6580 * delta) * eta
-                        - 9808 * eta2
+                        -15103.0 * (-1 + delta)
+                        + 2.0 * (-21683.0 + 6580.0 * delta) * eta
+                        - 9808.0 * eta2
                     )
-                    - 7
+                    - 7.0
                     * chi1L2
                     * (
-                        -15103 * (1 + delta)
-                        + 2 * (21683 + 6580 * delta) * eta
-                        + 9808 * eta2
+                        -15103.0 * (1 + delta)
+                        + 2.0 * (21683.0 + 6580.0 * delta) * eta
+                        + 9808.0 * eta2
                     )
                 )
             )
@@ -131,47 +131,53 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
         * PI**2.0
     )
     phi7 = (
-        ((5 * (15419335 + 168 * (75703 - 29618 * eta) * eta) * PI) / 254016.0)
+        ((5.0 * (15419335.0 + 168.0 * (75703.0 - 29618.0 * eta) * eta) * PI) / 254016.0)
         * PI ** (7.0 / 3.0)
         + (
             (
-                5
+                5.0
                 * (
-                    -5030016755 * (chi1 + chi2 + chi1 * delta - chi2 * delta)
-                    + 4
-                    * (2113331119 * (chi1 + chi2) + 675484362 * (chi1 - chi2) * delta)
+                    -5030016755.0 * (chi1 + chi2 + chi1 * delta - chi2 * delta)
+                    + 4.0
+                    * (
+                        2113331119.0 * (chi1 + chi2)
+                        + 675484362.0 * (chi1 - chi2) * delta
+                    )
                     * eta
-                    - 1008
-                    * (208433 * (chi1 + chi2) + 25011 * (chi1 - chi2) * delta)
+                    - 1008.0
+                    * (208433.0 * (chi1 + chi2) + 25011.0 * (chi1 - chi2) * delta)
                     * eta2
-                    + 90514368 * (chi1 + chi2) * eta3
+                    + 90514368.0 * (chi1 + chi2) * eta3
                 )
             )
             / 6.096384e6
         )
         * PI ** (7.0 / 3.0)
         + (
-            -5
+            -5.0
             * (
-                57 * chi1L2 * (1 + delta - 2 * eta)
-                + 220 * chi1L2L * eta
-                - 57 * chi2L2 * (-1 + delta + 2 * eta)
+                57.0 * chi1L2 * (1 + delta - 2 * eta)
+                + 220.0 * chi1L2L * eta
+                - 57.0 * chi2L2 * (-1 + delta + 2 * eta)
             )
             * PI
         )
         * PI ** (7.0 / 3.0)
         + (
             (
-                14585 * (-(chi2L3 * (-1 + delta)) + chi1L3 * (1 + delta))
-                - 5
+                14585.0 * (-(chi2L3 * (-1 + delta)) + chi1L3 * (1 + delta))
+                - 5.0
                 * (
-                    chi2L3 * (8819 - 2985 * delta)
-                    + 8439 * chi1 * chi2L2 * (-1 + delta)
-                    - 8439 * chi1L2 * chi2 * (1 + delta)
-                    + chi1L3 * (8819 + 2985 * delta)
+                    chi2L3 * (8819.0 - 2985.0 * delta)
+                    + 8439.0 * chi1 * chi2L2 * (-1.0 + delta)
+                    - 8439.0 * chi1L2 * chi2 * (1.0 + delta)
+                    + chi1L3 * (8819.0 + 2985.0 * delta)
                 )
                 * eta
-                + 40 * (chi1 + chi2) * (17 * chi1L2 - 14 * chi1L2L + 17 * chi2L2) * eta2
+                + 40.0
+                * (chi1 + chi2)
+                * (17.0 * chi1L2 - 14.0 * chi1L2L + 17.0 * chi2L2)
+                * eta2
             )
             / 48.0
         )
@@ -179,14 +185,16 @@ def get_inspiral_phase(fM_s: Array, theta: Array, phase_coeffs: Array) -> Array:
     )
     phi8 = (
         (
-            -5
+            -5.0
             * (
-                1263141 * (chi1 + chi2 + chi1 * delta - chi2 * delta)
-                - 2 * (794075 * (chi1 + chi2) + 178533 * (chi1 - chi2) * delta) * eta
-                + 94344 * (chi1 + chi2) * eta2
+                1263141.0 * (chi1 + chi2 + chi1 * delta - chi2 * delta)
+                - 2.0
+                * (794075.0 * (chi1 + chi2) + 178533.0 * (chi1 - chi2) * delta)
+                * eta
+                + 94344.0 * (chi1 + chi2) * eta2
             )
             * PI
-            * (-1 + jnp.log(PI))
+            * (-1.0 + jnp.log(PI))
         )
         / 9072.0
     ) * PI ** (8.0 / 3.0)
@@ -817,76 +825,87 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array) -> Array:
 
     A0 = 1.0
     # A1 = 0.0
-    A2 = ((-969 + 1804 * eta) / 672.0) * (PI ** (2.0 / 3.0))
+    A2 = ((-969.0 + 1804.0 * eta) / 672.0) * (PI ** (2.0 / 3.0))
     A3 = (
         (
-            81 * (chi1 + chi2)
-            + 81 * chi1 * delta
-            - 81 * chi2 * delta
-            - 44 * (chi1 + chi2) * eta
+            81.0 * (chi1 + chi2)
+            + 81.0 * chi1 * delta
+            - 81.0 * chi2 * delta
+            - 44.0 * (chi1 + chi2) * eta
         )
         / 48.0
     ) * PI
     A4 = (
         (
-            -27312085
-            - 10287648 * chi1**2 * (1 + delta)
-            + 24
+            -27312085.0
+            - 10287648.0 * chi1**2.0 * (1.0 + delta)
+            + 24.0
             * (
-                428652 * chi2**2 * (-1 + delta)
+                428652.0 * chi2**2 * (-1 + delta)
                 + (
-                    -1975055
-                    + 10584 * (81 * chi1**2 - 94 * chi1 * chi2 + 81 * chi2**2)
+                    -1975055.0
+                    + 10584.0
+                    * (81.0 * chi1**2.0 - 94.0 * chi1 * chi2 + 81.0 * chi2**2)
                 )
                 * eta
-                + 1473794 * eta2
+                + 1473794.0 * eta2
             )
         )
         / 8.128512e6
     ) * (PI ** (4.0 / 3.0))
     A5 = (
         (
-            -6048 * chi1**2 * chi1 * (-1 - delta + (3 + delta) * eta)
+            -6048.0 * chi1**2.0 * chi1 * (-1.0 - delta + (3.0 + delta) * eta)
             + chi2
             * (
-                -((287213 + 6048 * chi2**2) * (-1 + delta))
-                + 4 * (-93414 + 1512 * chi2**2 * (-3 + delta) + 2083 * delta) * eta
-                - 35632 * eta2
+                -((287213.0 + 6048.0 * chi2**2) * (-1.0 + delta))
+                + 4
+                * (-93414.0 + 1512.0 * chi2**2.0 * (-3.0 + delta) + 2083.0 * delta)
+                * eta
+                - 35632.0 * eta2
             )
             + chi1
-            * (287213 * (1 + delta) - 4 * eta * (93414 + 2083 * delta + 8908 * eta))
-            + 42840 * (-1 + 4 * eta) * PI
+            * (
+                287213.0 * (1.0 + delta)
+                - 4.0 * eta * (93414.0 + 2083.0 * delta + 8908.0 * eta)
+            )
+            + 42840.0 * (-1.0 + 4.0 * eta) * PI
         )
         / 32256.0
     ) * (PI ** (5.0 / 3.0))
     A6 = (
         (
-            -1242641879927
+            -1242641879927.0
             + 12.0
             * (
                 28.0
                 * (
                     -3248849057.0
-                    + 11088
-                    * (163199 * chi1**2 - 266498 * chi1 * chi2 + 163199 * chi2**2)
+                    + 11088.0
+                    * (
+                        163199.0 * chi1**2.0
+                        - 266498.0 * chi1 * chi2
+                        + 163199.0 * chi2**2.0
+                    )
                 )
                 * eta2
-                + 27026893936 * eta2 * eta
-                - 116424
+                + 27026893936.0 * eta2 * eta
+                - 116424.0
                 * (
-                    147117 * (-(chi2**2 * (-1.0 + delta)) + chi1**2 * (1.0 + delta))
-                    + 60928 * (chi1 + chi2 + chi1 * delta - chi2 * delta) * PI
+                    147117.0
+                    * (-(chi2**2.0 * (-1.0 + delta)) + chi1**2.0 * (1.0 + delta))
+                    + 60928.0 * (chi1 + chi2 + chi1 * delta - chi2 * delta) * PI
                 )
                 + eta
                 * (
                     545384828789.0
-                    - 77616
+                    - 77616.0
                     * (
-                        638642 * chi1 * chi2
-                        + chi1**2 * (-158633 + 282718 * delta)
-                        - chi2**2 * (158633.0 + 282718.0 * delta)
+                        638642.0 * chi1 * chi2
+                        + chi1**2.0 * (-158633.0 + 282718.0 * delta)
+                        - chi2**2.0 * (158633.0 + 282718.0 * delta)
                         - 107520.0 * (chi1 + chi2) * PI
-                        + 275520 * PI**2
+                        + 275520.0 * PI**2
                     )
                 )
             )
@@ -1346,7 +1365,6 @@ def _gen_IMRPhenomXAS(
     return h0
 
 
-# @jax.jit
 def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     """
     Generate PhenomXAS frequency domain waveform following 2001.11412.
@@ -1378,8 +1396,7 @@ def gen_IMRPhenomXAS(f: Array, params: Array, f_ref: float):
     return h0
 
 
-# @jax.jit
-def gen_IMRPhenomXAS_polar(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomXAS_hphc(f: Array, params: Array, f_ref: float):
     """
     Generate PhenomXAS frequency domain waveform following 2001.11412.
     vars array contains both intrinsic and extrinsic variables

@@ -3,9 +3,9 @@ Core utilities for calculating properties of binaries, sampling their parameters
 and comparing waveforms.
 """
 
-from jax.config import config
-
-config.update("jax_enable_x64", True)
+# Note that we turned this off to test float32 capabilities
+# from jax.config import config
+# config.update("jax_enable_x64", True)
 
 from math import pi
 from typing import Callable, Optional, Tuple
@@ -31,7 +31,7 @@ def Mc_eta_to_ms(m):
     """
     Mchirp, eta = m
     M = Mchirp / (eta ** (3 / 5))
-    m2 = (M - jnp.sqrt(M ** 2 - 4 * M ** 2 * eta)) / 2
+    m2 = (M - jnp.sqrt(M**2 - 4 * M**2 * eta)) / 2
     m1 = M - m2
     return m1, m2
 
@@ -61,7 +61,7 @@ def get_f_isco(m):
     Returns:
         The ISCO frequency in Hz
     """
-    return 1 / (6 ** (3 / 2) * pi * m / (C ** 3 / G))
+    return 1 / (6 ** (3 / 2) * pi * m / (C**3 / G))
 
 
 def get_M_eta_sampler(

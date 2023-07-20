@@ -7,6 +7,9 @@ from jax import vmap
 import numpy as np
 from ripple import ms_to_Mc_eta
 
+# from jax.config import config
+# config.update("jax_enable_x64", True)
+
 
 def benchmark_waveform_call(IMRphenom: str):
     # Get a frequency domain waveform
@@ -16,7 +19,14 @@ def benchmark_waveform_call(IMRphenom: str):
     T = 16
 
     if IMRphenom == "IMRPhenomD":
-        import ripple.waveforms.IMRPhenomD as waveform_generator
+        from ripple.waveforms.IMRPhenomD import (
+            gen_IMRPhenomD_hphc as waveform_generator,
+        )
+
+    if IMRphenom == "IMRPhenomXAS":
+        from ripple.waveforms.IMRPhenomXAS import (
+            gen_IMRPhenomXAS_hphc as waveform_generator,
+        )
 
     f_sampling = 4096
     delta_t = 1 / f_sampling
@@ -24,7 +34,7 @@ def benchmark_waveform_call(IMRphenom: str):
     freqs = np.fft.rfftfreq(tlen, delta_t)
     freqs = freqs[(freqs > f_l) & (freqs < f_u)]
 
-    n = 100_000
+    n = 1_000_000
     # Intrinsic parameters
     m1 = np.random.uniform(1.0, 100.0, n)
     m2 = np.random.uniform(1.0, 100.0, n)
@@ -56,7 +66,7 @@ def benchmark_waveform_call(IMRphenom: str):
 
     @jax.jit
     def waveform(theta):
-        return waveform_generator.gen_IMRPhenomD_polar(fs, theta, f_ref)
+        return waveform_generator(fs, theta, f_ref)
 
     print("JIT compiling")
     waveform(theta_ripple[0])[0].block_until_ready()
