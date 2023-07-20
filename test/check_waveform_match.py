@@ -1,8 +1,5 @@
-from math import pi
 import jax.numpy as jnp
-import time
 import jax
-from jax import vmap
 from ripple import get_eff_pads, get_match_arr
 from tqdm import tqdm
 
