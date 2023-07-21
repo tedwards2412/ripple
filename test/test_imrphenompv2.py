@@ -169,7 +169,7 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
         s2z,
     ]
     ppes = np.zeros(15)
-    hp_ripple, hc_ripple = IMRPhenomP.PhenomPcore(fs, theta, ppes)
+    hp_ripple, hc_ripple = IMRPhenomP.PhenomPcore(fs, theta)
     phi_ripple_p = np.unwrap(np.angle(hp_ripple))
 
     # print(hps)
@@ -221,7 +221,7 @@ def my_phenomP_test(phi_ref=0, s1z=0, s2z=0, incl=0):
     plt.plot(fs, phase_diff, label="diff angle")
     #print(fit_params)
     plt.plot(fs, fit_params[0] * fs + fit_params[1], "--")
-    #plt.show()
+    plt.show()
     return fit_params[1]
 
 
@@ -363,7 +363,7 @@ def random_match_waveforms(n=1000):
 
         # theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic])
         ppes = np.zeros(15)
-        hp_ripple, hc_ripple = PPE_IMRPhenomP.PhenomPcore(fs, theta, ppes)
+        hp_ripple, hc_ripple = IMRPhenomP.PhenomPcore(fs, theta)
         h0_ripple = 2.0 * hp_ripple
         # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
         pad_low, pad_high = get_eff_pads(fs)
@@ -457,7 +457,7 @@ def random_match_waveforms(n=1000):
 
     print(thetas, matches)
 
-def random_match_waveforms_debug(n=1000):
+def random_match_waveforms_debug(n=500):
     # Get a frequency domain waveform
     thetas = []
     matches = []
@@ -808,7 +808,7 @@ def benchmark_waveform_call():
 
 # benchmark_waveform_call()
 # my_phenomP_test(phi_ref=0.0, s1z=0.4, s2z=0.4, incl=jnp.pi/2)
-random_match_waveforms(n=1000)
+random_match_waveforms(n=500)
 #lal_phenomD_phenomP_test()
 # s1z_list = np.linspace(0,1, 30)
 # b_list = []

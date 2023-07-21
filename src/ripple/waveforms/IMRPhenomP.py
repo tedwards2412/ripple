@@ -37,10 +37,10 @@ def ROTATEY(angle, x, y, z):
 
 
 def atan2tol(y, x, tol):
-    #if abs(x) < tol and abs(y) < tol:
-    #    return 0.0
-    #else:
-    return jnp.arctan2(y, x)
+    if abs(x) < tol and abs(y) < tol:
+        return 0.0
+    else:
+        return jnp.arctan2(y, x)
 
 
 def LALtoPhenomP(
@@ -334,7 +334,7 @@ def PhenomPCoreTwistUp(
     )
     Tm2m = (
         cexp_m2i_alpha * sBetah4 * jnp.conjugate(Y2mA[0]) 
-        + cexp_mi_alpha * 2 * cBetah * sBetah3 * jnp.conjuate(Y2mA[1])
+        + cexp_mi_alpha * 2 * cBetah * sBetah3 * jnp.conjugate(Y2mA[1])
         + 1 * jnp.sqrt(6) * sBetah2 * cBetah2 * jnp.conjugate(Y2mA[2])
         + cexp_i_alpha * 2 * cBetah3 * sBetah * jnp.conjugate(Y2mA[3])
         + cexp_2i_alpha * cBetah4 * jnp.conjugate(Y2mA[4])
@@ -366,7 +366,7 @@ def PhenomPCoreTwistUp(
 
     #hp_sum = jnp.sum(T2m + Tm2m, axis=1)
     hp_sum = T2m + Tm2m
-    # print("hpsum:",hp_sum)
+    #print("hpsum:",hp_sum)
     #hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
     hc_sum = 1j * (T2m - Tm2m)
     eps_phase_hP = jnp.exp(-2j * epsilon) * hPhenom / 2.0
@@ -768,9 +768,12 @@ def PhenomPcore(
     #    s1y, s2y = switching(s1y, s2y)
     #    s1z, s2z = switching(s1z, s2z)
 
-    Mc = theta[0]
-    eta = theta[1]
-    m1, m2 = Mc_eta_to_ms(jnp.array([Mc, eta]))
+    #Mc = theta[0]
+    #eta = theta[1]
+    #m1, m2 = Mc_eta_to_ms(jnp.array([Mc, eta]))
+    m1 = theta[0]
+    m2 = theta[1]
+
 
     f_ref = theta[2]
     phiRef = theta[3]
@@ -836,7 +839,6 @@ def PhenomPcore(
     Y21 = SpinWeightedY(thetaJN, 0, -2, 2, 1)
     Y22 = SpinWeightedY(thetaJN, 0, -2, 2, 2)
     Y2 = [Y2m2, Y2m1, Y20, Y21, Y22]
-
     # finspin = get_final_spin(m1, m2, chi1_l, chi2_l)
     # print(finspin)
 
