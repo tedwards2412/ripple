@@ -1,6 +1,7 @@
 import math
 import jax
 import jax.numpy as jnp
+from ripple import Mc_eta_to_ms
 
 # from math import acos, atan2, sqrt, sin, cos, pi, log
 from typing import Tuple
@@ -36,10 +37,10 @@ def ROTATEY(angle, x, y, z):
 
 
 def atan2tol(y, x, tol):
-    if abs(x) < tol and abs(y) < tol:
-        return 0.0
-    else:
-        return jnp.arctan2(y, x)
+    #if abs(x) < tol and abs(y) < tol:
+    #    return 0.0
+    #else:
+    return jnp.arctan2(y, x)
 
 
 def LALtoPhenomP(
@@ -94,16 +95,17 @@ def LALtoPhenomP(
     A2 = 2 + (3 * m1) / (2 * m2)
     ASp1 = A1 * S1_perp
     ASp2 = A2 * S2_perp
-    if ASp2 > ASp1:
-        num = ASp2
-    else:
-        num = ASp1
-    if m2 > m1:
-        den = A2 * m2_2
-    else:
-        den = A1 * m1_2
-    # num = jnp.maximum(ASp1, ASp2)
-    # den = A2 * m2_2 # warning: this assumes m2 > m1
+    #if ASp2 > ASp1:
+    #    num = ASp2
+    #else:
+    #    num = ASp1
+    #print("m1 m2 check: ", m1, m2)
+    #if m2 > m1:
+    #    den = A2 * m2_2
+    #else:
+    #    den = A1 * m1_2
+    num = jnp.maximum(ASp1, ASp2)
+    den = A2 * m2_2 # warning: this assumes m2 > m1
     chip = num / den
 
     m_sec = M * gt
@@ -323,13 +325,27 @@ def PhenomPCoreTwistUp(
     cexp_2i_alpha = cexp_i_alpha * cexp_i_alpha
     cexp_mi_alpha = 1.0 / cexp_i_alpha
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
-    ones = jnp.ones(len(cexp_i_alpha))
-    cexp_im_alpha = jnp.array(
-        [cexp_m2i_alpha, cexp_mi_alpha, ones, cexp_i_alpha, cexp_2i_alpha]
+    T2m = (
+        cexp_2i_alpha * cBetah4 * Y2mA[0] 
+        - cexp_i_alpha * 2 * cBetah3 * sBetah * Y2mA[1]
+        + 1 * jnp.sqrt(6) * sBetah2 * cBetah2 * Y2mA[2]
+        - cexp_mi_alpha * 2 * cBetah * sBetah3 * Y2mA[3]
+        + cexp_m2i_alpha * sBetah4 * Y2mA[4]
     )
-    cexp_im_alpha_reverse = jnp.array(
-        [cexp_2i_alpha, cexp_i_alpha, ones, cexp_mi_alpha, cexp_m2i_alpha]
+    Tm2m = (
+        cexp_m2i_alpha * sBetah4 * jnp.conjugate(Y2mA[0]) 
+        + cexp_mi_alpha * 2 * cBetah * sBetah3 * jnp.conjuate(Y2mA[1])
+        + 1 * jnp.sqrt(6) * sBetah2 * cBetah2 * jnp.conjugate(Y2mA[2])
+        + cexp_i_alpha * 2 * cBetah3 * sBetah * jnp.conjugate(Y2mA[3])
+        + cexp_2i_alpha * cBetah4 * jnp.conjugate(Y2mA[4])
     )
+    #ones = jnp.ones(len(cexp_i_alpha))
+    #cexp_im_alpha = jnp.array(
+    #    [cexp_m2i_alpha, cexp_mi_alpha, ones, cexp_i_alpha, cexp_2i_alpha]
+    #)
+    #cexp_im_alpha_reverse = jnp.array(
+    #    [cexp_2i_alpha, cexp_i_alpha, ones, cexp_mi_alpha, cexp_m2i_alpha]
+    #)
     # print("alpha:" , cexp_im_alpha)
     # print("dm2:" , dm2)
     # print("Y2m:" , Y2mA)
@@ -345,12 +361,14 @@ def PhenomPCoreTwistUp(
     #    # print(hc_sum)
     #    # print("end")
     # print(cexp_im_alpha_reverse.shape, dm2.shape, Y2mA.shape)
-    T2m = (cexp_im_alpha_reverse * dm2).T * Y2mA
-    Tm2m = (cexp_im_alpha * d2).T * jnp.conjugate(Y2mA)
+    #T2m = (cexp_im_alpha_reverse * dm2).T * Y2mA
+    #Tm2m = (cexp_im_alpha * d2).T * jnp.conjugate(Y2mA)
 
-    hp_sum = jnp.sum(T2m + Tm2m, axis=1)
+    #hp_sum = jnp.sum(T2m + Tm2m, axis=1)
+    hp_sum = T2m + Tm2m
     # print("hpsum:",hp_sum)
-    hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
+    #hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
+    hc_sum = 1j * (T2m - Tm2m)
     eps_phase_hP = jnp.exp(-2j * epsilon) * hPhenom / 2.0
 
 
@@ -750,8 +768,10 @@ def PhenomPcore(
     #    s1y, s2y = switching(s1y, s2y)
     #    s1z, s2z = switching(s1z, s2z)
 
-    m1 = theta[0]
-    m2 = theta[1]
+    Mc = theta[0]
+    eta = theta[1]
+    m1, m2 = Mc_eta_to_ms(jnp.array([Mc, eta]))
+
     f_ref = theta[2]
     phiRef = theta[3]
     dist_mpc = theta[4]
@@ -768,6 +788,7 @@ def PhenomPcore(
     s1x, s2x = s2x, s1x
     s1y, s2y = s2y, s1y
     s1z, s2z = s2z, s1z
+    # from now on, m1 < m2
 
     m1_SI = m1 * MSUN
     m2_SI = m2 * MSUN
@@ -840,22 +861,22 @@ def PhenomPcore(
     )
 
     # Shift phase so that peak amplitude matches t = 0
-    #theta_intrinsic = jnp.array([m2, m1, chi2_l, chi1_l])
-    #coeffs = get_coeffs(theta_intrinsic)
-#
-    #theta_ripple = jnp.array([m2, m1, chi2_l, chi1_l])
-#
-    #transition_freqs = phP_get_transition_frequencies(
-    #    theta_ripple, coeffs[5], coeffs[6], chip
-    #)
-    ## unpack transition_freqs
-    #f1, f2, f3, f4, f_RD, f_damp = transition_freqs
-#
-    #phi_IIb = lambda f: PhenomPOneFrequency_phase(
-    #    f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
-    #)
-    #t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
-    t0 = time_corr_coarse(m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc)
+    theta_intrinsic = jnp.array([m2, m1, chi2_l, chi1_l])
+    coeffs = get_coeffs(theta_intrinsic)
+
+    theta_ripple = jnp.array([m2, m1, chi2_l, chi1_l])
+
+    transition_freqs = phP_get_transition_frequencies(
+        theta_ripple, coeffs[5], coeffs[6], chip
+    )
+    # unpack transition_freqs
+    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
+
+    phi_IIb = lambda f: PhenomPOneFrequency_phase(
+        f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
+    )
+    t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
+    #t0 = time_corr_coarse(m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc)
     #t0_legacy = time_corr_coarse(m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc)
     #print("time comparison: ", t0, t0_legacy)
     # t0 = jax.grad(PhDPhase)(f_RD * m_sec, theta_intrinsic, coeffs, transition_freqs)
