@@ -900,8 +900,8 @@ def PhenomPcore(
 
 def gen_IMRPhenoP_matchtests(frequencies, theta, f_ref):
     '''
-    wrapper around phenomPcore but the first two parameters are m1 and m2 
-    instead of Mc and q
+    wrapper around phenomPcore to only output hp 
+    probably there are more elegant way of doing this
     '''
     #m1 = theta[0]
     #m2 = theta[1]
@@ -909,3 +909,15 @@ def gen_IMRPhenoP_matchtests(frequencies, theta, f_ref):
     #_theta = jnp.array([Mc, eta, theta[2], theta[3], theta[4], theta[5],theta[6],theta[7],theta[8],theta[9],theta[10]])
     hp, _ = PhenomPcore(frequencies, theta, f_ref)
     return hp
+
+def gen_IMRPhenomP_mceta(frequencies, theta, f_ref):
+    '''
+    wrapper around phenomPcore but the first two parameters are Mc and eta 
+    instead of m1 and m2
+    '''
+    Mc = theta[0]
+    eta = theta[1]
+    m1, m2  = Mc_eta_to_ms(jnp.array([Mc, eta]))
+    newtheta = jnp.array([m1, m2, theta[2], theta[3], theta[4], theta[5],theta[6],theta[7],theta[8],theta[9],theta[10]])
+    hp, hc = PhenomPcore(frequencies, newtheta, f_ref)
+    return hp, hc
