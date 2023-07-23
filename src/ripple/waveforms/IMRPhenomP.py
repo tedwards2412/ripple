@@ -1,7 +1,7 @@
 import math
 import jax
 import jax.numpy as jnp
-from ripple import Mc_eta_to_ms
+from ripple import Mc_eta_to_ms, ms_to_Mc_eta
 
 # from math import acos, atan2, sqrt, sin, cos, pi, log
 from typing import Tuple
@@ -37,10 +37,10 @@ def ROTATEY(angle, x, y, z):
 
 
 def atan2tol(y, x, tol):
-    if abs(x) < tol and abs(y) < tol:
-        return 0.0
-    else:
-        return jnp.arctan2(y, x)
+    #if abs(x) < tol and abs(y) < tol:
+    #    return 0.0
+    #else:
+    return jnp.arctan2(y, x)
 
 
 def LALtoPhenomP(
@@ -746,6 +746,7 @@ def time_corr_coarse(m1, m2, chi1_l, chi2_l, chip, phiRef, M, dist_mpc):
 def PhenomPcore(
     fs: Array,
     theta: Array,
+    f_ref: float,
 ):
     """
     Thetas are waveform parameters.
@@ -771,20 +772,22 @@ def PhenomPcore(
     #Mc = theta[0]
     #eta = theta[1]
     #m1, m2 = Mc_eta_to_ms(jnp.array([Mc, eta]))
+    #print("inside phenomp")
+    #print("m1, m2: ", m1, m2)
     m1 = theta[0]
     m2 = theta[1]
 
 
-    f_ref = theta[2]
-    phiRef = theta[3]
-    dist_mpc = theta[4]
-    incl = theta[5]
-    s1x = theta[6]
-    s1y = theta[7]
-    s1z = theta[8]
-    s2x = theta[9]
-    s2y = theta[10]
-    s2z = theta[11]
+    #f_ref = theta[2]
+    phiRef = theta[2]
+    dist_mpc = theta[3]
+    incl = theta[4]
+    s1x = theta[5]
+    s1y = theta[6]
+    s1z = theta[7]
+    s2x = theta[8]
+    s2y = theta[9]
+    s2z = theta[10]
 
     # flip m1 m2
     m1, m2 = m2, m1
@@ -894,3 +897,15 @@ def PhenomPcore(
     final_hp = c2z * hp + s2z * hc
     final_hc = c2z * hc - s2z * hp
     return final_hp, final_hc
+
+def gen_IMRPhenoP_matchtests(frequencies, theta, f_ref):
+    '''
+    wrapper around phenomPcore but the first two parameters are m1 and m2 
+    instead of Mc and q
+    '''
+    #m1 = theta[0]
+    #m2 = theta[1]
+    #Mc, eta  = ms_to_Mc_eta(jnp.array([m1, m2]))
+    #_theta = jnp.array([Mc, eta, theta[2], theta[3], theta[4], theta[5],theta[6],theta[7],theta[8],theta[9],theta[10]])
+    hp, _ = PhenomPcore(frequencies, theta, f_ref)
+    return hp

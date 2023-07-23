@@ -296,7 +296,6 @@ def random_match_waveforms(n=1000):
                 [
                     m2,
                     m1,
-                    f_ref,
                     phi_ref,
                     dist_mpc,
                     inclination,
@@ -313,7 +312,6 @@ def random_match_waveforms(n=1000):
                 [
                     m1,
                     m2,
-                    f_ref,
                     phi_ref,
                     dist_mpc,
                     inclination,
@@ -337,12 +335,12 @@ def random_match_waveforms(n=1000):
         hp, hc = lalsim.SimInspiralChooseFDWaveform(
             theta[0]*lal.MSUN_SI,
             theta[1]*lal.MSUN_SI,
+            theta[5],
             theta[6],
             theta[7],
             theta[8],
             theta[9],
             theta[10],
-            theta[11],
             distance,
             inclination,
             phi_ref,
@@ -363,7 +361,7 @@ def random_match_waveforms(n=1000):
 
         # theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic])
         ppes = np.zeros(15)
-        hp_ripple, hc_ripple = IMRPhenomP.PhenomPcore(fs, theta)
+        hp_ripple, hc_ripple = IMRPhenomP.PhenomPcore(fs, theta, f_ref)
         h0_ripple = 2.0 * hp_ripple
         # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
         pad_low, pad_high = get_eff_pads(fs)
@@ -412,8 +410,8 @@ def random_match_waveforms(n=1000):
     mask = matches == 1.0
     Mtot = thetas[:, 0] + thetas[:, 1]
         # Magnitude of the spin projections in the orbital plane
-    S1_perp = thetas[:,0]**2 * jnp.sqrt(thetas[:,6]**2 + thetas[:,7]**2)
-    S2_perp = thetas[:,1]**2 * jnp.sqrt(thetas[:,9]**2 + thetas[:,10]**2)
+    S1_perp = thetas[:,0]**2 * jnp.sqrt(thetas[:,5]**2 + thetas[:,6]**2)
+    S2_perp = thetas[:,1]**2 * jnp.sqrt(thetas[:,8]**2 + thetas[:,9]**2)
 
     # print("perps: ", S1_perp, S2_perp)
     A1 = 2 + (3 * thetas[:,1]) / (2 * thetas[:,0])
@@ -423,7 +421,7 @@ def random_match_waveforms(n=1000):
     num = jnp.maximum(ASp1, ASp2)
     den = A1 * thetas[:,0]**2 # warning: this assumes m1 > m2
     chip = num / den
-    chieff = (thetas[:, 0] * thetas[:, 8] + thetas[:, 1] * thetas[:, 11]) / (
+    chieff = (thetas[:, 0] * thetas[:, 7] + thetas[:, 1] * thetas[:, 10]) / (
         thetas[:, 0] + thetas[:, 1]
     )
     sc = plt.scatter(Mtot, chieff, c=np.log10(1.0 - matches), cmap=cm)
