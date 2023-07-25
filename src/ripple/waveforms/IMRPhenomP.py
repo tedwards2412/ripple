@@ -776,18 +776,19 @@ def PhenomPcore(
     #print("m1, m2: ", m1, m2)
     m1 = theta[0]
     m2 = theta[1]
-
+    s1x = theta[2]
+    s1y = theta[3]
+    s1z = theta[4]
+    s2x = theta[5]
+    s2y = theta[6]
+    s2z = theta[7]
 
     #f_ref = theta[2]
-    phiRef = theta[2]
-    dist_mpc = theta[3]
-    incl = theta[4]
-    s1x = theta[5]
-    s1y = theta[6]
-    s1z = theta[7]
-    s2x = theta[8]
-    s2y = theta[9]
-    s2z = theta[10]
+    phiRef = theta[8]
+    dist_mpc = theta[9]
+    incl = theta[10]
+    tc = theta[11]
+
 
     # flip m1 m2
     m1, m2 = m2, m1
@@ -885,9 +886,11 @@ def PhenomPcore(
     #t0_legacy = time_corr_coarse(m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc)
     #print("time comparison: ", t0, t0_legacy)
     # t0 = jax.grad(PhDPhase)(f_RD * m_sec, theta_intrinsic, coeffs, transition_freqs)
-    phase_corr = jnp.cos(2 * jnp.pi * fs * t0) - 1j * jnp.sin(2 * jnp.pi * fs * t0)
-    hp *= phase_corr
-    hc *= phase_corr
+    phase_corr = jnp.cos(2 * jnp.pi * fs * (t0)) - 1j * jnp.sin(2 * jnp.pi * fs * (t0))
+    M_s  = (m1 + m2 ) * gt
+    phase_corr_tc  = jnp.exp(-1j * fs * M_s * tc)
+    hp *= phase_corr * phase_corr_tc
+    hc *= phase_corr * phase_corr_tc
     #print("time corrected hp: %.15e %.15e" % (hp.real, hp.imag))
 
 

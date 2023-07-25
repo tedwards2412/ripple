@@ -278,9 +278,9 @@ def precessing_matchmaking(IMRphenom, f_l, f_u, df, fs, waveform,f_ASD, ASD, the
         phi_ref = 0
 
         if m1 < m2:
-            theta = np.array([m2, m1, phi_ref, dist_mpc, inclination, s2x, s2y, s2z, s1x, s1y, s1z])
+            theta = np.array([m2, m1, s2x, s2y, s2z, s1x, s1y, s1z, phi_ref, dist_mpc, inclination,tc])
         elif m1 > m2:
-            theta = np.array([m1, m2, phi_ref, dist_mpc, inclination, s1x, s1y, s1z, s2x, s2y, s2z])
+            theta = np.array([m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, phi_ref, dist_mpc, inclination,tc])
         else:
             raise ValueError("Something went wrong with the parameters")
         approximant = lalsim.SimInspiralGetApproximantFromString(IMRphenom)
@@ -293,12 +293,12 @@ def precessing_matchmaking(IMRphenom, f_l, f_u, df, fs, waveform,f_ASD, ASD, the
         hp, _ = lalsim.SimInspiralChooseFDWaveform(
             m1_kg,
             m2_kg,
+            theta[2],
+            theta[3],
+            theta[4],
             theta[5],
             theta[6],
             theta[7],
-            theta[8],
-            theta[9],
-            theta[10],
             distance,
             inclination,
             phi_ref,
