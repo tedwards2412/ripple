@@ -784,10 +784,14 @@ def PhenomPcore(
     s2z = theta[7]
 
     #f_ref = theta[2]
-    phiRef = theta[8]
-    dist_mpc = theta[9]
-    incl = theta[10]
-    tc = theta[11]
+    # phiRef = theta[8]
+    # dist_mpc = theta[9]
+    # incl = theta[10]
+    # tc = theta[11]
+    dist_mpc = theta[8]
+    tc = theta[9]
+    phiRef = theta[10]
+    incl = theta[11]
 
 
     # flip m1 m2
