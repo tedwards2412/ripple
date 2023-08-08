@@ -129,6 +129,7 @@ config.update("jax_enable_x64", True)
 
 #     return None
 
+
 def random_match_waveforms(n, IMRphenom):
     # Get a frequency domain waveform
     f_l = 16
@@ -136,15 +137,15 @@ def random_match_waveforms(n, IMRphenom):
     T = 16
     if IMRphenom == "IMRPhenomD":
         from ripple.waveforms.IMRPhenomD import (
-            gen_IMRPhenomD as waveform_generator,
+            gen_IMRPhenomD_hphc as waveform_generator,
         )
     if IMRphenom == "IMRPhenomXAS":
         from ripple.waveforms.IMRPhenomXAS import (
-            gen_IMRPhenomXAS as waveform_generator,
+            gen_IMRPhenomXAS_hphc as waveform_generator,
         )
     if IMRphenom == "IMRPhenomPv2":
         from ripple.waveforms.IMRPhenomPv2 import (
-            gen_IMRPhenoP_matchtests as waveform_generator,
+            gen_IMRPhenomPv2_hphc as waveform_generator,
         )
     f_sampling = 4096
     delta_t = 1 / f_sampling
@@ -156,7 +157,8 @@ def random_match_waveforms(n, IMRphenom):
 
     @jax.jit
     def waveform(theta):
-        return waveform_generator(fs, theta, f_ref)
+        hp, _ = waveform_generator(fs, theta, f_ref)
+        return hp
 
     # Get a frequency domain waveform
     thetas = []
@@ -165,181 +167,206 @@ def random_match_waveforms(n, IMRphenom):
 
     if "PhenomP" in IMRphenom:
         for i in tqdm(range(n)):
-            precessing_matchmaking(IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches)
+            precessing_matchmaking(
+                IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches
+            )
     else:
         for i in tqdm(range(n)):
-            precessing_matchmaking(IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches)
+            non_precessing_matchmaking(
+                IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches
+            )
 
     thetas = np.array(thetas)
     matches = np.array(matches)
-    print(thetas, matches)
+    # print(thetas, matches)
     print("Mean match:", np.mean(matches))
     print("Median match:", np.median(matches))
     print("Minimum match:", np.min(matches))
 
     return None
 
-def non_precessing_matchmaking(IMRphenom, f_l, f_u, df, fs, waveform,f_ASD, ASD, thetas, matches):
 
-        m1 = np.random.uniform(1.0, 100.0)
-        m2 = np.random.uniform(1.0, 100.0)
-        s1 = np.random.uniform(-1.0, 1.0)
-        s2 = np.random.uniform(-1.0, 1.0)
+def non_precessing_matchmaking(
+    IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches
+):
+    m1 = np.random.uniform(1.0, 100.0)
+    m2 = np.random.uniform(1.0, 100.0)
+    s1 = np.random.uniform(-1.0, 1.0)
+    s2 = np.random.uniform(-1.0, 1.0)
 
-        tc = 0.0
-        phic = 0.0
-        dist_mpc = 440
-        inclination = np.pi / 2.0
-        phi_ref = 0
+    tc = 0.0
+    phic = 0.0
+    dist_mpc = 440
+    inclination = np.pi / 2.0
+    phi_ref = 0.0
 
-        if m1 < m2:
-            theta = np.array([m2, m1, s1, s2])
-        elif m1 > m2:
-            theta = np.array([m1, m2, s1, s2])
-        else:
-            raise ValueError("Something went wrong with the parameters")
-        approximant = lalsim.SimInspiralGetApproximantFromString(IMRphenom)
+    if m1 < m2:
+        theta = np.array([m2, m1, s2, s1, dist_mpc, tc, phic, inclination])
+    elif m1 > m2:
+        theta = np.array([m1, m2, s1, s2, dist_mpc, tc, phic, inclination])
+    else:
+        raise ValueError("Something went wrong with the parameters")
+    approximant = lalsim.SimInspiralGetApproximantFromString(IMRphenom)
 
-        f_ref = f_l
-        m1_kg = theta[0] * lal.MSUN_SI
-        m2_kg = theta[1] * lal.MSUN_SI
-        distance = dist_mpc * 1e6 * lal.PC_SI
+    f_ref = f_l
+    m1_kg = theta[0] * lal.MSUN_SI
+    m2_kg = theta[1] * lal.MSUN_SI
+    distance = dist_mpc * 1e6 * lal.PC_SI
 
-        hp, _ = lalsim.SimInspiralChooseFDWaveform(
-            m1_kg,
-            m2_kg,
-            0.0,
-            0.0,
-            theta[2],
-            0.0,
-            0.0,
-            theta[3],
-            distance,
-            inclination,
-            phi_ref,
-            0,
-            0.0,
-            0.0,
-            df,
-            f_l,
-            f_u,
-            f_ref,
-            None,
-            approximant,
+    hp, _ = lalsim.SimInspiralChooseFDWaveform(
+        m1_kg,
+        m2_kg,
+        0.0,
+        0.0,
+        theta[2],
+        0.0,
+        0.0,
+        theta[3],
+        distance,
+        inclination,
+        phi_ref,
+        0,
+        0.0,
+        0.0,
+        df,
+        f_l,
+        f_u,
+        f_ref,
+        None,
+        approximant,
+    )
+    freqs_lal = np.arange(len(hp.data.data)) * df
+
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+
+    theta_ripple = np.array(
+        [Mc, eta, theta[2], theta[3], dist_mpc, tc, phic, inclination]
+    )
+    hp_ripple = waveform(theta_ripple)
+    pad_low, pad_high = get_eff_pads(fs)
+    PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
+
+    mask_lal = (freqs_lal > f_l) & (freqs_lal < f_u)
+    hp_lalsuite = hp.data.data[mask_lal]
+    matches.append(
+        get_match_arr(
+            pad_low,
+            pad_high,
+            # np.ones_like(fs) * 1.0e-42,
+            PSD_vals,
+            hp_ripple,
+            hp_lalsuite,
         )
-        freqs_lal = np.arange(len(hp.data.data)) * df
+    )
+    thetas.append(theta)
 
-        Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
 
-        theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic])
-        h0_ripple = waveform(theta_ripple)
-        pad_low, pad_high = get_eff_pads(fs)
-        PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
+def precessing_matchmaking(
+    IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches
+):
+    m1 = np.random.uniform(1.0, 100.0)
+    m2 = np.random.uniform(1.0, 100.0)
+    s1_amp = np.random.uniform(0.0, 1.0)
+    s2_amp = np.random.uniform(0.0, 1.0)
+    s1_phi = np.random.uniform(0, 2 * np.pi)
+    s2_phi = np.random.uniform(0, 2 * np.pi)
+    s1_thetahelper = np.random.uniform(0, 1)
+    s2_thetahelper = np.random.uniform(0, 1)
+    s1_theta = np.arccos(1 - 2 * s1_thetahelper)
+    s2_theta = np.arccos(1 - 2 * s2_thetahelper)
+    # translate that into cartesian
+    s1x = s1_amp * np.sin(s1_theta) * np.cos(s1_phi)
+    s1y = s1_amp * np.sin(s1_theta) * np.sin(s1_phi)
+    s1z = s1_amp * np.cos(s1_theta)
 
-        mask_lal = (freqs_lal > f_l) & (freqs_lal < f_u)
-        h0_lalsuite = 2.0 * hp.data.data[mask_lal]
-        matches.append(
-            get_match_arr(
-                pad_low,
-                pad_high,
-                # np.ones_like(fs) * 1.0e-42,
-                PSD_vals,
-                h0_ripple,
-                h0_lalsuite,
-            )
+    s2x = s2_amp * np.sin(s2_theta) * np.cos(s2_phi)
+    s2y = s2_amp * np.sin(s2_theta) * np.sin(s2_phi)
+    s2z = s2_amp * np.cos(s2_theta)
+
+    tc = 0.0
+    phic = 0.0
+    dist_mpc = 440
+    inclination = np.pi / 2.0
+    phi_ref = 0
+
+    if m1 < m2:
+        theta = np.array(
+            [m2, m1, s2x, s2y, s2z, s1x, s1y, s1z, dist_mpc, tc, phi_ref, inclination]
         )
-        thetas.append(theta)
+    elif m1 > m2:
+        theta = np.array(
+            [m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phi_ref, inclination]
+        )
+    else:
+        raise ValueError("Something went wrong with the parameters")
+    approximant = lalsim.SimInspiralGetApproximantFromString(IMRphenom)
 
-def precessing_matchmaking(IMRphenom, f_l, f_u, df, fs, waveform,f_ASD, ASD, thetas, matches):
+    f_ref = f_l
+    m1_kg = theta[0] * lal.MSUN_SI
+    m2_kg = theta[1] * lal.MSUN_SI
+    distance = dist_mpc * 1e6 * lal.PC_SI
 
-        m1 = np.random.uniform(1.0, 100.0)
-        m2 = np.random.uniform(1.0, 100.0)
-        s1_amp = np.random.uniform(0.0, 1.0)
-        s2_amp = np.random.uniform(0.0, 1.0)
-        s1_phi = np.random.uniform(0, 2 * np.pi)
-        s2_phi = np.random.uniform(0, 2 * np.pi)
-        s1_thetahelper = np.random.uniform(0,1)
-        s2_thetahelper = np.random.uniform(0,1)
-        s1_theta = np.arccos(1-2*s1_thetahelper) 
-        s2_theta = np.arccos(1-2*s2_thetahelper) 
-        # translate that into cartesian
-        s1x = s1_amp * np.sin(s1_theta) * np.cos(s1_phi)
-        s1y = s1_amp * np.sin(s1_theta) * np.sin(s1_phi)
-        s1z = s1_amp * np.cos(s1_theta)
+    hp, _ = lalsim.SimInspiralChooseFDWaveform(
+        m1_kg,
+        m2_kg,
+        theta[2],
+        theta[3],
+        theta[4],
+        theta[5],
+        theta[6],
+        theta[7],
+        distance,
+        inclination,
+        phi_ref,
+        0,
+        0.0,
+        0.0,
+        df,
+        f_l,
+        f_u,
+        f_ref,
+        None,
+        approximant,
+    )
+    freqs_lal = np.arange(len(hp.data.data)) * df
 
-        s2x = s2_amp * np.sin(s2_theta) * np.cos(s2_phi)
-        s2y = s2_amp * np.sin(s2_theta) * np.sin(s2_phi)
-        s2z = s2_amp * np.cos(s2_theta)
-
-        tc = 0.0
-        phic = 0.0
-        dist_mpc = 440
-        inclination = np.pi / 2.0
-        phi_ref = 0
-
-        if m1 < m2:
-            theta = np.array([m2, m1, s2x, s2y, s2z, s1x, s1y, s1z, phi_ref, dist_mpc, inclination,tc])
-        elif m1 > m2:
-            theta = np.array([m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, phi_ref, dist_mpc, inclination,tc])
-        else:
-            raise ValueError("Something went wrong with the parameters")
-        approximant = lalsim.SimInspiralGetApproximantFromString(IMRphenom)
-
-        f_ref = f_l
-        m1_kg = theta[0] * lal.MSUN_SI
-        m2_kg = theta[1] * lal.MSUN_SI
-        distance = dist_mpc * 1e6 * lal.PC_SI
-
-        hp, _ = lalsim.SimInspiralChooseFDWaveform(
-            m1_kg,
-            m2_kg,
+    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    theta_ripple = np.array(
+        [
+            Mc,
+            eta,
             theta[2],
             theta[3],
             theta[4],
             theta[5],
             theta[6],
             theta[7],
-            distance,
+            dist_mpc,
+            tc,
+            phic,
             inclination,
-            phi_ref,
-            0,
-            0.0,
-            0.0,
-            df,
-            f_l,
-            f_u,
-            f_ref,
-            None,
-            approximant,
-        )
-        freqs_lal = np.arange(len(hp.data.data)) * df
+        ]
+    )
+    hp_ripple = waveform(theta_ripple)
+    pad_low, pad_high = get_eff_pads(fs)
+    PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
 
-        #Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
-        #print("m1, m2: ",m1, m2)
-        #theta_ripple = np.array([m1, m2, phi_ref, dist_mpc, inclination, s1x, s1y, s1z, s2x, s2y, s2z])
-        h0_ripple = 2.0 * waveform(theta)
-        pad_low, pad_high = get_eff_pads(fs)
-        PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
-
-        mask_lal = (freqs_lal > f_l) & (freqs_lal < f_u)
-        h0_lalsuite = 2.0 * hp.data.data[mask_lal]
-        matches.append(
-            get_match_arr(
-                pad_low,
-                pad_high,
-                # np.ones_like(fs) * 1.0e-42,
-                PSD_vals,
-                h0_ripple,
-                h0_lalsuite,
-            )
+    mask_lal = (freqs_lal > f_l) & (freqs_lal < f_u)
+    hp_lalsuite = hp.data.data[mask_lal]
+    matches.append(
+        get_match_arr(
+            pad_low,
+            pad_high,
+            # np.ones_like(fs) * 1.0e-42,
+            PSD_vals,
+            hp_ripple,
+            hp_lalsuite,
         )
-        #plt.plot(fs, h0_lalsuite, label="lalsuite")
-        #plt.plot(fs, h0_ripple, label="ripple")
-        #plt.legend()
-        #plt.show()
-        thetas.append(theta)
+    )
+    thetas.append(theta)
+
 
 if __name__ == "__main__":
     # Choose from "IMRPhenomD", "IMRPhenomXAS", "IMRPhenomPv2"
-    random_match_waveforms(1000, "IMRPhenomPv2")
+    random_match_waveforms(1000, "IMRPhenomXAS")
     None
