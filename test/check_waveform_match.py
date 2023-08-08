@@ -22,16 +22,16 @@ def random_match_waveforms_old(n, IMRphenom):
 
     if IMRphenom == "IMRPhenomD":
         from ripple.waveforms.IMRPhenomD import (
-            gen_IMRPhenomD as waveform_generator,
+            gen_IMRPhenomD_hphc as waveform_generator,
         )
 
     if IMRphenom == "IMRPhenomXAS":
         from ripple.waveforms.IMRPhenomXAS import (
-            gen_IMRPhenomXAS as waveform_generator,
+            gen_IMRPhenomXAS_hphc as waveform_generator,
         )
     if IMRphenom == "IMRPhenomPv2":
-        from ripple.waveforms.IMRPhenomP import (
-            PhenomPcore as waveform_generator,
+        from ripple.waveforms.IMRPhenomPv2 import (
+            gen_IMRPhenomPv2_hphc as waveform_generator,
         )
     f_sampling = 4096
     delta_t = 1 / f_sampling
@@ -102,20 +102,20 @@ def random_match_waveforms_old(n, IMRphenom):
         Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
 
         theta_ripple = np.array([Mc, eta, s1, s2, dist_mpc, tc, phic])
-        h0_ripple = waveform(theta_ripple)
+        hp_ripple, _ = waveform(theta_ripple)
         pad_low, pad_high = get_eff_pads(fs)
         PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
 
         mask_lal = (freqs_lal > f_l) & (freqs_lal < f_u)
-        h0_lalsuite = 2.0 * hp.data.data[mask_lal]
+        hp_lalsuite = hp.data.data[mask_lal]
         matches.append(
             get_match_arr(
                 pad_low,
                 pad_high,
                 # np.ones_like(fs) * 1.0e-42,
                 PSD_vals,
-                h0_ripple,
-                h0_lalsuite,
+                hp_ripple,
+                hp_lalsuite,
             )
         )
         thetas.append(theta)
@@ -143,7 +143,7 @@ def random_match_waveforms(n, IMRphenom):
             gen_IMRPhenomXAS as waveform_generator,
         )
     if IMRphenom == "IMRPhenomPv2":
-        from ripple.waveforms.IMRPhenomP import (
+        from ripple.waveforms.IMRPhenomPv2 import (
             gen_IMRPhenoP_matchtests as waveform_generator,
         )
     f_sampling = 4096
