@@ -14,6 +14,16 @@ Ripple can be installed using
 pip3 install ripplegw
 ```
 
+Note that by default we do not include enable float64 in jax since we want allow users to use float32 to improve performance.
+If you require float64, please include the following code at the start of the script:
+
+```
+from jax import config
+config.update("jax_enable_x64", True)
+```
+
+See https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html for other common `jax` gotchas.
+
 ### Supported waveforms
 
 - IMRPhenomXAS (aligned spin)
@@ -64,7 +74,7 @@ fs = jnp.arange(f_l, f_u, del_f)
 f_ref = f_l
 
 # And finally lets generate the waveform!
-hp_ripple, hc_ripple = IMRPhenomXAS.gen_IMRPhenomXAS_polar(fs, theta_ripple, f_ref)
+hp_ripple, hc_ripple = IMRPhenomXAS.gen_IMRPhenomXAS_hphc(fs, theta_ripple, f_ref)
 
 # Note that we have not internally jitted the functions since this would
 # introduce an annoying overhead each time the user evaluated the function with a different length frequency array
@@ -74,7 +84,7 @@ import jax
 
 @jax.jit
 def waveform(theta):
-    return IMRPhenomXAS.gen_IMRPhenomXAS_polar(fs, theta)
+    return IMRPhenomXAS.gen_IMRPhenomXAS_hphc(fs, theta)
 ```
 
 

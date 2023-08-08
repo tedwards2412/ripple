@@ -551,7 +551,6 @@ def _gen_IMRPhenomD(
     return h0
 
 
-# @jax.jit
 def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
@@ -581,8 +580,7 @@ def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
     return h0
 
 
-# @jax.jit
-def gen_IMRPhenomD_polar(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomD_hphc(f: Array, params: Array, f_ref: float):
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
