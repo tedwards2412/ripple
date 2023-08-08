@@ -1,11 +1,8 @@
-import math
 import jax
 import jax.numpy as jnp
-from ripple import Mc_eta_to_ms, ms_to_Mc_eta
+from ripple import Mc_eta_to_ms
 
-# from math import acos, atan2, sqrt, sin, cos, pi, log
 from typing import Tuple
-from scipy.special import factorial
 from ..constants import gt, MSUN
 import numpy as np
 from .IMRPhenomD import Phase as PhDPhase
@@ -17,232 +14,8 @@ from .IMRPhenomD_utils import (
 )
 from ..typing import Array
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
-from scipy.interpolate import CubicSpline
-
-# LAL_MSUN_SI = 1.9885e30  # Solar mass in kg
-# LAL_MTSUN_SI = LAL_MSUN_SI * 4.925491025543575903411922162094833998e-6  # Solar mass times G over c^3 in seconds
-
-
-# helper functions for LALtoPhenomP:
-def ROTATEZ(angle, x, y, z):
-    tmp_x = x * jnp.cos(angle) - y * jnp.sin(angle)
-    tmp_y = x * jnp.sin(angle) + y * jnp.cos(angle)
-    return tmp_x, tmp_y, z
-
-
-def ROTATEY(angle, x, y, z):
-    tmp_x = x * jnp.cos(angle) + z * jnp.sin(angle)
-    tmp_z = -x * jnp.sin(angle) + z * jnp.cos(angle)
-    return tmp_x, y, tmp_z
-
-
-def atan2tol(y, x, tol):
-    #if abs(x) < tol and abs(y) < tol:
-    #    return 0.0
-    #else:
-    return jnp.arctan2(y, x)
-
-
-def LALtoPhenomP(
-    m1_SI: float,
-    m2_SI: float,
-    f_ref: float,
-    phiRef: float,
-    incl: float,
-    s1x: float,
-    s1y: float,
-    s1z: float,
-    s2x: float,
-    s2y: float,
-    s2z: float,
-) -> Tuple[float, float, float, float, float, float, float]:
-    MAX_TOL_ATAN = 1e-10
-
-    # Check arguments for sanity
-    # if f_ref <= 0:
-    #    raise ValueError("Reference frequency must be positive.")
-    # if m1_SI <= 0:
-    #    raise ValueError("m1 must be positive.")
-    # if m2_SI <= 0:
-    #    raise ValueError("m2 must be positive.")
-    # if abs(s1x**2 + s1y**2 + s1z**2) > 1.0:
-    #    raise ValueError("|S1/m1^2| must be <= 1.")
-    # if abs(s2x**2 + s2y**2 + s2z**2) > 1.0:
-    #    raise ValueError("|S2/m2^2| must be <= 1.")
-
-    m1 = m1_SI / MSUN  # Masses in solar masses
-    m2 = m2_SI / MSUN
-    M = m1 + m2
-    m1_2 = m1 * m1
-    m2_2 = m2 * m2
-    eta = m1 * m2 / (M * M)  # Symmetric mass-ratio
-
-    # From the components in the source frame, we can easily determine
-    # chi1_l, chi2_l, chip and phi_aligned, which we need to return.
-    # We also compute the spherical angles of J,
-    # which we need to transform to the J frame
-
-    # Aligned spins
-    chi1_l = s1z  # Dimensionless aligned spin on BH 1
-    chi2_l = s2z  # Dimensionless aligned spin on BH 2
-
-    # Magnitude of the spin projections in the orbital plane
-    S1_perp = m1_2 * jnp.sqrt(s1x**2 + s1y**2)
-    S2_perp = m2_2 * jnp.sqrt(s2x**2 + s2y**2)
-
-    # print("perps: ", S1_perp, S2_perp)
-    A1 = 2 + (3 * m2) / (2 * m1)
-    A2 = 2 + (3 * m1) / (2 * m2)
-    ASp1 = A1 * S1_perp
-    ASp2 = A2 * S2_perp
-    #if ASp2 > ASp1:
-    #    num = ASp2
-    #else:
-    #    num = ASp1
-    #print("m1 m2 check: ", m1, m2)
-    #if m2 > m1:
-    #    den = A2 * m2_2
-    #else:
-    #    den = A1 * m1_2
-    num = jnp.maximum(ASp1, ASp2)
-    den = A2 * m2_2 # warning: this assumes m2 > m1
-    chip = num / den
-
-    m_sec = M * gt
-    piM = jnp.pi * m_sec
-    # print("piM: ", piM)
-    v_ref = (piM * f_ref) ** (1 / 3)
-    L0 = M * M * L2PNR(v_ref, eta)
-    # print("L0 input: ", v_ref, eta, M)
-    # print("L0: ", L0)
-    # Below, _sf indicates source frame components. We will also use _Jf for J frame components
-    J0x_sf = m1_2 * s1x + m2_2 * s2x
-    J0y_sf = m1_2 * s1y + m2_2 * s2y
-    J0z_sf = L0 + m1_2 * s1z + m2_2 * s2z
-    J0 = jnp.sqrt(J0x_sf * J0x_sf + J0y_sf * J0y_sf + J0z_sf * J0z_sf)
-
-    thetaJ_sf = jnp.arccos(J0z_sf / J0)
-
-    # print(thetaJ_sf)
-
-    phiJ_sf = jnp.arctan2(J0y_sf, J0x_sf)
-
-    phi_aligned = -phiJ_sf
-
-    # First we determine kappa
-    # in the source frame, the components of N are given in Eq (35c) of T1500606-v6
-    Nx_sf = jnp.sin(incl) * jnp.cos(jnp.pi / 2.0 - phiRef)
-    Ny_sf = jnp.sin(incl) * jnp.sin(jnp.pi / 2.0 - phiRef)
-    Nz_sf = jnp.cos(incl)
-
-    tmp_x = Nx_sf
-    tmp_y = Ny_sf
-    tmp_z = Nz_sf
-
-    tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEY(-thetaJ_sf, tmp_x, tmp_y, tmp_z)
-
-    kappa = -atan2tol(tmp_y, tmp_x, MAX_TOL_ATAN)
-
-    # print(kappa)
-    # Then we determine alpha0, by rotating LN
-    tmp_x, tmp_y, tmp_z = 0, 0, 1
-    tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEY(-thetaJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
-
-    # print(tmp_x, tmp_y)
-    alpha0 = jnp.arctan2(tmp_y, tmp_x)
-
-    # Finally we determine thetaJ, by rotating N
-    tmp_x, tmp_y, tmp_z = Nx_sf, Ny_sf, Nz_sf
-    tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEY(-thetaJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
-    Nx_Jf, Nz_Jf = tmp_x, tmp_z
-    thetaJN = jnp.arccos(Nz_Jf)
-
-    # Finally, we need to redefine the polarizations :
-    # PhenomP's polarizations are defined following Arun et al (arXiv:0810.5336)
-    # i.e. projecting the metric onto the P,Q,N triad defined with P=NxJ/|NxJ| (see (2.6) in there).
-    # By contrast, the triad X,Y,N used in LAL
-    # ("waveframe" in the nomenclature of T1500606-v6)
-    # is defined in e.g. eq (35) of this document
-    # (via its components in the source frame; note we use the defautl Omega=Pi/2).
-    # Both triads differ from each other by a rotation around N by an angle \zeta
-    # and we need to rotate the polarizations accordingly by 2\zeta
-
-    Xx_sf = -jnp.cos(incl) * jnp.sin(phiRef)
-    Xy_sf = -jnp.cos(incl) * jnp.cos(phiRef)
-    Xz_sf = jnp.sin(incl)
-    tmp_x, tmp_y, tmp_z = Xx_sf, Xy_sf, Xz_sf
-    tmp_x, tmp_y, tmp_z = ROTATEZ(-phiJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEY(-thetaJ_sf, tmp_x, tmp_y, tmp_z)
-    tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
-
-    # Now the tmp_a are the components of X in the J frame
-    # We need the polar angle of that vector in the P,Q basis of Arun et al
-    # P = NxJ/|NxJ| and since we put N in the (pos x)z half plane of the J frame
-    PArunx_Jf = 0.0
-    PAruny_Jf = -1.0
-    PArunz_Jf = 0.0
-
-    # Q = NxP
-    QArunx_Jf = Nz_Jf
-    QAruny_Jf = 0.0
-    QArunz_Jf = -Nx_Jf
-
-    # Calculate the dot products XdotPArun and XdotQArun
-    XdotPArun = tmp_x * PArunx_Jf + tmp_y * PAruny_Jf + tmp_z * PArunz_Jf
-    XdotQArun = tmp_x * QArunx_Jf + tmp_y * QAruny_Jf + tmp_z * QArunz_Jf
-
-    zeta_polariz = jnp.arctan2(XdotQArun, XdotPArun)
-    return chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz
-
-
-
-
-def SpinWeightedY(theta, phi, s, l, m):
-    "copied from SphericalHarmonics.c in LAL"
-    if s == -2:
-        if l == 2:
-            if m == -2:
-                fac = (
-                    jnp.sqrt(5.0 / (64.0 * jnp.pi))
-                    * (1.0 - jnp.cos(theta))
-                    * (1.0 - jnp.cos(theta))
-                )
-            elif m == -1:
-                fac = (
-                    jnp.sqrt(5.0 / (16.0 * jnp.pi))
-                    * jnp.sin(theta)
-                    * (1.0 - jnp.cos(theta))
-                )
-            elif m == 0:
-                fac = jnp.sqrt(15.0 / (32.0 * jnp.pi)) * jnp.sin(theta) * jnp.sin(theta)
-            elif m == 1:
-                fac = (
-                    jnp.sqrt(5.0 / (16.0 * jnp.pi))
-                    * jnp.sin(theta)
-                    * (1.0 + jnp.cos(theta))
-                )
-            elif m == 2:
-                fac = (
-                    jnp.sqrt(5.0 / (64.0 * jnp.pi))
-                    * (1.0 + jnp.cos(theta))
-                    * (1.0 + jnp.cos(theta))
-                )
-            else:
-                raise ValueError(f"Invalid mode s={s}, l={l}, m={m} - require |m| <= l")
-    return fac * np.exp(1j * m * phi)
-    # summation = 0
-    # for r in range(l-s+1):
-    #    summation += (-1)**r * comb(l-s, r) * comb(l+s, r+s-m) / (np.tan(theta/2.0))**(2*r+s-m)
-    # outtemp = (-1)**(l+m-s) * np.sqrt( factorial(l+m)* factorial(l-m)* (2*l+1)/(4* np.pi* factorial(l+s)* factorial#(l-s)))
-    # out = outtemp * (np.sin(theta/2))**(2*l) * summation * np.exp(1j * m * phi)
-    # outreal = out * np.cos(m * phi)
-    # outim = out * (-np.sin(m* phi))
-    # return out
+from .IMRPhenomPv2_utils import *
+from .IMRPhenomD_utils import *
 
 
 def PhenomPCoreTwistUp(
@@ -315,8 +88,6 @@ def PhenomPCoreTwistUp(
             cBetah4,
         ]
     )
-    dm2 = jnp.array([d2[4], -d2[3], d2[2], -d2[1], d2[0]])
-    # print("dm2[4]: ", dm2[4])
     Y2mA = jnp.array(Y2m)  # need to pass Y2m in a 5-component list
     hp_sum = 0
     hc_sum = 0
@@ -326,51 +97,22 @@ def PhenomPCoreTwistUp(
     cexp_mi_alpha = 1.0 / cexp_i_alpha
     cexp_m2i_alpha = cexp_mi_alpha * cexp_mi_alpha
     T2m = (
-        cexp_2i_alpha * cBetah4 * Y2mA[0] 
+        cexp_2i_alpha * cBetah4 * Y2mA[0]
         - cexp_i_alpha * 2 * cBetah3 * sBetah * Y2mA[1]
         + 1 * jnp.sqrt(6) * sBetah2 * cBetah2 * Y2mA[2]
         - cexp_mi_alpha * 2 * cBetah * sBetah3 * Y2mA[3]
         + cexp_m2i_alpha * sBetah4 * Y2mA[4]
     )
     Tm2m = (
-        cexp_m2i_alpha * sBetah4 * jnp.conjugate(Y2mA[0]) 
+        cexp_m2i_alpha * sBetah4 * jnp.conjugate(Y2mA[0])
         + cexp_mi_alpha * 2 * cBetah * sBetah3 * jnp.conjugate(Y2mA[1])
         + 1 * jnp.sqrt(6) * sBetah2 * cBetah2 * jnp.conjugate(Y2mA[2])
         + cexp_i_alpha * 2 * cBetah3 * sBetah * jnp.conjugate(Y2mA[3])
         + cexp_2i_alpha * cBetah4 * jnp.conjugate(Y2mA[4])
     )
-    #ones = jnp.ones(len(cexp_i_alpha))
-    #cexp_im_alpha = jnp.array(
-    #    [cexp_m2i_alpha, cexp_mi_alpha, ones, cexp_i_alpha, cexp_2i_alpha]
-    #)
-    #cexp_im_alpha_reverse = jnp.array(
-    #    [cexp_2i_alpha, cexp_i_alpha, ones, cexp_mi_alpha, cexp_m2i_alpha]
-    #)
-    # print("alpha:" , cexp_im_alpha)
-    # print("dm2:" , dm2)
-    # print("Y2m:" , Y2mA)
-
-    # for m in range(-2, 3):
-    #    T2m = cexp_im_alpha[-m + 2] * dm2[m + 2] * Y2mA[m + 2]
-    #    # print("T2m: ",T2m)
-    #    Tm2m = cexp_im_alpha[m + 2] * d2[m + 2] * jnp.conjugate(Y2mA[m + 2])
-    #    hp_sum += T2m + Tm2m
-    #    # print("m=", m)
-    #    # print(T2m, Tm2m)
-    #    hc_sum += 1j * (T2m - Tm2m)
-    #    # print(hc_sum)
-    #    # print("end")
-    # print(cexp_im_alpha_reverse.shape, dm2.shape, Y2mA.shape)
-    #T2m = (cexp_im_alpha_reverse * dm2).T * Y2mA
-    #Tm2m = (cexp_im_alpha * d2).T * jnp.conjugate(Y2mA)
-
-    #hp_sum = jnp.sum(T2m + Tm2m, axis=1)
     hp_sum = T2m + Tm2m
-    #print("hpsum:",hp_sum)
-    #hc_sum = jnp.sum(1j * (T2m - Tm2m), axis=1)
     hc_sum = 1j * (T2m - Tm2m)
     eps_phase_hP = jnp.exp(-2j * epsilon) * hPhenom / 2.0
-
 
     hp = eps_phase_hP * hp_sum
     hc = eps_phase_hP * hc_sum
@@ -618,7 +360,6 @@ def phP_get_transition_frequencies(
         gamma3,
         gamma2,
     )
-    #print("frequencies: ", f1, f2, f3, f4)
     return f1, f2, f3, f4, f_RD, f_damp
 
 
@@ -628,7 +369,6 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc):
     phic: Orbital phase at the peak of the underlying non precessing model (rad)
     M: Total mass (Solar masses)
     """
-    # print("inside:", dist_mpc)
     # These are the parametrs that go into the waveform generator
     # Note that JAX does not give index errors, so if you pass in the
     # the wrong array it will behave strangely
@@ -636,27 +376,22 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc):
     f = fsHz  # * MSUN * M
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
-    #print("coeffs: ", coeffs)
     transition_freqs = phP_get_transition_frequencies(
         theta_ripple, coeffs[5], coeffs[6], chip
     )
-    # unpack transition_freqs
-    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
 
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
 
     phase -= phic
     Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
 
-    
-    # hp_ripple, hc_ripple = IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, f_ref)
     # phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(-1j * phase))
     return hPhenom, phase, Amp
 
 
 def PhenomPOneFrequency_phase(
-    fsHz: float,
+    f: float,
     m1: float,
     m2: float,
     chi1: float,
@@ -675,27 +410,20 @@ def PhenomPOneFrequency_phase(
     # These are the parametrs that go into the waveform generator
     # Note that JAX does not give index errors, so if you pass in the
     # the wrong array it will behave strangely
-    magicalnumber = 2.0 * jnp.sqrt(5.0 / (64.0 * jnp.pi))
-    f = fsHz  # * MSUN * M
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
-    #print("coeffs: ", coeffs)
     transition_freqs = phP_get_transition_frequencies(
         theta_ripple, coeffs[5], coeffs[6], chip
     )
-    # unpack transition_freqs
-    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
 
     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
-
-    #Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
-    
     return -phase
 
+
 def time_corr(m1, m2, chi1_l, chi2_l, chip, phiRef, M, dist_mpc):
-    '''
+    """
     here m1 > m2
-    '''
+    """
     theta_intrinsic = jnp.array([m1, m2, chi1_l, chi2_l])
     coeffs = get_coeffs(theta_intrinsic)
 
@@ -705,43 +433,13 @@ def time_corr(m1, m2, chi1_l, chi2_l, chip, phiRef, M, dist_mpc):
         theta_ripple, coeffs[5], coeffs[6], chip
     )
     # unpack transition_freqs
-    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
+    _, _, _, _, f_RD, _ = transition_freqs
     phi_IIb = lambda f: PhenomPOneFrequency_phase(
         f, m1, m2, chi1_l, chi2_l, chip, phiRef, M, dist_mpc
     )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
     return t0
 
-def time_corr_coarse(m1, m2, chi1_l, chi2_l, chip, phiRef, M, dist_mpc):
-    '''
-    here m1 > m2
-    '''
-    theta_intrinsic = jnp.array([m1, m2, chi1_l, chi2_l])
-    coeffs = get_coeffs(theta_intrinsic)
-
-    theta_ripple = jnp.array([m1, m2, chi1_l, chi2_l])
-
-    transition_freqs = phP_get_transition_frequencies(
-        theta_ripple, coeffs[5], coeffs[6], chip
-    )
-    # unpack transition_freqs
-    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
-
-    phi_IIb = lambda f: PhenomPOneFrequency_phase(
-        f, m1, m2, chi1_l, chi2_l, chip, phiRef, M, dist_mpc
-    )
-    n_fixed = 10
-    f_final = f_RD
-    f_start = 0.8 * f_final
-    f_end = 1.2 * f_final
-    f_sequence = jnp.linspace(f_start, f_end, n_fixed)
-    #print("f_sequence: ", f_sequence)
-    phi_sequence = phi_IIb(f_sequence)
-    #print("phi numbers: ", phi_sequence)
-    cs = CubicSpline(f_sequence, phi_sequence, bc_type='natural')
-    t0 = cs(f_final, 1) / (2 * jnp.pi)
-
-    return t0
 
 def PhenomPcore(
     fs: Array,
@@ -752,49 +450,9 @@ def PhenomPcore(
     Thetas are waveform parameters.
     m1 must be larger than m2.
     """
-    #print(
-    #    "####################################################################################################"
-    #)
-    #print(
-    #    "WARNING: a linear-in-frequency phase difference between this code and the LAL implementation exists"
-    #)
-    #print(
-    #    "####################################################################################################"
-    #)
-    # maybe need to reverse m1 m2
-    # convention: m1 < m2
-    # if m1_SI > m2_SI:
-    #    m1_SI, m2_SI = switching(m1_SI, m2_SI)
-    #    s1x, s2x = switching(s1x, s2x)
-    #    s1y, s2y = switching(s1y, s2y)
-    #    s1z, s2z = switching(s1z, s2z)
+    m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, dist_mpc, tc, phiRef, incl = theta
 
-    #Mc = theta[0]
-    #eta = theta[1]
-    #m1, m2 = Mc_eta_to_ms(jnp.array([Mc, eta]))
-    #print("inside phenomp")
-    #print("m1, m2: ", m1, m2)
-    m1 = theta[0]
-    m2 = theta[1]
-    s1x = theta[2]
-    s1y = theta[3]
-    s1z = theta[4]
-    s2x = theta[5]
-    s2y = theta[6]
-    s2z = theta[7]
-
-    #f_ref = theta[2]
-    # phiRef = theta[8]
-    # dist_mpc = theta[9]
-    # incl = theta[10]
-    # tc = theta[11]
-    dist_mpc = theta[8]
-    tc = theta[9]
-    phiRef = theta[10]
-    incl = theta[11]
-
-
-    # flip m1 m2
+    # flip m1 m2. For some reason LAL uses this convention for PhenomPv2
     m1, m2 = m2, m1
     s1x, s2x = s2x, s1x
     s1y, s2y = s2y, s1y
@@ -803,13 +461,18 @@ def PhenomPcore(
 
     m1_SI = m1 * MSUN
     m2_SI = m2 * MSUN
-    chi1_l, chi2_l, chip, thetaJN, alpha0, phi_aligned, zeta_polariz = LALtoPhenomP(
+    (
+        chi1_l,
+        chi2_l,
+        chip,
+        thetaJN,
+        alpha0,
+        phi_aligned,
+        zeta_polariz,
+    ) = Pv2utils.convert_spins(
         m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
     )
     phic = 2 * phi_aligned
-    # m1 = m1_SI / MSUN
-    # m2 = m2_SI / MSUN
-    # print("m1, m2: ", m1, m2)
     q = m2 / m1  # q>=1
     M = m1 + m2
     chi_eff = (m1 * chi1_l + m2 * chi2_l) / M
@@ -841,14 +504,12 @@ def PhenomPcore(
         + angcoeffs["epsiloncoeff5"] * omega_ref_cbrt
     )
 
-    Y2m2 = SpinWeightedY(thetaJN, 0, -2, 2, -2)
-    Y2m1 = SpinWeightedY(thetaJN, 0, -2, 2, -1)
-    Y20 = SpinWeightedY(thetaJN, 0, -2, 2, -0)
-    Y21 = SpinWeightedY(thetaJN, 0, -2, 2, 1)
-    Y22 = SpinWeightedY(thetaJN, 0, -2, 2, 2)
+    Y2m2 = Pv2utils.SpinWeightedY(thetaJN, 0, -2, 2, -2)
+    Y2m1 = Pv2utils.SpinWeightedY(thetaJN, 0, -2, 2, -1)
+    Y20 = Pv2utils.SpinWeightedY(thetaJN, 0, -2, 2, -0)
+    Y21 = Pv2utils.SpinWeightedY(thetaJN, 0, -2, 2, 1)
+    Y22 = Pv2utils.SpinWeightedY(thetaJN, 0, -2, 2, 2)
     Y2 = [Y2m2, Y2m1, Y20, Y21, Y22]
-    # finspin = get_final_spin(m1, m2, chi1_l, chi2_l)
-    # print(finspin)
 
     hPhenomDs, phase, Amp = PhenomPOneFrequency(
         fs, m2, m1, chi2_l, chi1_l, chip, phic, M, dist_mpc
@@ -880,23 +541,17 @@ def PhenomPcore(
         theta_ripple, coeffs[5], coeffs[6], chip
     )
     # unpack transition_freqs
-    f1, f2, f3, f4, f_RD, f_damp = transition_freqs
+    _, _, _, _, f_RD, _ = transition_freqs
 
     phi_IIb = lambda f: PhenomPOneFrequency_phase(
         f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc
     )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
-    #t0 = time_corr_coarse(m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc)
-    #t0_legacy = time_corr_coarse(m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc)
-    #print("time comparison: ", t0, t0_legacy)
-    # t0 = jax.grad(PhDPhase)(f_RD * m_sec, theta_intrinsic, coeffs, transition_freqs)
     phase_corr = jnp.cos(2 * jnp.pi * fs * (t0)) - 1j * jnp.sin(2 * jnp.pi * fs * (t0))
-    M_s  = (m1 + m2 ) * gt
-    phase_corr_tc  = jnp.exp(-1j * fs * M_s * tc)
+    M_s = (m1 + m2) * gt
+    phase_corr_tc = jnp.exp(-1j * fs * M_s * tc)
     hp *= phase_corr * phase_corr_tc
     hc *= phase_corr * phase_corr_tc
-    #print("time corrected hp: %.15e %.15e" % (hp.real, hp.imag))
-
 
     # final touches to hp and hc, stolen from Scott
     c2z = jnp.cos(2 * zeta_polariz)
@@ -905,26 +560,29 @@ def PhenomPcore(
     final_hc = c2z * hc - s2z * hp
     return final_hp, final_hc
 
-def gen_IMRPhenoP_matchtests(frequencies, theta, f_ref):
-    '''
-    wrapper around phenomPcore to only output hp 
-    probably there are more elegant way of doing this
-    '''
-    #m1 = theta[0]
-    #m2 = theta[1]
-    #Mc, eta  = ms_to_Mc_eta(jnp.array([m1, m2]))
-    #_theta = jnp.array([Mc, eta, theta[2], theta[3], theta[4], theta[5],theta[6],theta[7],theta[8],theta[9],theta[10]])
-    hp, _ = PhenomPcore(frequencies, theta, f_ref)
-    return hp
 
-def gen_IMRPhenomP_mceta(frequencies, theta, f_ref):
-    '''
-    wrapper around phenomPcore but the first two parameters are Mc and eta 
+def gen_IMRPhenomP_hphc(f: Array, params: Array, f_ref: float):
+    """
+    wrapper around phenomPcore but the first two parameters are Mc and eta
     instead of m1 and m2
-    '''
-    Mc = theta[0]
-    eta = theta[1]
-    m1, m2  = Mc_eta_to_ms(jnp.array([Mc, eta]))
-    newtheta = jnp.array([m1, m2, theta[2], theta[3], theta[4], theta[5],theta[6],theta[7],theta[8],theta[9],theta[10]])
-    hp, hc = PhenomPcore(frequencies, newtheta, f_ref)
+    """
+    Mc = params[0]
+    eta = params[1]
+    m1, m2 = Mc_eta_to_ms(jnp.array([Mc, eta]))
+    m1m2params = jnp.array(
+        [
+            m1,
+            m2,
+            params[2],
+            params[3],
+            params[4],
+            params[5],
+            params[6],
+            params[7],
+            params[8],
+            params[9],
+            params[10],
+        ]
+    )
+    hp, hc = PhenomPcore(f, m1m2params, f_ref)
     return hp, hc

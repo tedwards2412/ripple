@@ -48,30 +48,52 @@ def EradRational0815(eta, chi1, chi2):
     return EradRational0815_s(eta, s)
 
 
-def get_fRD_fdamp(m1, m2, chi1, chi2):
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M_s = m1_s + m2_s
-    eta_s = m1_s * m2_s / (M_s ** 2.0)
-    S = (chi1 * m1_s ** 2 + chi2 * m2_s ** 2) / (M_s ** 2.0)
-    eta2 = eta_s * eta_s
-    eta3 = eta2 * eta_s
+def FinalSpin0815_s(eta, S):
+    eta2 = eta * eta
+    eta3 = eta2 * eta
     S2 = S * S
     S3 = S2 * S
-
-    a = eta_s * (
+    return eta * (
         3.4641016151377544
-        - 4.399247300629289 * eta_s
+        - 4.399247300629289 * eta
         + 9.397292189321194 * eta2
         - 13.180949901606242 * eta3
         + S
         * (
-            (1.0 / eta_s - 0.0850917821418767 - 5.837029316602263 * eta_s)
-            + (0.1014665242971878 - 2.0967746996832157 * eta_s) * S
-            + (-1.3546806617824356 + 4.108962025369336 * eta_s) * S2
-            + (-0.8676969352555539 + 2.064046835273906 * eta_s) * S3
+            (1.0 / eta - 0.0850917821418767 - 5.837029316602263 * eta)
+            + (0.1014665242971878 - 2.0967746996832157 * eta) * S
+            + (-1.3546806617824356 + 4.108962025369336 * eta) * S2
+            + (-0.8676969352555539 + 2.064046835273906 * eta) * S3
         )
     )
+
+
+def get_fRD_fdamp(m1, m2, chi1, chi2):
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta_s = m1_s * m2_s / (M_s**2.0)
+    S = (chi1 * m1_s**2 + chi2 * m2_s**2) / (M_s**2.0)
+    # eta2 = eta_s * eta_s
+    # eta3 = eta2 * eta_s
+    # S2 = S * S
+    # S3 = S2 * S
+
+    # a = eta_s * (
+    #     3.4641016151377544
+    #     - 4.399247300629289 * eta_s
+    #     + 9.397292189321194 * eta2
+    #     - 13.180949901606242 * eta3
+    #     + S
+    #     * (
+    #         (1.0 / eta_s - 0.0850917821418767 - 5.837029316602263 * eta_s)
+    #         + (0.1014665242971878 - 2.0967746996832157 * eta_s) * S
+    #         + (-1.3546806617824356 + 4.108962025369336 * eta_s) * S2
+    #         + (-0.8676969352555539 + 2.064046835273906 * eta_s) * S3
+    #     )
+    # )
+
+    a = FinalSpin0815_s(eta_s, S)
 
     fRD = jnp.interp(a, QNMData_a, QNMData_fRD) / (
         1.0 - EradRational0815(eta_s, chi1, chi2)
@@ -86,7 +108,6 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
 def get_transition_frequencies(
     theta: Array, gamma2: float, gamma3: float
 ) -> Tuple[float, float, float, float, float, float]:
-
     m1, m2, chi1, chi2 = theta
     M = m1 + m2
     f_RD, f_damp = get_fRD_fdamp(m1, m2, chi1, chi2)
@@ -123,7 +144,7 @@ def get_coeffs(theta: Array) -> Array:
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
+    eta = m1_s * m2_s / (M_s**2.0)
 
     # Definition of chiPN from lalsuite
     chi_s = (chi1 + chi2) / 2.0
@@ -138,19 +159,19 @@ def get_coeffs(theta: Array) -> Array:
         * (
             PhenomD_coeff_table[:, 2]
             + PhenomD_coeff_table[:, 3] * eta
-            + PhenomD_coeff_table[:, 4] * (eta ** 2.0)
+            + PhenomD_coeff_table[:, 4] * (eta**2.0)
         )
         + (chiPN - 1.0) ** 2.0
         * (
             PhenomD_coeff_table[:, 5]
             + PhenomD_coeff_table[:, 6] * eta
-            + PhenomD_coeff_table[:, 7] * (eta ** 2.0)
+            + PhenomD_coeff_table[:, 7] * (eta**2.0)
         )
         + (chiPN - 1.0) ** 3.0
         * (
             PhenomD_coeff_table[:, 8]
             + PhenomD_coeff_table[:, 9] * eta
-            + PhenomD_coeff_table[:, 10] * (eta ** 2.0)
+            + PhenomD_coeff_table[:, 10] * (eta**2.0)
         )
     )
 
@@ -160,20 +181,20 @@ def get_coeffs(theta: Array) -> Array:
 
 def get_delta0(f1, f2, f3, v1, v2, v3, d1, d3):
     return (
-        -(d3 * f1 ** 2 * (f1 - f2) ** 2 * f2 * (f1 - f3) * (f2 - f3) * f3)
-        + d1 * f1 * (f1 - f2) * f2 * (f1 - f3) * (f2 - f3) ** 2 * f3 ** 2
-        + f3 ** 2
+        -(d3 * f1**2 * (f1 - f2) ** 2 * f2 * (f1 - f3) * (f2 - f3) * f3)
+        + d1 * f1 * (f1 - f2) * f2 * (f1 - f3) * (f2 - f3) ** 2 * f3**2
+        + f3**2
         * (
             f2
             * (f2 - f3) ** 2
-            * (-4 * f1 ** 2 + 3 * f1 * f2 + 2 * f1 * f3 - f2 * f3)
+            * (-4 * f1**2 + 3 * f1 * f2 + 2 * f1 * f3 - f2 * f3)
             * v1
-            + f1 ** 2 * (f1 - f3) ** 3 * v2
+            + f1**2 * (f1 - f3) ** 3 * v2
         )
-        + f1 ** 2
+        + f1**2
         * (f1 - f2) ** 2
         * f2
-        * (f1 * f2 - 2 * f1 * f3 - 3 * f2 * f3 + 4 * f3 ** 2)
+        * (f1 * f2 - 2 * f1 * f3 - 3 * f2 * f3 + 4 * f3**2)
         * v3
     ) / ((f1 - f2) ** 2 * (f1 - f3) ** 3 * (f2 - f3) ** 2)
 
@@ -192,16 +213,16 @@ def get_delta1(f1, f2, f3, v1, v2, v3, d1, d3):
                 + 2
                 * f1
                 * (
-                    f3 ** 4 * (v1 - v2)
-                    + 3 * f2 ** 4 * (v1 - v3)
-                    + f1 ** 4 * (v2 - v3)
-                    + 4 * f2 ** 3 * f3 * (-v1 + v3)
-                    + 2 * f1 ** 3 * f3 * (-v2 + v3)
+                    f3**4 * (v1 - v2)
+                    + 3 * f2**4 * (v1 - v3)
+                    + f1**4 * (v2 - v3)
+                    + 4 * f2**3 * f3 * (-v1 + v3)
+                    + 2 * f1**3 * f3 * (-v2 + v3)
                     + f1
                     * (
-                        2 * f3 ** 3 * (-v1 + v2)
-                        + 6 * f2 ** 2 * f3 * (v1 - v3)
-                        + 4 * f2 ** 3 * (-v1 + v3)
+                        2 * f3**3 * (-v1 + v2)
+                        + 6 * f2**2 * f3 * (v1 - v3)
+                        + 4 * f2**3 * (-v1 + v3)
                     )
                 )
             )
@@ -216,32 +237,32 @@ def get_delta2(f1, f2, f3, v1, v2, v3, d1, d3):
         * (f1 - f2)
         * (f1 - f3)
         * (f2 - f3) ** 2
-        * (f1 * f2 + 2 * (f1 + f2) * f3 + f3 ** 2)
+        * (f1 * f2 + 2 * (f1 + f2) * f3 + f3**2)
         - d3
         * (f1 - f2) ** 2
         * (f1 - f3)
         * (f2 - f3)
-        * (f1 ** 2 + f2 * f3 + 2 * f1 * (f2 + f3))
-        - 4 * f1 ** 2 * f2 ** 3 * v1
-        + 3 * f1 * f2 ** 4 * v1
-        - 4 * f1 * f2 ** 3 * f3 * v1
-        + 3 * f2 ** 4 * f3 * v1
-        + 12 * f1 ** 2 * f2 * f3 ** 2 * v1
-        - 4 * f2 ** 3 * f3 ** 2 * v1
-        - 8 * f1 ** 2 * f3 ** 3 * v1
-        + f1 * f3 ** 4 * v1
-        + f3 ** 5 * v1
-        + f1 ** 5 * v2
-        + f1 ** 4 * f3 * v2
-        - 8 * f1 ** 3 * f3 ** 2 * v2
-        + 8 * f1 ** 2 * f3 ** 3 * v2
-        - f1 * f3 ** 4 * v2
-        - f3 ** 5 * v2
+        * (f1**2 + f2 * f3 + 2 * f1 * (f2 + f3))
+        - 4 * f1**2 * f2**3 * v1
+        + 3 * f1 * f2**4 * v1
+        - 4 * f1 * f2**3 * f3 * v1
+        + 3 * f2**4 * f3 * v1
+        + 12 * f1**2 * f2 * f3**2 * v1
+        - 4 * f2**3 * f3**2 * v1
+        - 8 * f1**2 * f3**3 * v1
+        + f1 * f3**4 * v1
+        + f3**5 * v1
+        + f1**5 * v2
+        + f1**4 * f3 * v2
+        - 8 * f1**3 * f3**2 * v2
+        + 8 * f1**2 * f3**3 * v2
+        - f1 * f3**4 * v2
+        - f3**5 * v2
         - (f1 - f2) ** 2
         * (
-            f1 ** 3
+            f1**3
             + f2 * (3 * f2 - 4 * f3) * f3
-            + f1 ** 2 * (2 * f2 + f3)
+            + f1**2 * (2 * f2 + f3)
             + f1 * (3 * f2 - 4 * f3) * (f2 + 2 * f3)
         )
         * v3
@@ -255,16 +276,16 @@ def get_delta3(f1, f2, f3, v1, v2, v3, d1, d3):
         + (
             2
             * (
-                f3 ** 4 * (-v1 + v2)
-                + 2 * f1 ** 2 * (f2 - f3) ** 2 * (v1 - v3)
-                + 2 * f2 ** 2 * f3 ** 2 * (v1 - v3)
-                + 2 * f1 ** 3 * f3 * (v2 - v3)
-                + f2 ** 4 * (-v1 + v3)
-                + f1 ** 4 * (-v2 + v3)
+                f3**4 * (-v1 + v2)
+                + 2 * f1**2 * (f2 - f3) ** 2 * (v1 - v3)
+                + 2 * f2**2 * f3**2 * (v1 - v3)
+                + 2 * f1**3 * f3 * (v2 - v3)
+                + f2**4 * (-v1 + v3)
+                + f1**4 * (-v2 + v3)
                 + 2
                 * f1
                 * f3
-                * (f3 ** 2 * (v1 - v2) + f2 ** 2 * (v1 - v3) + 2 * f2 * f3 * (-v1 + v3))
+                * (f3**2 * (v1 - v2) + f2**2 * (v1 - v3) + 2 * f2 * f3 * (-v1 + v3))
             )
         )
         / ((f1 - f2) ** 2 * (f2 - f3) ** 2)
@@ -275,16 +296,16 @@ def get_delta4(f1, f2, f3, v1, v2, v3, d1, d3):
     return (
         -(d3 * (f1 - f2) ** 2 * (f1 - f3) * (f2 - f3))
         + d1 * (f1 - f2) * (f1 - f3) * (f2 - f3) ** 2
-        - 3 * f1 * f2 ** 2 * v1
-        + 2 * f2 ** 3 * v1
+        - 3 * f1 * f2**2 * v1
+        + 2 * f2**3 * v1
         + 6 * f1 * f2 * f3 * v1
-        - 3 * f2 ** 2 * f3 * v1
-        - 3 * f1 * f3 ** 2 * v1
-        + f3 ** 3 * v1
-        + f1 ** 3 * v2
-        - 3 * f1 ** 2 * f3 * v2
-        + 3 * f1 * f3 ** 2 * v2
-        - f3 ** 3 * v2
+        - 3 * f2**2 * f3 * v1
+        - 3 * f1 * f3**2 * v1
+        + f3**3 * v1
+        + f1**3 * v2
+        - 3 * f1**2 * f3 * v2
+        + 3 * f1 * f3**2 * v2
+        - f3**3 * v2
         - (f1 - f2) ** 2 * (f1 + 2 * f2 - 3 * f3) * v3
     ) / ((f1 - f2) ** 2 * (f1 - f3) ** 3 * (f2 - f3) ** 2)
 
