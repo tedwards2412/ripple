@@ -28,6 +28,7 @@ See https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html fo
 
 - IMRPhenomXAS (aligned spin)
 - IMRPhenomD (aligned spin)
+- IMRPhenomPv2 (Still finalizing sampling checks)
 
 ### Generating a waveform and its derivative
 
