@@ -16,15 +16,15 @@ import sys
 
 # Eq. (20)
 C_1 = 3115./1248.
-C_2 = 28024205./3302208.
 C_THREE_HALVES = - PI
+C_2 = 28024205./3302208.
 C_FIVE_HALVES = - 4283. * PI / 1092.
 
 # Eq. (21)
 
 N_FIVE_HALVES = 90.550822
-D_1 = -15.111208
 N_3 = -60.253578
+D_1 = -15.111208
 D_2 = 8.0641096
 
 # Combinations, see Eq. (19)
@@ -39,32 +39,24 @@ D_THREE_HALVES = - (C_FIVE_HALVES + C_THREE_HALVES * D_1 - N_FIVE_HALVES) / (C_1
 D = 13477.8
 
 def _get_kappa_eff_term(theta):
-    """Internal function that computes one term for kappa_eff, then can swap arguments around for the other kappa term.
-
-    Args:
-        theta (_type_): _description_
-
-    Returns:
-        _type_: _description_
     """
-    # FIXME - do I need to get the units? 
-    m1, m2, _, _, lambda1, _ = theta
-    M = m1 + m2
-    # m1_s = m1 * gt
-    # m2_s = m2 * gt
-    # M_s = m1_s + m2_s
-    # eta = m1_s * m2_s / (M_s**2.0)
-    return 3./13. * (1. + 12. * (m2 / m1)) * (m1/M) ** (5.) * lambda1
+    Internal function that computes one term for kappa_eff, then can swap arguments around for the other kappa term.
+    """
+    m1, m2, chi1, chi2, lambda1, lambda2 = theta
+    
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+    return (3./13.) * (1. + 12. * (m2_s / m1_s)) * (m1_s/M_s) ** (5.) * lambda1
     
 
 def get_kappa_eff(theta):
     # Sum the two terms to get total kappa
     m1, m2, chi1, chi2, lambda1, lambda2 = theta
-    m1_s = m1 * gt
-    m2_s = m2 * gt
     # Parameters with A <-> B
-    theta = jnp.array([m1_s, m2_s, chi1, chi2, lambda1, lambda2])
-    theta_rev = jnp.array([m2_s, m1_s, chi2, chi1, lambda2, lambda1])
+    theta     = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
+    theta_rev = jnp.array([m2, m1, chi2, chi1, lambda2, lambda1])
     
     return _get_kappa_eff_term(theta) + _get_kappa_eff_term(theta_rev)
     
@@ -80,7 +72,7 @@ def get_tidal_phase(f: Array, theta: Array, kappa_T_eff: float) -> Array:
     
     # Build the pade approximant (see Eq. (18) - (21) in NRTidal)
     
-    pade_num = 1. + N_1 * f + N_THREE_HALVES * f ** (3. / 2.) + N_FIVE_HALVES * f ** (5. / 2.) + N_3 * f ** 3
+    pade_num = 1. + N_1 * f + N_THREE_HALVES * f ** (3. / 2.) + N_2 * f ** 2. + N_FIVE_HALVES * f ** (5. / 2.) + N_3 * f ** 3
     pade_denom = 1. + D_1 * f + D_THREE_HALVES * f ** (3. / 2.) + D_2 * f ** (2.)
     pade = pade_num / pade_denom
     
@@ -102,30 +94,22 @@ def _get_spin_phase_correction_term(f: Array, theta: Array) -> Array:
     X_1 = m1_s / M_s
     X_2 = m2_s / M_s
     
-    # To avoid numerical errors:
-    small = 1
-    lambda1 += small
-    lambda2 += small
-    
     log_lambda1 = jnp.log(lambda1)
     
     log_C_Q  = 0.1940 + 0.09163 * log_lambda1 + 0.04812 * log_lambda1 ** 2. - 0.004286 * log_lambda1 ** 3 + 0.00012450 * log_lambda1 ** 4
     log_C_Oc = 0.003131 + 2.071 * log_C_Q - 0.7152 * log_C_Q ** 2 + 0.2458 * log_C_Q ** 3 - 0.03309 * log_C_Q ** 4
     
-    C_Q  = jnp.exp(log_C_Q)
-    C_Oc = jnp.exp(log_C_Oc)
-    
-    C_Q_hat = C_Q - 1
-    C_Oc_hat = C_Q_hat - 1
+    C_Q_hat  = jnp.exp(log_C_Q)
+    C_Oc_hat = jnp.exp(log_C_Oc)
     
     # Get the coefficients of the corrections
     psi_SS_2  = - 50. * C_Q_hat * X_1 ** 2 * chi1 ** 2
-    psi_SS_3  =  5. / 84. * (9407. + 8218. * X_1 - 2016. * X_1 ** 2) * C_Q_hat * X_1 ** 2 * chi1 ** 2
-    psi_SS_35 = 10. * ( ( X_1 ** 2 + 308. / 3. * X_1 ) * chi1 + (X_2 ** 2 - 89. / 3. * X_2) * chi2 - 40. * PI) * C_Q_hat * X_1 ** 2 * chi1 ** 2 - 440. * C_Oc_hat * X_1 ** 3 * chi1 ** 3
+    psi_SS_3  = (5. / 84.) * (9407. + 8218. * X_1 - 2016. * X_1 ** 2) * C_Q_hat * X_1 ** 2 * chi1 ** 2
+    psi_SS_35 = 10. * ( ( X_1 ** 2 + (308. / 3.) * X_1 ) * chi1 + (X_2 ** 2 - 89. / 3. * X_2) * chi2 - 40. * PI) * C_Q_hat * X_1 ** 2 * chi1 ** 2 - 440. * C_Oc_hat * X_1 ** 3 * chi1 ** 3
     
-    # FIXME make phase contribution nontrivial here
-    psi_SS = 3. * f ** (-5. / 2.) / (128. * eta) * (psi_SS_2 * f ** 2. + psi_SS_3 * f ** 3 + psi_SS_35 * f ** (7. / 2.))
+    psi_SS = (3. / (128. * eta)) * (psi_SS_2 * f ** (-1./2.) + psi_SS_3 * f ** (1./2.) + psi_SS_35 * f)
     
+    # Override - making SS contribution zero
     psi_SS = jnp.zeros_like(f)
     
     return psi_SS
@@ -134,12 +118,11 @@ def get_spin_phase_correction(f: Array, theta: Array) -> Array:
     
     m1, m2, chi1, chi2, lambda1, lambda2 = theta 
     
-    theta = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
+    theta     = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
     theta_rev = jnp.array([m2, m1, chi2, chi1, lambda2, lambda1])
     
     return _get_spin_phase_correction_term(f, theta) + _get_spin_phase_correction_term(f, theta_rev)
     
-    # return jnp.zeros_like(f)
     
 def get_tidal_amplitude(f: Array, theta: Array, kappa_T_eff: float, dL=1):
     
@@ -211,7 +194,6 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
         
     # Get the parameters that are passed to the BBH waveform, all except lambdas
     bbh_params = jnp.concatenate((jnp.array([m1, m2, chi1, chi2]), theta_extrinsic))
-    print(bbh_params)
     
     if IMRphenom == "IMRPhenomD":
         from ripple.waveforms.IMRPhenomD import (
@@ -236,24 +218,26 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     
     # Add the tidal amplitude
     A_T = get_tidal_amplitude(f * M_s, theta_intrinsic, kappa_T_eff, dL=theta_extrinsic[0])
-    print(kappa_T_eff)
-    print(A_T)
     h0 += A_T * jnp.exp(1j * -psi_bbh)
+    print(h0)
     
     # Add tidal phase
     psi_T = get_tidal_phase(f * M_s, theta_intrinsic, kappa_T_eff)
+    print("Psi tidal")
     print(psi_T)
     h0 *= jnp.exp(1j * -psi_T)
+    print(h0)
     
     # Add spin corrections
+    # FIXME - add later on!
     psi_SS = get_spin_phase_correction(f * M_s, theta_intrinsic)
+    print("Psi SS")
     print(psi_SS)
     h0 *= jnp.exp(1j * -psi_SS)
     
     # Add the Planck taper:
     A_P = get_planck_taper(f * M_s, theta_intrinsic)
     h0 *= A_P
-    print(A_P)
     
     return h0
 
