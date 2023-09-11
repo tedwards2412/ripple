@@ -4,8 +4,8 @@ from ripple import Mc_eta_to_ms
 
 from ..constants import gt, MSUN
 import numpy as np
-from .PPE_IMRPhenomD import Phase as PhDPhase
-from .PPE_IMRPhenomD import Amp as PhDAmp
+from .PPE_IMRPhenomD import Phase as PPEPhDPhase
+from .PPE_IMRPhenomD import Amp as PPEPhDAmp
 from .IMRPhenomD_utils import get_coeffs
 
 from ..typing import Array
@@ -131,10 +131,10 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc, ppes)
         theta_ripple, coeffs[5], coeffs[6], chip
     )
 
-    phase = PhDPhase(f, theta_ripple, ppes, coeffs, transition_freqs)
+    phase = PPEPhDPhase(f, theta_ripple, ppes, coeffs, transition_freqs)
 
     phase -= phic
-    Amp = PhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
+    Amp = PPEPhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
 
     # phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(-1j * phase))
@@ -161,7 +161,7 @@ def PhenomPOneFrequency_phase(
         theta_ripple, coeffs[5], coeffs[6], chip
     )
 
-    phase = PhDPhase(f, theta_ripple, ppes, coeffs, transition_freqs)
+    phase = PPEPhDPhase(f, theta_ripple, ppes, coeffs, transition_freqs)
     return -phase
 
 
