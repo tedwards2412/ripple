@@ -144,11 +144,65 @@ def get_tidal_amplitude(f: Array, theta: Array, kappa_T_eff: float, dL=1):
     dist_s = (dL * m_per_Mpc) / C
     return A_T / dist_s
 
-# FIXME - what about the Planck taper? See Eq 25 of NRTidalv2 paper
-def get_planck_taper(f: Array, theta: Array):
+def _get_f_merger(theta, kappa_T_eff):
+    
+    # TODO - remove later on?
+    
+    # Already rescaled below in global function
+    m1, m2, chi1, chi2, lambda1, lambda2 = theta 
+    # Convert the mass variables
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    M = m1 + m2
+    eta = m1_s * m2_s / (M_s**2.0)
+    
+    # Compute the auxiliary variables
+    X_1 = m1_s / M_s
+    X_2 = m2_s / M_s
     
     # FIXME add the correction here
     
+    n_1 = 3.354e-2
+    n_2 = 4.315e-5
+    d_1 = 7.542e-2
+    d_2 = 2.236e-4
+    
+    omega_hat = 0.3586 * (X_2/X_1) ** (1./2.) * (1. + n_1 * kappa_T_eff + n_2 * kappa_T_eff ** 2)/(1. + d_1 * kappa_T_eff + d_2 * kappa_T_eff ** 2)
+    
+    f_merger = omega_hat / M_s
+    
+    return f_merger
+    
+    
+
+# FIXME - what about the Planck taper? See Eq 25 of NRTidalv2 paper
+def get_planck_taper(f: Array, theta: Array, kappa_T_eff):
+    
+    # Already rescaled below in global function
+    m1, m2, chi1, chi2, lambda1, lambda2 = theta 
+    # Convert the mass variables
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
+    
+    # Compute the auxiliary variables
+    X_1 = m1_s / M_s
+    X_2 = m2_s / M_s
+    
+    # FIXME add the correction here
+    
+    print(kappa_T_eff)
+    
+    n_1 = 3.354e-2
+    n_2 = 4.3153e-5
+    d_1 = 7.542e-2
+    d_2 = 2.236e-4
+    
+    omega_hat = 0.3586 * (X_2/X_1) ** (1./2.) * (1. + n_1 * kappa_T_eff + n_2 * kappa_T_eff ** 2)/(1. + d_1 * kappa_T_eff + d_2 * kappa_T_eff ** 2)
+    
+    # Safety override: 
     A_P = jnp.ones_like(f)
     
     return A_P
@@ -209,35 +263,23 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     #         gen_IMRPhenomPv2_hphc as bbh_waveform_generator,
     #     )
     
-    # Generate BBH waveform strain and get phase
+    # Generate BBH waveform strain and get its amplitude and phase
     h0_bbh = bbh_waveform_generator(f, bbh_params, f_ref)
+    A_bbh = jnp.abs(h0_bbh)
     psi_bbh = h0_bbh / jnp.abs(h0_bbh)
-    
-    # Build BNS waveform
-    h0 = h0_bbh
     
     # Add the tidal amplitude
     A_T = get_tidal_amplitude(f * M_s, theta_intrinsic, kappa_T_eff, dL=theta_extrinsic[0])
-    h0 += A_T * jnp.exp(1j * -psi_bbh)
-    print(h0)
+    
+    
+    A_P = get_planck_taper(f * M_s, theta_intrinsic, kappa_T_eff)
     
     # Add tidal phase
     psi_T = get_tidal_phase(f * M_s, theta_intrinsic, kappa_T_eff)
-    print("Psi tidal")
-    print(psi_T)
-    h0 *= jnp.exp(1j * -psi_T)
-    print(h0)
-    
-    # Add spin corrections
-    # FIXME - add later on!
+    # FIXME - get correct SS terms
     psi_SS = get_spin_phase_correction(f * M_s, theta_intrinsic)
-    print("Psi SS")
-    print(psi_SS)
-    h0 *= jnp.exp(1j * -psi_SS)
     
-    # Add the Planck taper:
-    A_P = get_planck_taper(f * M_s, theta_intrinsic)
-    h0 *= A_P
+    h0 = A_P * (h0_bbh + A_T * jnp.exp(1j * - psi_bbh)) * jnp.exp(1.j * -(psi_T + psi_SS))
     
     return h0
 
