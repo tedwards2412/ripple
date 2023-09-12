@@ -1,6 +1,5 @@
 """This file implements the NRTidalv2 corrections, see http://arxiv.org/abs/1905.06011"""
 
-# FIXME I think I used f everywhere, but some functions should really need fM_s as in IMRPhenomD
 # FIXME make sure that jax differentiable is OK
 
 import jax
@@ -11,8 +10,6 @@ from ..typing import Array
 from ripple import Mc_eta_to_ms
 import sys
 
-
-# FIXME - move these coefficients below to separate utils file?
 
 # Eq. (20)
 C_1 = 3115./1248.
@@ -84,6 +81,11 @@ def get_tidal_phase(f: Array, theta: Array, kappa_T_eff: float) -> Array:
 def _get_spin_phase_correction_term(f: Array, theta: Array) -> Array:
     # Already rescaled below in global function
     m1, m2, chi1, chi2, lambda1, lambda2 = theta 
+    
+    # FIXME - what is a good threshold
+    # Safety check: if lambdas too low, treat as BBH, so no SS terms
+    if lambda1 < 0.1:
+        return jnp.zeros_like(f)
     # Convert the mass variables
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -101,6 +103,9 @@ def _get_spin_phase_correction_term(f: Array, theta: Array) -> Array:
     
     C_Q_hat  = jnp.exp(log_C_Q)
     C_Oc_hat = jnp.exp(log_C_Oc)
+    
+    print(C_Q_hat)
+    print(C_Oc_hat)
     
     # Get the coefficients of the corrections
     psi_SS_2  = - 50. * C_Q_hat * X_1 ** 2 * chi1 ** 2
@@ -161,8 +166,6 @@ def _get_f_merger(theta, kappa_T_eff):
     X_1 = m1_s / M_s
     X_2 = m2_s / M_s
     
-    # FIXME add the correction here
-    
     n_1 = 3.354e-2
     n_2 = 4.315e-5
     d_1 = 7.542e-2
@@ -191,8 +194,6 @@ def get_planck_taper(f: Array, theta: Array, kappa_T_eff):
     X_1 = m1_s / M_s
     X_2 = m2_s / M_s
     
-    # FIXME add the correction here
-    
     print(kappa_T_eff)
     
     n_1 = 3.354e-2
@@ -201,6 +202,8 @@ def get_planck_taper(f: Array, theta: Array, kappa_T_eff):
     d_2 = 2.236e-4
     
     omega_hat = 0.3586 * (X_2/X_1) ** (1./2.) * (1. + n_1 * kappa_T_eff + n_2 * kappa_T_eff ** 2)/(1. + d_1 * kappa_T_eff + d_2 * kappa_T_eff ** 2)
+    
+    # FIXME - now, get the Planck taper!
     
     # Safety override: 
     A_P = jnp.ones_like(f)
@@ -248,43 +251,30 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
         
     # Get the parameters that are passed to the BBH waveform, all except lambdas
     bbh_params = jnp.concatenate((jnp.array([m1, m2, chi1, chi2]), theta_extrinsic))
-    
+     
+    # TODO - get other waveforms as well
     if IMRphenom == "IMRPhenomD":
         from ripple.waveforms.IMRPhenomD import (
             gen_IMRPhenomD as bbh_waveform_generator,
         )
-    ## FIXME what to do in other cases?
-    # if IMRphenom == "IMRPhenomXAS":
-    #     from ripple.waveforms.IMRPhenomXAS import (
-    #         gen_IMRPhenomXAS_hphc as bbh_waveform_generator,
-    #     )
-    # if IMRphenom == "IMRPhenomPv2":
-    #     from ripple.waveforms.IMRPhenomPv2 import (
-    #         gen_IMRPhenomPv2_hphc as bbh_waveform_generator,
-    #     )
     
     # Generate BBH waveform strain and get its amplitude and phase
     h0_bbh = bbh_waveform_generator(f, bbh_params, f_ref)
     A_bbh = jnp.abs(h0_bbh)
     psi_bbh = h0_bbh / jnp.abs(h0_bbh)
     
-    # Add the tidal amplitude
     A_T = get_tidal_amplitude(f * M_s, theta_intrinsic, kappa_T_eff, dL=theta_extrinsic[0])
-    
-    
     A_P = get_planck_taper(f * M_s, theta_intrinsic, kappa_T_eff)
-    
-    # Add tidal phase
     psi_T = get_tidal_phase(f * M_s, theta_intrinsic, kappa_T_eff)
     # FIXME - get correct SS terms
-    psi_SS = get_spin_phase_correction(f * M_s, theta_intrinsic)
+    psi_SS = get_spin_phase_correction(f, theta_intrinsic)
     
     h0 = A_P * (h0_bbh + A_T * jnp.exp(1j * - psi_bbh)) * jnp.exp(1.j * -(psi_T + psi_SS))
     
     return h0
 
 
-def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Array:
+def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, IMRphenom: str = "IMRPhenomD") -> Array:
     """
     vars array contains both intrinsic and extrinsic variables
     
