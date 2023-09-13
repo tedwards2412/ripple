@@ -101,8 +101,8 @@ def _get_spin_phase_correction_term(f: Array, theta: Array) -> Array:
     C_Q_hat  = jnp.exp(log_C_Q)
     C_Oc_hat = jnp.exp(log_C_Oc)
     
-    print(C_Q_hat)
-    print(C_Oc_hat)
+    # print(C_Q_hat)
+    # print(C_Oc_hat)
     
     # Get the coefficients of the corrections
     psi_SS_2  = - 50. * C_Q_hat * X_1 ** 2 * chi1 ** 2
@@ -149,7 +149,7 @@ def get_tidal_amplitude(f: Array, theta: Array, kappa_T_eff: float, dL: float =1
     return A_T / dist_s
 
 
-def _get_f_merger(theta, kappa_T_eff):
+def _get_f_merger(theta, kappa_T_eff = None):
     
     # TODO - remove later on?
     
@@ -161,6 +161,10 @@ def _get_f_merger(theta, kappa_T_eff):
     M_s = m1_s + m2_s
     M = m1 + m2
     eta = m1_s * m2_s / (M_s**2.0)
+
+    # If kappa was not given, compute it
+    if kappa_T_eff is None:
+        kappa_T_eff = get_kappa_eff(theta)
     
     # Compute the auxiliary variables
     X_1 = m1_s / M_s
@@ -172,8 +176,9 @@ def _get_f_merger(theta, kappa_T_eff):
     d_2 = 2.236e-4
     
     omega_hat = 0.3586 * (X_2/X_1) ** (1./2.) * (1. + n_1 * kappa_T_eff + n_2 * kappa_T_eff ** 2)/(1. + d_1 * kappa_T_eff + d_2 * kappa_T_eff ** 2)
-    
-    f_merger = omega_hat / M_s
+
+    # FIXME - should divide by Ms?
+    f_merger = omega_hat / M_s / PI
     
     return f_merger
     
@@ -192,9 +197,7 @@ def get_planck_taper(f: Array, theta: Array, kappa_T_eff: float):
     # Compute the auxiliary variables
     X_1 = m1_s / M_s
     X_2 = m2_s / M_s
-    
-    print(kappa_T_eff)
-    
+
     n_1 = 3.354e-2
     n_2 = 4.3153e-5
     d_1 = 7.542e-2
