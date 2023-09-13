@@ -27,9 +27,9 @@ D_2 = 8.0641096
 # Combinations, see Eq. (19)
 
 N_1 = C_1 + D_1
-N_THREE_HALVES = (C_1 * C_THREE_HALVES - C_FIVE_HALVES - C_THREE_HALVES * D_1 + N_FIVE_HALVES) / (C_1)
+N_THREE_HALVES = (C_1 * C_THREE_HALVES - C_FIVE_HALVES - C_THREE_HALVES * D_1 + N_FIVE_HALVES) / C_1
 N_2 = C_2 + C_1 * D_1 + D_2
-D_THREE_HALVES = - (C_FIVE_HALVES + C_THREE_HALVES * D_1 - N_FIVE_HALVES) / (C_1)
+D_THREE_HALVES = - (C_FIVE_HALVES + C_THREE_HALVES * D_1 - N_FIVE_HALVES) / C_1
 
 # D: just below Eq. (24)
 
@@ -45,7 +45,7 @@ def _get_kappa_eff_term(theta):
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    return (3./13.) * (1. + 12. * (m2_s / m1_s)) * (m1_s/M_s) ** (5.) * lambda1
+    return (3./13.) * (1. + 12. * (m2_s / m1_s)) * (m1_s/M_s) ** 5. * lambda1
     
 
 def get_kappa_eff(theta):
@@ -78,14 +78,11 @@ def get_tidal_phase(f: Array, theta: Array, kappa_T_eff: float) -> Array:
     
     return psi_T
 
+
 def _get_spin_phase_correction_term(f: Array, theta: Array) -> Array:
     # Already rescaled below in global function
     m1, m2, chi1, chi2, lambda1, lambda2 = theta 
     
-    # FIXME - what is a good threshold
-    # Safety check: if lambdas too low, treat as BBH, so no SS terms
-    if lambda1 < 0.1:
-        return jnp.zeros_like(f)
     # Convert the mass variables
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -113,11 +110,13 @@ def _get_spin_phase_correction_term(f: Array, theta: Array) -> Array:
     psi_SS_35 = 10. * ( ( X_1 ** 2 + (308. / 3.) * X_1 ) * chi1 + (X_2 ** 2 - 89. / 3. * X_2) * chi2 - 40. * PI) * C_Q_hat * X_1 ** 2 * chi1 ** 2 - 440. * C_Oc_hat * X_1 ** 3 * chi1 ** 3
     
     psi_SS = (3. / (128. * eta)) * (psi_SS_2 * f ** (-1./2.) + psi_SS_3 * f ** (1./2.) + psi_SS_35 * f)
-    
+
+    # FIXME - these corrections are wrong, have to double check then remove this override
     # Override - making SS contribution zero
     psi_SS = jnp.zeros_like(f)
     
     return psi_SS
+
 
 def get_spin_phase_correction(f: Array, theta: Array) -> Array:
     
@@ -129,7 +128,7 @@ def get_spin_phase_correction(f: Array, theta: Array) -> Array:
     return _get_spin_phase_correction_term(f, theta) + _get_spin_phase_correction_term(f, theta_rev)
     
     
-def get_tidal_amplitude(f: Array, theta: Array, kappa_T_eff: float, dL=1):
+def get_tidal_amplitude(f: Array, theta: Array, kappa_T_eff: float, dL: float =1):
     
     # Mass variables
     m1, m2, _, _, _, _ = theta 
@@ -148,6 +147,7 @@ def get_tidal_amplitude(f: Array, theta: Array, kappa_T_eff: float, dL=1):
     # FIXME check if this is correct? Copied from IMRPhenomD
     dist_s = (dL * m_per_Mpc) / C
     return A_T / dist_s
+
 
 def _get_f_merger(theta, kappa_T_eff):
     
@@ -177,10 +177,9 @@ def _get_f_merger(theta, kappa_T_eff):
     
     return f_merger
     
-    
 
 # FIXME - what about the Planck taper? See Eq 25 of NRTidalv2 paper
-def get_planck_taper(f: Array, theta: Array, kappa_T_eff):
+def get_planck_taper(f: Array, theta: Array, kappa_T_eff: float):
     
     # Already rescaled below in global function
     m1, m2, chi1, chi2, lambda1, lambda2 = theta 
@@ -228,7 +227,7 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
 
     f_ref: Reference frequency for the waveform
     
-    IMRphenom: string selecting the BBH approximant
+    IMRphenom: string selecting the underlying BBH approximant
 
     Returns:
     --------
@@ -245,7 +244,6 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     
-    
     # Compute auxiliary quantities like kappa
     kappa_T_eff = get_kappa_eff(theta=theta_intrinsic)
         
@@ -257,13 +255,16 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
         from ripple.waveforms.IMRPhenomD import (
             gen_IMRPhenomD as bbh_waveform_generator,
         )
+    else:
+        print("IMRPhenom string not recognized")
+        return jnp.zeros_like(f)
     
     # Generate BBH waveform strain and get its amplitude and phase
     h0_bbh = bbh_waveform_generator(f, bbh_params, f_ref)
     A_bbh = jnp.abs(h0_bbh)
     psi_bbh = h0_bbh / jnp.abs(h0_bbh)
     
-    A_T = get_tidal_amplitude(f * M_s, theta_intrinsic, kappa_T_eff, dL=theta_extrinsic[0])
+    A_T = get_tidal_amplitude(f * M_s, theta_intrinsic, kappa_T_eff, dL = float(theta_extrinsic[0]))
     A_P = get_planck_taper(f * M_s, theta_intrinsic, kappa_T_eff)
     psi_T = get_tidal_phase(f * M_s, theta_intrinsic, kappa_T_eff)
     # FIXME - get correct SS terms
@@ -274,7 +275,7 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     return h0
 
 
-def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, IMRphenom: str = "IMRPhenomD") -> Array:
+def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, IMRphenom: str = "IMRPhenomD"):
     """
     vars array contains both intrinsic and extrinsic variables
     
