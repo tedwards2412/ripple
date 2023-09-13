@@ -368,5 +368,5 @@ def precessing_matchmaking(
 
 if __name__ == "__main__":
     # Choose from "IMRPhenomD", "IMRPhenomXAS", "IMRPhenomPv2"
-    random_match_waveforms(1000, "IMRPhenomXAS")
+    random_match_waveforms(1000, "IMRPhenomD")
     None

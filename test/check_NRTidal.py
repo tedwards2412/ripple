@@ -32,11 +32,11 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD"):
 
     # Specify frequency range
     f_l = 16
-    f_sampling = 4096
+    f_sampling = 2 * 4096
 
-    # FIXME - go to higher frequency
+    # TODO - check at higher frequency
     f_u = f_sampling // 2
-    f_u = 512
+    # f_u = 512
     T = 16
 
     # Build the frequency grid
@@ -47,7 +47,7 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD"):
     fs = freqs[(freqs > f_l) & (freqs < f_u)]
     f_ref = f_l
 
-    # @jax.jit
+    @jax.jit
     def waveform(theta):
         hp, _ = waveform_generator(fs, theta, f_ref, IMRphenom=IMRphenom)
         return hp
@@ -71,12 +71,19 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD"):
 
     thetas = np.array(thetas)
     matches = np.array(matches)
-    # print(thetas, matches)
-    # print("Mean match:", np.mean(matches))
-    # print("Median match:", np.median(matches))
-    # print("Minimum match:", np.min(matches))
 
     df = save_matches("NRTidal_matches.csv", thetas, matches)
+
+    mismatches = np.log10(1 - matches)
+    print("Mean match:", np.mean(matches))
+    print("Median match:", np.median(matches))
+    print("Minimum match:", np.min(matches))
+
+    print("------------------------")
+
+    print("Mean mismatch:", np.mean(mismatches))
+    print("Median mismatch:", np.median(mismatches))
+    print("Minimum mismatch:", np.min(mismatches))
 
     return df
 
@@ -86,9 +93,9 @@ def non_precessing_matchmaking(
 ):
 
     # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
-    m_l, m_u = 1.0, 2.0
-    chi_l, chi_u = -0.05, 0.05
-    lambda_u = 3000
+    m_l, m_u = 1.0, 3.0
+    chi_l, chi_u = -0.7, 0.7
+    lambda_u = 5000
 
     m1 = np.random.uniform(m_l, m_u)
     m2 = np.random.uniform(m_l, m_u)
@@ -96,7 +103,6 @@ def non_precessing_matchmaking(
     s2 = np.random.uniform(chi_l, chi_u)
     l1 = np.random.uniform(0, lambda_u)
     l2 = np.random.uniform(0, lambda_u)
-
 
     tc = 0.0
     phic = 0.0
@@ -143,7 +149,7 @@ def non_precessing_matchmaking(
     freqs_lal = np.arange(len(hp.data.data)) * df
     Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
 
-    theta_ripple = np.array(
+    theta_ripple = jnp.array(
         [Mc, eta, theta[2], theta[3], l1, l2, dist_mpc, tc, phic, inclination]
     )
     hp_ripple = waveform(theta_ripple)
@@ -292,6 +298,6 @@ def save_matches(filename, thetas, matches):
 
 if __name__ == "__main__":
     # Choose from "IMRPhenomD", "IMRPhenomXAS", "IMRPhenomPv2"
-    df = random_match_NRTidal(5)
+    df = random_match_NRTidal(1000)
 
     print(df)

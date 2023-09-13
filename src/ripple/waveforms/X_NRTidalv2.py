@@ -10,6 +10,17 @@ from ..typing import Array
 from ripple import Mc_eta_to_ms
 import sys
 
+from .IMRPhenomD_QNMdata import fM_CUT
+from .IMRPhenomD_utils import (
+    get_coeffs,
+    get_delta0,
+    get_delta1,
+    get_delta2,
+    get_delta3,
+    get_delta4,
+    get_transition_frequencies,
+)
+
 
 # Eq. (20)
 C_1 = 3115./1248.
@@ -267,7 +278,7 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     A_bbh = jnp.abs(h0_bbh)
     psi_bbh = h0_bbh / jnp.abs(h0_bbh)
     
-    A_T = get_tidal_amplitude(f * M_s, theta_intrinsic, kappa_T_eff, dL = float(theta_extrinsic[0]))
+    A_T = get_tidal_amplitude(f * M_s, theta_intrinsic, kappa_T_eff, dL=theta_extrinsic[0])
     A_P = get_planck_taper(f * M_s, theta_intrinsic, kappa_T_eff)
     psi_T = get_tidal_phase(f * M_s, theta_intrinsic, kappa_T_eff)
     # FIXME - get correct SS terms
