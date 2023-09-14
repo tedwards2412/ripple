@@ -124,7 +124,7 @@ def _get_spin_phase_correction_term(f: Array, theta: Array) -> Array:
 
     # FIXME - these corrections are wrong, have to double check then remove this override
     # Override - making SS contribution zero
-    # psi_SS = jnp.zeros_like(f)
+    psi_SS = jnp.zeros_like(f)
     
     return psi_SS
 
