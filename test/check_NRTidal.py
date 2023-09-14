@@ -36,7 +36,6 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD"):
 
     # TODO - check at higher frequency
     f_u = f_sampling // 2
-    # f_u = 512
     T = 16
 
     # Build the frequency grid
@@ -107,7 +106,7 @@ def non_precessing_matchmaking(
     tc = 0.0
     phic = 0.0
     dist_mpc = 440
-    inclination = np.pi / 2.0
+    inclination = 0 # np.pi / 2.0con
     phi_ref = 0.0
 
     if m1 < m2:

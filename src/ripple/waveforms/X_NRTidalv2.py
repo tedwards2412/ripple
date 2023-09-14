@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
 from ..typing import Array
-from ripple import Mc_eta_to_ms
+from ripple import Mc_eta_to_ms, ms_to_Mc_eta
 import sys
 
 from .IMRPhenomD_QNMdata import fM_CUT
@@ -112,9 +112,6 @@ def _get_spin_phase_correction_term(f: Array, theta: Array) -> Array:
     C_Q_hat  = jnp.exp(log_C_Q)
     C_Oc_hat = jnp.exp(log_C_Oc)
     
-    # print(C_Q_hat)
-    # print(C_Oc_hat)
-    
     # Get the coefficients of the corrections
     psi_SS_2  = - 50. * C_Q_hat * X_1 ** 2 * chi1 ** 2
     psi_SS_3  = (5. / 84.) * (9407. + 8218. * X_1 - 2016. * X_1 ** 2) * C_Q_hat * X_1 ** 2 * chi1 ** 2
@@ -155,7 +152,6 @@ def get_tidal_amplitude(f: Array, theta: Array, kappa_T_eff: float, dL: float =1
     
     # Result
     A_T = - ( (5. * PI * eta) / (24.)) ** (1. / 2.) * 9 * M_s**2  * kappa_T_eff * f ** (13. / 4.) * pade
-    # FIXME check if this is correct? Copied from IMRPhenomD
     dist_s = (dL * m_per_Mpc) / C
     return A_T / dist_s
 
@@ -205,24 +201,43 @@ def get_planck_taper(f: Array, theta: Array, kappa_T_eff: float):
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     
-    # Compute the auxiliary variables
-    X_1 = m1_s / M_s
-    X_2 = m2_s / M_s
-
-    n_1 = 3.354e-2
-    n_2 = 4.3153e-5
-    d_1 = 7.542e-2
-    d_2 = 2.236e-4
+    f_merger = _get_f_merger(theta, kappa_T_eff)
     
-    omega_hat = 0.3586 * (X_2/X_1) ** (1./2.) * (1. + n_1 * kappa_T_eff + n_2 * kappa_T_eff ** 2)/(1. + d_1 * kappa_T_eff + d_2 * kappa_T_eff ** 2)
-    
-    # FIXME - now, get the Planck taper!
-    
-    # Safety override: 
+    # FIXME - now, need to get the Planck taper!
+    # Safety override:
     A_P = jnp.ones_like(f)
     
     return A_P
 
+def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_bbh: Array):
+
+    m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
+    M_s = (m1 + m2) * gt
+
+    # Compute auxiliary quantities like kappa
+    kappa_T_eff = get_kappa_eff(theta=theta_intrinsic)
+
+    # Get BBH amplitude and phase
+    A_bbh = jnp.abs(h0_bbh)
+    psi_bbh = h0_bbh / A_bbh
+
+    # Get amplitude
+    A_T = get_tidal_amplitude(f * M_s, theta_intrinsic, kappa_T_eff, dL=theta_extrinsic[0])
+    A_P = get_planck_taper(f * M_s, theta_intrinsic, kappa_T_eff)
+
+    # Get phase
+    psi_T = get_tidal_phase(f * M_s, theta_intrinsic, kappa_T_eff)
+    # FIXME - get correct SS terms
+    psi_SS = get_spin_phase_correction(f * M_s, theta_intrinsic)
+    # ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
+    h0 = A_P * (h0_bbh + A_T * jnp.exp(1j * - psi_bbh)) * jnp.exp(1.j * -(psi_T + psi_SS))
+
+    ## Other way to compute waveforms -- gives wrong results?
+    # A = A_P * (A_T + A_bbh)
+    # psi = psi_bbh + psi_SS + psi_T
+    # h0 = A * jnp.exp(1j *  psi)
+
+    return h0
 
 def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Array:
     """
@@ -249,22 +264,15 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     """
     
     # Get parameters
-    # FIXME now this is pretty cumbersome
-    theta_intrinsic, theta_extrinsic = params[:6], params[6:]
-    m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
-    
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
-    
-    # Compute auxiliary quantities like kappa
-    kappa_T_eff = get_kappa_eff(theta=theta_intrinsic)
-        
+    m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
+    theta_intrinsic = jnp.array([m1, m2, params[2], params[3], params[4], params[5]])
+    theta_extrinsic = params[6:]
+
     # Get the parameters that are passed to the BBH waveform, all except lambdas
-    bbh_params = jnp.concatenate((jnp.array([m1, m2, chi1, chi2]), theta_extrinsic))
-     
-    # TODO - get other waveforms as well
+    bbh_params = jnp.concatenate((jnp.array([params[0], params[1], params[2], params[3]]), theta_extrinsic))
+    print(bbh_params)
+
+    # TODO - make compatible with other waveforms as well
     if IMRphenom == "IMRPhenomD":
         from ripple.waveforms.IMRPhenomD import (
             gen_IMRPhenomD as bbh_waveform_generator,
@@ -272,21 +280,11 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     else:
         print("IMRPhenom string not recognized")
         return jnp.zeros_like(f)
-    
+
     # Generate BBH waveform strain and get its amplitude and phase
     h0_bbh = bbh_waveform_generator(f, bbh_params, f_ref)
-    A_bbh = jnp.abs(h0_bbh)
-    psi_bbh = h0_bbh / jnp.abs(h0_bbh)
-    
-    A_T = get_tidal_amplitude(f * M_s, theta_intrinsic, kappa_T_eff, dL=theta_extrinsic[0])
-    A_P = get_planck_taper(f * M_s, theta_intrinsic, kappa_T_eff)
-    psi_T = get_tidal_phase(f * M_s, theta_intrinsic, kappa_T_eff)
-    # FIXME - get correct SS terms
-    psi_SS = get_spin_phase_correction(f * M_s, theta_intrinsic)
-    
-    h0 = A_P * (h0_bbh + A_T * jnp.exp(1j * - psi_bbh)) * jnp.exp(1.j * -(psi_T + psi_SS))
-    
-    return h0
+
+    return _gen_NRTidalv2(f, theta_intrinsic, theta_extrinsic, h0_bbh)
 
 
 def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, IMRphenom: str = "IMRPhenomD"):
@@ -311,6 +309,7 @@ def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, IMRphenom: str = "
       hc (array): Strain of the cross polarization
     """
     iota = params[-1]
+    print(iota)
     h0 = gen_NRTidalv2(f, params[:-1], f_ref, IMRphenom=IMRphenom)
     
     hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
