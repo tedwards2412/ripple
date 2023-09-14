@@ -124,7 +124,7 @@ def _get_spin_phase_correction_term(f: Array, theta: Array) -> Array:
 
     # FIXME - these corrections are wrong, have to double check then remove this override
     # Override - making SS contribution zero
-    psi_SS = jnp.zeros_like(f)
+    # psi_SS = jnp.zeros_like(f)
     
     return psi_SS
 
@@ -282,7 +282,7 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     A_P = get_planck_taper(f * M_s, theta_intrinsic, kappa_T_eff)
     psi_T = get_tidal_phase(f * M_s, theta_intrinsic, kappa_T_eff)
     # FIXME - get correct SS terms
-    psi_SS = get_spin_phase_correction(f, theta_intrinsic)
+    psi_SS = get_spin_phase_correction(f * M_s, theta_intrinsic)
     
     h0 = A_P * (h0_bbh + A_T * jnp.exp(1j * - psi_bbh)) * jnp.exp(1.j * -(psi_T + psi_SS))
     
