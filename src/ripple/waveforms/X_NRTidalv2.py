@@ -189,7 +189,7 @@ def _get_f_merger(theta, kappa_T_eff = None):
     omega_hat = 0.3586 * (X_2/X_1) ** (1./2.) * (1. + n_1 * kappa_T_eff + n_2 * kappa_T_eff ** 2)/(1. + d_1 * kappa_T_eff + d_2 * kappa_T_eff ** 2)
 
     # FIXME - should divide by Ms?
-    f_merger = omega_hat / M_s / PI
+    f_merger = omega_hat / M_s
     
     return f_merger
     
