@@ -123,61 +123,75 @@ def get_tidal_phase(f: Array, theta: Array, kappa: float) -> Array:
     return psi_T
 
 
-def _get_spin_phase_correction_term(f: Array, theta: Array) -> Array:
-    # Already rescaled below in global function
-    m1, m2, chi1, chi2, lambda1, lambda2 = theta 
+def _compute_quadparam_octparam(lambda_: float) -> tuple[float, float]:
+    """
+    Computes quadparameter, see eq (28) of NRTidalv2 paper and also LALSimUniversalRelations.c of lalsuite
+    Args:
+        lambda_: tidal deformability
+
+    Returns:
+        quadparam: Quadrupole coefficient called C_Q in NRTidalv2 paper
+        octparam: Octupole coefficient called C_Oc in NRTidalv2 paper
+    """
+
+    if 0 <= lambda_ <= 1:
+        # Extension of the fit in the range lambda2 = [0,1.] so that the BH limit is enforced, lambda2bar->0 gives quadparam->1. and the junction with the universal relation is smooth, of class C2
+        log_quadparam = 1. + lambda_ * (0.427688866723244 + lambda_ * (-0.324336526985068 + lambda_ * 0.1107439432180572))
+    else:
+        # Use universal relation
+        log_lambda = jnp.log(lambda_)
+        log_quadparam = 0.1940 + 0.09163 * log_lambda + 0.04812 * log_lambda ** 2. - 0.004286 * log_lambda ** 3 + 0.00012450 * log_lambda ** 4
+
+    log_octparam = 0.003131 + 2.071 * log_quadparam - 0.7152 * log_quadparam ** 2 + 0.2458 * log_quadparam ** 3 - 0.03309 * log_quadparam ** 4
+
+    # Get rid of log and remove 1 for BBH baseline
+    quadparam = jnp.exp(log_quadparam) - 1
+    octparam = jnp.exp(log_octparam) - 1
+
+    return quadparam, octparam
+
+
+
+def get_spin_phase_correction(f: Array, theta: Array) -> Array:
     
+    m1, m2, chi1, chi2, lambda1, lambda2 = theta
+
     # Convert the mass variables
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    
+
     # Compute the auxiliary variables
     X1 = m1_s / M_s
     X2 = m2_s / M_s
-    
-    ### Old code
-    # log_lambda1 = jnp.log(lambda1)
-    # log_C_Q  = 0.1940 + 0.09163 * log_lambda1 + 0.04812 * log_lambda1 ** 2. - 0.004286 * log_lambda1 ** 3 + 0.00012450 * log_lambda1 ** 4
-    # log_C_Oc = 0.003131 + 2.071 * log_C_Q - 0.7152 * log_C_Q ** 2 + 0.2458 * log_C_Q ** 3 - 0.03309 * log_C_Q ** 4
-    #
-    # C_Q_hat  = jnp.exp(log_C_Q)
-    # C_Oc_hat = jnp.exp(log_C_Oc)
-    #
-    # # Get the coefficients of the corrections
-    # psi_SS_2  = - 50. * C_Q_hat * X_1 ** 2 * chi1 ** 2
-    # psi_SS_3  = (5. / 84.) * (9407. + 8218. * X_1 - 2016. * X_1 ** 2) * C_Q_hat * X_1 ** 2 * chi1 ** 2
-    # psi_SS_35 = 10. * ( ( X_1 ** 2 + (308. / 3.) * X_1 ) * chi1 + (X_2 ** 2 - 89. / 3. * X_2) * chi2 - 40. * PI) * C_Q_hat * X_1 ** 2 * chi1 ** 2 - 440. * C_Oc_hat * X_1 ** 3 * chi1 ** 3
-    #
-    # psi_SS = (3. / (128. * eta)) * (psi_SS_2 * f ** (-1./2.) + psi_SS_3 * f ** (1./2.) + psi_SS_35 * f)
 
-
-    ## New code
     X1sq = X1 * X1
     X2sq = X2 * X2
     chi1_sq = chi1 * chi1
     chi2_sq = chi2 * chi2
 
-    quadparam1 = 0.
-    quadparam2 = 0.
+    # Compute quadparam1
+    quadparam1, octparam1 = _compute_quadparam_octparam(lambda1)
+    quadparam2, octparam2 = _compute_quadparam_octparam(lambda2)
 
+    SS_2  =  - 50. * quadparam1 * X1sq * chi1_sq
+    SS_2  += - 50. * quadparam2 * X2sq * chi2_sq
+
+    SS_3  =  (5. / 84.) * (9407. + 8218. * X1 - 2016. * X1 ** 2) * quadparam1 * X1 ** 2 * chi1 ** 2
+    SS_3  += (5. / 84.) * (9407. + 8218. * X2 - 2016. * X2 ** 2) * quadparam2 * X2 ** 2 * chi2 ** 2
+
+    # Following is taken from LAL source code
+    SS_3p5 = - 400. * PI * (quadparam1 - 1.) * chi1_sq * X1sq - 400. * PI * (quadparam2 - 1.) * chi2_sq * X2sq
+    SS_3p5 += 10.*((X1sq + 308./3. * X1) * chi1 + (X2 - 89./3. * X2) * chi2) * (quadparam1 - 1.) * X1sq * chi1_sq + 10.*((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2 - 1.) * X2sq * chi2_sq - 440. * octparam1 * X1 * X1sq * chi1_sq * chi1 - 440. * octparam2 * X2 * X2sq * chi2_sq * chi2
+
+    psi_SS = (3. / (128. * eta)) * (SS_2 * f ** (-1./2.) + SS_3 * f ** (1./2.) + SS_3p5 * f)
 
     # FIXME - these corrections are wrong, have to double check then remove this override
     # Override - making SS contribution zero
     psi_SS = jnp.zeros_like(f)
-    
+
     return psi_SS
-
-
-def get_spin_phase_correction(f: Array, theta: Array) -> Array:
-    
-    m1, m2, chi1, chi2, lambda1, lambda2 = theta 
-    
-    theta     = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
-    theta_rev = jnp.array([m2, m1, chi2, chi1, lambda2, lambda1])
-    
-    return _get_spin_phase_correction_term(f, theta) + _get_spin_phase_correction_term(f, theta_rev)
     
     
 def get_tidal_amplitude(f: Array, theta: Array, kappa: float, dL: float =1):
