@@ -9,7 +9,7 @@ from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, MSUN
 from ..typing import Array
 from ripple import Mc_eta_to_ms, ms_to_Mc_eta
 import sys
-
+from .IMRPhenomD import get_Amp0# , Amp, Phase
 
 ## Unused for now?
 # from .IMRPhenomD_QNMdata import fM_CUT
@@ -79,7 +79,7 @@ def get_kappa(theta):
     return (3./13.) * (term1 + term2)
     
     
-def get_tidal_phase(f: Array, theta: Array, kappa: float) -> Array:
+def get_tidal_phase(x: Array, theta: Array, kappa: float) -> Array:
     
     # Mass variables
     m1, m2, _, _, _, _ = theta 
@@ -94,7 +94,9 @@ def get_tidal_phase(f: Array, theta: Array, kappa: float) -> Array:
 
     # Compute auxiliary quantities
     # TODO - not sure here about the factors
-    M_omega = PI * f * (M_s)
+    # M_omega = PI * x * (M_s)
+
+    M_omega = x
 
     PN_x = M_omega ** (2.0/3.0)
     PN_x_2 = PN_x * PN_x
@@ -118,7 +120,10 @@ def get_tidal_phase(f: Array, theta: Array, kappa: float) -> Array:
     ratio = num / den
     
     # Complete result
-    psi_T = - kappa * (39./(16. * eta)) * f ** (5./2.) * ratio
+    # psi_T = - kappa * (39./(16. * eta)) * x ** (5./2.) * ratio
+
+    psi_T = - kappa * c_Newt / (X1 * X2) * PN_x_5over2
+    psi_T *= ratio
     
     return psi_T
 
@@ -136,20 +141,30 @@ def _compute_quadparam_octparam(lambda_: float) -> tuple[float, float]:
 
     if 0 <= lambda_ <= 1:
         # Extension of the fit in the range lambda2 = [0,1.] so that the BH limit is enforced, lambda2bar->0 gives quadparam->1. and the junction with the universal relation is smooth, of class C2
-        log_quadparam = 1. + lambda_ * (0.427688866723244 + lambda_ * (-0.324336526985068 + lambda_ * 0.1107439432180572))
+        quadparam = 1. + lambda_ * (0.427688866723244 + lambda_ * (-0.324336526985068 + lambda_ * 0.1107439432180572))
+        log_quadparam = jnp.log(quadparam)
     else:
         # Use universal relation
         log_lambda = jnp.log(lambda_)
         log_quadparam = 0.1940 + 0.09163 * log_lambda + 0.04812 * log_lambda ** 2. - 0.004286 * log_lambda ** 3 + 0.00012450 * log_lambda ** 4
+        quadparam = jnp.exp(log_quadparam)
 
+    # Compute octparam:
     log_octparam = 0.003131 + 2.071 * log_quadparam - 0.7152 * log_quadparam ** 2 + 0.2458 * log_quadparam ** 3 - 0.03309 * log_quadparam ** 4
 
     # Get rid of log and remove 1 for BBH baseline
     quadparam = jnp.exp(log_quadparam) - 1
     octparam = jnp.exp(log_octparam) - 1
 
-    return quadparam, octparam
+    ### TODO - how to enforce this BBH limit properly?
+    # octparam = 0
 
+    print("quadparam")
+    print(quadparam)
+    print("octparam")
+    print(octparam)
+
+    return quadparam, octparam
 
 
 def get_spin_phase_correction(f: Array, theta: Array) -> Array:
@@ -175,15 +190,15 @@ def get_spin_phase_correction(f: Array, theta: Array) -> Array:
     quadparam1, octparam1 = _compute_quadparam_octparam(lambda1)
     quadparam2, octparam2 = _compute_quadparam_octparam(lambda2)
 
-    SS_2  =  - 50. * quadparam1 * X1sq * chi1_sq
-    SS_2  += - 50. * quadparam2 * X2sq * chi2_sq
+    SS_2 =  - 50. * quadparam1 * X1sq * chi1_sq
+    SS_2 += - 50. * quadparam2 * X2sq * chi2_sq
 
     SS_3  =  (5. / 84.) * (9407. + 8218. * X1 - 2016. * X1 ** 2) * quadparam1 * X1 ** 2 * chi1 ** 2
     SS_3  += (5. / 84.) * (9407. + 8218. * X2 - 2016. * X2 ** 2) * quadparam2 * X2 ** 2 * chi2 ** 2
 
     # Following is taken from LAL source code
-    SS_3p5 = - 400. * PI * (quadparam1 - 1.) * chi1_sq * X1sq - 400. * PI * (quadparam2 - 1.) * chi2_sq * X2sq
-    SS_3p5 += 10.*((X1sq + 308./3. * X1) * chi1 + (X2 - 89./3. * X2) * chi2) * (quadparam1 - 1.) * X1sq * chi1_sq + 10.*((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2 - 1.) * X2sq * chi2_sq - 440. * octparam1 * X1 * X1sq * chi1_sq * chi1 - 440. * octparam2 * X2 * X2sq * chi2_sq * chi2
+    SS_3p5 = - 400. * PI * (quadparam1) * chi1_sq * X1sq - 400. * PI * (quadparam2) * chi2_sq * X2sq
+    SS_3p5 += 10.*((X1sq + 308./3. * X1) * chi1 + (X2 - 89./3. * X2) * chi2) * (quadparam1) * X1sq * chi1_sq + 10. * ((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2) * X2sq * chi2_sq - 440. * octparam1 * X1 * X1sq * chi1_sq * chi1 - 440. * octparam2 * X2 * X2sq * chi2_sq * chi2
 
     psi_SS = (3. / (128. * eta)) * (SS_2 * f ** (-1./2.) + SS_3 * f ** (1./2.) + SS_3p5 * f)
 
@@ -194,7 +209,7 @@ def get_spin_phase_correction(f: Array, theta: Array) -> Array:
     return psi_SS
     
     
-def get_tidal_amplitude(f: Array, theta: Array, kappa: float, dL: float =1):
+def get_tidal_amplitude(x: Array, theta: Array, kappa: float, dL: float =1):
     
     # Mass variables
     m1, m2, _, _, _, _ = theta 
@@ -203,25 +218,27 @@ def get_tidal_amplitude(f: Array, theta: Array, kappa: float, dL: float =1):
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
     
-    # Build pade approximant
-
     M_sec   = (M_s * gt)
 
+    # This is from LAL:
     prefac = 9.0 * kappa
 
-    x = (PI * M_sec * f) ** (2.0/3.0)
-    # ampT = 0.0
-    # poly = 1.0
+    # FIXME - is this correct?
+
+    prefac *= jnp.sqrt(5 * PI * eta / 24.)
+
+
     n1   = 4.157407407407407
     n289 = 2519.111111111111
     d    = 13477.8073677
 
-    poly = (1.0 + n1 * x + n289 * x ** 2.89) / (1 + d * x ** 4.)
+    poly = (1.0 + n1 * x + n289 * x ** 2.89) / (1. + d * x ** 4.)
     ampT = - prefac * x ** 3.25 * poly
 
     # Result
     # A_T = - ( (5. * PI * eta) / (24.)) ** (1. / 2.) * 9 * M_s**2  * kappa * f ** (13. / 4.) * pade
     dist_s = (dL * m_per_Mpc) / C
+
     return ampT / dist_s
 
 
@@ -315,31 +332,56 @@ def get_planck_taper(f: Array, theta: Array, kappa: float):
 def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_bbh: Array):
 
     m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
-    M_s = (m1 + m2) * gt
+    m1_s = m1 * gt
+    m2_s = m2 * gt
+    M_s = m1_s + m2_s
+    eta = m1_s * m2_s / (M_s**2.0)
 
     # Compute auxiliary quantities like kappa
     kappa = get_kappa(theta=theta_intrinsic)
 
+    # Compute x
+    x = (PI * M_s * f) ** (2.0/3.0)
+
+    print("Kappa")
+    print(kappa)
+
     # Get BBH amplitude and phase
     A_bbh = jnp.abs(h0_bbh)
-    psi_bbh = h0_bbh / A_bbh
+    exponent_bbh = h0_bbh / A_bbh
+    psi_bbh = jnp.log(h0_bbh / A_bbh) * 1.j
+    amp0 = get_Amp0(f * M_s, eta)
 
-    # Get amplitude
-    A_T = get_tidal_amplitude(f, theta_intrinsic, kappa, dL=theta_extrinsic[0])
-    # TODO double check that using ones here is OK
+    # Get tidal amplitude and Planck taper
+    A_T = get_tidal_amplitude(x, theta_intrinsic, kappa, dL=theta_extrinsic[0])
     A_P = jnp.ones_like(f) - get_planck_taper(f, theta_intrinsic, kappa)
 
-    # Get phase
-    psi_T = get_tidal_phase(f * M_s, theta_intrinsic, kappa)
+    # Get tidal phase and spin corrections for BNS
+    psi_T = get_tidal_phase(x, theta_intrinsic, kappa)
     # FIXME - get correct SS terms
-    psi_SS = get_spin_phase_correction(f * M_s, theta_intrinsic)
-    # ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
-    h0 = A_P * (h0_bbh + A_T * jnp.exp(1j * - psi_bbh)) * jnp.exp(1.j * -(psi_T + psi_SS))
+    psi_SS = get_spin_phase_correction(x, theta_intrinsic)
 
-    ## Other way to compute waveforms -- gives wrong results?
-    # A = A_P * (A_T + A_bbh)
-    # psi = psi_bbh + psi_SS + psi_T
-    # h0 = A * jnp.exp(1j *  psi)
+    print("Psi tidal")
+    print(psi_T)
+
+    print("Psi SS")
+    print(psi_SS)
+
+    # FIXME - to be added or not?
+    # ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
+
+    ## Old code
+    # h0 = A_P * (h0_bbh + A_T * jnp.exp(1j * - psi_bbh)) * jnp.exp(1.j * -(psi_T + psi_SS))
+    # h0 = A_P * (A_bbh + A_T) * jnp.exp(1.j * -(psi_bbh + psi_T + psi_SS))
+
+    ## Other way to compute waveforms -- but this gives wrong results?
+    # A = (A_bbh + amp0 * A_T * 2 * jnp.sqrt(PI / 5.)) * A_P
+    amp = A_P * (A_T + A_bbh)
+    psi = psi_bbh + psi_SS + psi_T
+    h0 = amp * jnp.exp(1j * -psi)
+
+    ##### This version is working!!!
+    ### h0 = A_P * (h0_bbh + A_T * jnp.exp(1j * - exponent_bbh)) * jnp.exp(1.j * -(psi_T + psi_SS))
 
     return h0
 
