@@ -421,11 +421,11 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     
     # Get component masses
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
+    lambda1, lambda2 = params[4], params[5]
+    
     # TODO - Divide given lambdas by the masses?
     # lambda1, lambda2 = params[4] / (m1 ** 5), params[5] / (m2 ** 5)
-    # lambda1, lambda2 = params[4], params[5]
-    
-    lambda1, lambda2 = params[4] / ((m1 * MSUN)**5), params[5] / ((m2 * MSUN)**5)
+    # lambda1, lambda2 = params[4] / ((m1 * MSUN)**5), params[5] / ((m2 * MSUN)**5)
     
     theta_intrinsic = jnp.array([m1, m2, params[2], params[3], lambda1, lambda2])
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
