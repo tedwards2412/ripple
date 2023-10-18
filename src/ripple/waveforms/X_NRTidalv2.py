@@ -63,14 +63,15 @@ def get_kappa(theta):
     m1, m2, _, _, lambda1, lambda2 = theta
 
     # Convert mass variables
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    M = m1 + m2
+    # m1_s = m1 * gt
+    # m2_s = m2 * gt
+    # M_s = m1_s + m2_s
+    # eta = m1_s * m2_s / (M_s**2.0)
 
     # Compute X
-    X1 = m1_s / M_s
-    X2 = m2_s / M_s
+    X1 = m1 / M
+    X2 = m2 / M
 
     term1 = (1.0 + 12.0 * X2 / X1) * (X1 ** 5.0) * lambda1
     term2 = (1.0 + 12.0 * X1 / X2) * (X2 ** 5.0) * lambda2
@@ -119,10 +120,20 @@ def get_tidal_phase(x: Array, theta: Array, kappa: float) -> Array:
     
     return psi_T
 
-
 def _compute_quadparam_octparam(lambda_: float) -> tuple[float, float]:
+    
+    # Check if lambda is low or not
+    is_low_lambda = lambda_ < 1
+    
+    return jax.lax.cond(is_low_lambda, _compute_quadparam_octparam_low, _compute_quadparam_octparam_high, lambda_)
+
+def _compute_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
     """
     Computes quadparameter, see eq (28) of NRTidalv2 paper and also LALSimUniversalRelations.c of lalsuite
+    
+    Version for lambdas smaller than 1.
+    
+    LALsuite has an extension where a separate formula is used for lambdas smaller than one, and another formula is used for lambdas larger than one.
     Args:
         lambda_: tidal deformability
 
@@ -130,17 +141,47 @@ def _compute_quadparam_octparam(lambda_: float) -> tuple[float, float]:
         quadparam: Quadrupole coefficient called C_Q in NRTidalv2 paper
         octparam: Octupole coefficient called C_Oc in NRTidalv2 paper
     """
+    
+    # Extension of the fit in the range lambda2 = [0,1.] so that the BH limit is enforced, lambda2bar->0 gives quadparam->1. and the junction with the universal relation is smooth, of class C2
+    quadparam = 1. + lambda_ * (0.427688866723244 + lambda_ * (-0.324336526985068 + lambda_ * 0.1107439432180572))
+    log_quadparam = jnp.log(quadparam)
+        
+    # Compute octparam:
+    log_octparam = 0.003131 + 2.071 * log_quadparam - 0.7152 * log_quadparam ** 2 + 0.2458 * log_quadparam ** 3 - 0.03309 * log_quadparam ** 4
 
-    if 0 <= lambda_ <= 1:
-        # Extension of the fit in the range lambda2 = [0,1.] so that the BH limit is enforced, lambda2bar->0 gives quadparam->1. and the junction with the universal relation is smooth, of class C2
-        quadparam = 1. + lambda_ * (0.427688866723244 + lambda_ * (-0.324336526985068 + lambda_ * 0.1107439432180572))
-        log_quadparam = jnp.log(quadparam)
-    else:
-        # Use universal relation
-        log_lambda = jnp.log(lambda_)
-        log_quadparam = 0.1940 + 0.09163 * log_lambda + 0.04812 * log_lambda ** 2. - 0.004286 * log_lambda ** 3 + 0.00012450 * log_lambda ** 4
-        quadparam = jnp.exp(log_quadparam)
+    # Get rid of log and remove 1 for BBH baseline
+    quadparam = jnp.exp(log_quadparam) - 1
+    octparam = jnp.exp(log_octparam) - 1
 
+    ### TODO - how to enforce this BBH limit properly?
+    # octparam = 0
+
+    print("quadparam")
+    print(quadparam)
+    print("octparam")
+    print(octparam)
+
+    return quadparam, octparam
+
+def _compute_quadparam_octparam_high(lambda_: float) -> tuple[float, float]:
+    """
+    Computes quadparameter, see eq (28) of NRTidalv2 paper and also LALSimUniversalRelations.c of lalsuite
+    
+    Version for lambdas greater than 1.
+    
+    LALsuite has an extension where a separate formula is used for lambdas smaller than one, and another formula is used for lambdas larger than one.
+    Args:
+        lambda_: tidal deformability
+
+    Returns:
+        quadparam: Quadrupole coefficient called C_Q in NRTidalv2 paper
+        octparam: Octupole coefficient called C_Oc in NRTidalv2 paper
+    """
+        
+    # High lambda (above 1): use universal relation
+    log_lambda = jnp.log(lambda_)
+    log_quadparam = 0.1940 + 0.09163 * log_lambda + 0.04812 * log_lambda ** 2. - 0.004286 * log_lambda ** 3 + 0.00012450 * log_lambda ** 4
+    
     # Compute octparam:
     log_octparam = 0.003131 + 2.071 * log_quadparam - 0.7152 * log_quadparam ** 2 + 0.2458 * log_quadparam ** 3 - 0.03309 * log_quadparam ** 4
 
@@ -242,7 +283,7 @@ def _get_merger_frequency(theta, kappa=None):
     # If kappa was not given, compute it
     if kappa is None:
         kappa = get_kappa(theta)
-    
+        
     a_0 = 0.3586
     n_1 = 3.35411203e-2
     n_2 = 4.31460284e-5
@@ -251,7 +292,7 @@ def _get_merger_frequency(theta, kappa=None):
 
     num = 1.0 + n_1 * kappa + n_2 * kappa ** 2.0
     den = 1.0 + d_1 * kappa + d_2 * kappa ** 2.0
-    Q_0 = a_0 * jnp.sqrt(q)
+    Q_0 = a_0 / jnp.sqrt(q)
 
     # Dimensionless angular frequency of merger
     Momega_merger = Q_0 * (num / den)
@@ -303,9 +344,6 @@ def get_planck_taper(f: Array, theta: Array, kappa: float):
 
     A_P = _planck_taper(f, f_start, f_end)
 
-    # Safety override -- not working for nonzero lambdas
-    A_P = jnp.zeros_like(f)
-
     return A_P
 
 def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_bbh: Array):
@@ -335,6 +373,8 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_
 
     # Get tidal amplitude and Planck taper
     A_T = get_tidal_amplitude(x, theta_intrinsic, kappa, dL=theta_extrinsic[0])
+    print("Tidal amplitude")
+    print(A_T)
     A_P = jnp.ones_like(f) - get_planck_taper(f, theta_intrinsic, kappa)
 
     # Get tidal phase and spin corrections for BNS
@@ -379,9 +419,15 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
       h0 (array): Strain
     """
     
-    # Get parameters
+    # Get component masses
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
-    theta_intrinsic = jnp.array([m1, m2, params[2], params[3], params[4], params[5]])
+    # TODO - Divide given lambdas by the masses?
+    # lambda1, lambda2 = params[4] / (m1 ** 5), params[5] / (m2 ** 5)
+    # lambda1, lambda2 = params[4], params[5]
+    
+    lambda1, lambda2 = params[4] / ((m1 * MSUN)**5), params[5] / ((m2 * MSUN)**5)
+    
+    theta_intrinsic = jnp.array([m1, m2, params[2], params[3], lambda1, lambda2])
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
     theta_extrinsic = params[6:]
 

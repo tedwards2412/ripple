@@ -92,8 +92,8 @@ def non_precessing_matchmaking(
 ):
 
     # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
-    m_l, m_u = 1.0, 3.0
-    chi_l, chi_u = -0.7, 0.7
+    m_l, m_u = 0.9, 3.0
+    chi_l, chi_u = 0, 0
     lambda_u = 5000
 
     m1 = np.random.uniform(m_l, m_u)
@@ -127,10 +127,10 @@ def non_precessing_matchmaking(
         m2_kg,
         0.0,
         0.0,
-        theta[2],
+        theta[2], # spin m1 zero component
         0.0,
         0.0,
-        theta[3],
+        theta[3], # spin m2 zero component
         distance,
         inclination,
         phi_ref,
