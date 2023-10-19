@@ -1,24 +1,26 @@
-import jax.numpy as jnp
+import numpy as np
 import jax
+import jax.numpy as jnp
+from jax.config import config
+import matplotlib.pyplot as plt
 import pandas as pd
-
-from ripple import get_eff_pads, get_match_arr
 from tqdm import tqdm
 
-import numpy as np
+from ripple import get_eff_pads, get_match_arr
+from ripple.waveforms.X_NRTidalv2 import gen_NRTidalv2_hphc as waveform_generator
+from ripple.waveforms.X_NRTidalv2 import _get_merger_frequency
 from ripple import ms_to_Mc_eta, Mc_eta_to_ms
-import lalsimulation as lalsim
-import lal
 
-import matplotlib.pyplot as plt
-from jax.config import config
+import lal
+import lalsimulation as lalsim
 
 config.update("jax_enable_x64", True)
 
-
-def random_match_NRTidal(n, IMRphenom = "IMRPhenomD"):
+def random_match_NRTidal(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
     """
     Generates random wavefporm match scores between LAL and ripple.
+    
+    Note, currently only IMRPhenomD is supported.
     Args:
         n: number of matches to be made
         IMRphenom: str
@@ -31,11 +33,13 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD"):
     from ripple.waveforms.X_NRTidalv2 import gen_NRTidalv2_hphc as waveform_generator
 
     # Specify frequency range
-    f_l = 16
+    f_l = 20
     f_sampling = 2 * 4096
 
     # TODO - check at higher frequency
     f_u = f_sampling // 2
+    f_u = 200
+    f_ref = f_l
     T = 16
 
     # Build the frequency grid
@@ -44,11 +48,11 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD"):
     freqs = np.fft.rfftfreq(tlen, delta_t)
     df = freqs[1] - freqs[0]
     fs = freqs[(freqs > f_l) & (freqs < f_u)]
-    f_ref = f_l
+    
 
     @jax.jit
     def waveform(theta):
-        hp, _ = waveform_generator(fs, theta, f_ref, IMRphenom=IMRphenom)
+        hp, _ = waveform_generator(fs, theta, f_ref, IMRphenom="IMRPhenomD")
         return hp
 
     # Get a frequency domain waveform
@@ -64,9 +68,10 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD"):
     #         )
     for i in tqdm(range(n)):
         non_precessing_matchmaking(
-            IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches
+            IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches  
         )
 
+    # Save and report mismatches
     thetas = np.array(thetas)
     matches = np.array(matches)
 
@@ -89,38 +94,45 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD"):
 def non_precessing_matchmaking(
     IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches
 ):
-
+    
     # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
-    m_l, m_u = 0.9, 3.0
+    m_l, m_u = 1, 3.0
     chi_l, chi_u = 0, 0
-    lambda_u = 0
+    lambda_u = 5000
 
     m1 = np.random.uniform(m_l, m_u)
     m2 = np.random.uniform(m_l, m_u)
+    eps = 1e-6
     s1 = np.random.uniform(chi_l, chi_u)
     s2 = np.random.uniform(chi_l, chi_u)
     l1 = np.random.uniform(0, lambda_u)
-    # l2 = np.random.uniform(0, lambda_u)
-    l2 = l1
-
+    l2 = np.random.uniform(0, lambda_u)
+    
     tc = 0.0
     phic = 0.0
-    dist_mpc = 440
+    dist_mpc = 1
     inclination = 0 # np.pi / 2.0con
     phi_ref = 0.0
 
     if m1 < m2:
         theta = np.array([m2, m1, s2, s1, l2, l1, dist_mpc, tc, phic, inclination])
-    elif m1 > m2:
+    elif m1 >= m2:
         theta = np.array([m1, m2, s1, s2, l1, l2, dist_mpc, tc, phic, inclination])
     else:
         raise ValueError("Something went wrong with the parameters")
     approximant = lalsim.SimInspiralGetApproximantFromString(IMRphenom)
+    
+    # # Limit freqs alread here below the end of planck taper
+    # f_merger = float(_get_merger_frequency(np.array([m1, m2, s1, s2, l1, l2])))
 
     f_ref = f_l
     m1_kg = theta[0] * lal.MSUN_SI
     m2_kg = theta[1] * lal.MSUN_SI
     distance = dist_mpc * 1e6 * lal.PC_SI
+    
+    laldict = lal.CreateDict()
+    lalsim.SimInspiralWaveformParamsInsertTidalLambda1(laldict, l1)
+    lalsim.SimInspiralWaveformParamsInsertTidalLambda2(laldict, l2)
 
     hp, _ = lalsim.SimInspiralChooseFDWaveform(
         m1_kg,
@@ -135,28 +147,44 @@ def non_precessing_matchmaking(
         inclination,
         phi_ref,
         0,
-        l1,
-        l2,
+        0,
+        0,
         df,
         f_l,
         f_u,
         f_ref,
-        None,
+        laldict,
         approximant,
     )
 
     freqs_lal = np.arange(len(hp.data.data)) * df
-    Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
-
+    mask_lal = (freqs_lal > f_l) & (freqs_lal < f_u)
+    freqs_lal = freqs_lal[mask_lal]
+    hp_lalsuite = hp.data.data[mask_lal]
+    
+    # Get the ripple waveform
+    Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     theta_ripple = jnp.array(
         [Mc, eta, theta[2], theta[3], l1, l2, dist_mpc, tc, phic, inclination]
     )
     hp_ripple = waveform(theta_ripple)
-    pad_low, pad_high = get_eff_pads(fs)
+    # hp_ripple = hp_ripple[mask_lal]
+    
+    # Check if the ripple strain has NaNs
+    if jnp.isnan(hp_ripple).any():
+        print("NaNs in ripple strain")
+    
+    if jnp.isnan(hp_lalsuite).any():
+        print("NaNs in lalsuite strain")
+        
+    # mask = fs < 1.2 * f_merger 
+    # fs = fs[mask]
+    # hp_ripple = hp_ripple[mask]
+    # hp_lalsuite = hp_lalsuite[mask]
+        
+    # Compute match
     PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
-
-    mask_lal = (freqs_lal > f_l) & (freqs_lal < f_u)
-    hp_lalsuite = hp.data.data[mask_lal]
+    pad_low, pad_high = get_eff_pads(fs)
     matches.append(
         get_match_arr(
             pad_low,

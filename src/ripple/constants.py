@@ -7,6 +7,9 @@ EulerGamma = 0.577215664901532860606512090082402431
 MSUN = 1.988409902147041637325262574352366540e30  # kg
 """Solar mass"""
 
+MRSUN = 1.476625038050124729627979840144936351e3
+"""Geometrized nominal solar mass, m"""
+
 G = 6.67430e-11  # m^3 / kg / s^2
 """Newton's gravitational constant"""
 

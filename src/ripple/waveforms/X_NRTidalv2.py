@@ -5,7 +5,7 @@
 import jax
 import jax.numpy as jnp
 
-from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, MSUN
+from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, MSUN, MRSUN
 from ..typing import Array
 from ripple import Mc_eta_to_ms, ms_to_Mc_eta
 import sys
@@ -61,13 +61,7 @@ NRTidalv2_coeffs = jnp.array([
 
 def get_kappa(theta):
     m1, m2, _, _, lambda1, lambda2 = theta
-
-    # Convert mass variables
     M = m1 + m2
-    # m1_s = m1 * gt
-    # m2_s = m2 * gt
-    # M_s = m1_s + m2_s
-    # eta = m1_s * m2_s / (M_s**2.0)
 
     # Compute X
     X1 = m1 / M
@@ -226,8 +220,8 @@ def get_spin_phase_correction(f: Array, theta: Array) -> Array:
     SS_2 =  - 50. * quadparam1 * X1sq * chi1_sq
     SS_2 += - 50. * quadparam2 * X2sq * chi2_sq
 
-    SS_3  =  (5. / 84.) * (9407. + 8218. * X1 - 2016. * X1 ** 2) * quadparam1 * X1 ** 2 * chi1 ** 2
-    SS_3  += (5. / 84.) * (9407. + 8218. * X2 - 2016. * X2 ** 2) * quadparam2 * X2 ** 2 * chi2 ** 2
+    SS_3 =  (5. / 84.) * (9407. + 8218. * X1 - 2016. * X1 ** 2) * quadparam1 * X1 ** 2 * chi1 ** 2
+    SS_3 += (5. / 84.) * (9407. + 8218. * X2 - 2016. * X2 ** 2) * quadparam2 * X2 ** 2 * chi2 ** 2
 
     # Following is taken from LAL source code
     SS_3p5 = - 400. * PI * (quadparam1) * chi1_sq * X1sq - 400. * PI * (quadparam2) * chi2_sq * X2sq
@@ -240,30 +234,70 @@ def get_spin_phase_correction(f: Array, theta: Array) -> Array:
     psi_SS = jnp.zeros_like(f)
 
     return psi_SS
+
+def get_amp0_lal(M, distance):
+    """amp0 as defined by LAL in LALSimIMRPhenomD, line 331. 
+    
+    Args:
+        distance: Distance to source in meters
+
+    Returns:
+        float: amp0 defined by LALSimIMRPhenomD, line 331. 
+    """
+    
+    amp0 = 2. * jnp.sqrt(5. / (64. * PI)) * M * MRSUN * M * gt / distance
+    
+    return amp0
     
     
-def get_tidal_amplitude(x: Array, theta: Array, kappa: float, dL: float =1):
+def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float =1):
+    """_summary_
+
+    Args:
+        x (Array): _description_
+        theta (Array): _description_
+        kappa (float): _description_
+        distance (float, optional): Distance to source in megaparsecs. Defaults to 1.
+
+    Returns:
+        _type_: _description_
+    """
     
     # Mass variables
     m1, m2, _, _, _, _ = theta 
+    M = m1 + m2
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
+    eta = m1_s * m2_s / (M_s ** 2.0)
     
-    # Constants used here
+    distance *= m_per_Mpc
+    
+    # Pade approximant
     n1   = 4.157407407407407
     n289 = 2519.111111111111
     d    = 13477.8073677
+    num = 1.0 + n1 * x + n289 * x ** 2.89
+    den = 1.0 + d * x ** 4.
+    poly = num / den
     
-    # Get amplitude
-    poly = (1.0 + n1 * x + n289 * x ** 2.89) / (1. + d * x ** 4.) # Pade approximant
-    # Note, for prefac, we differ from the LAL implementation and follow directly the IMRPhenomD_NRTidalv2 paper
-    prefac = - ( (5. * PI * eta) / (24.)) ** (1. / 2.) * 9 * M_s**2  * kappa
+    # Prefactor from lal
+    prefac = - 9.0 * kappa
     ampT = prefac * x ** (13. / 4.) * poly
-    dist_s = (dL * m_per_Mpc) / C
-
-    return ampT / dist_s
+    
+    # Now get the FULL tidal amplitude - have two extra prefactors to take into account
+    amp0 = get_amp0_lal(M, distance)
+    print("Amp0")
+    print(amp0)
+    ampT *= amp0 * 2 * jnp.sqrt(PI / 5)
+    
+    ### Old implementation, following ripple and NRTidal paper
+    # Note, for prefac, we differ from the LAL implementation and follow directly the IMRPhenomD_NRTidalv2 paper
+    # prefac = - ( (5. * PI * eta) / (24.)) ** (1. / 2.) * 9 * M_s ** 2  * kappa
+    # dist_s = (dL * m_per_Mpc) / C
+    # ampT /= dist_s
+    
+    return ampT 
 
 
 def _get_merger_frequency(theta, kappa=None):
@@ -349,6 +383,7 @@ def get_planck_taper(f: Array, theta: Array, kappa: float):
 def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_bbh: Array):
 
     m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
+    M = m1 + m2
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
@@ -360,19 +395,22 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_
     # Compute x
     # TODO check two pi difference here
     # x = (PI * gt * f) ** (2.0/3.0) # LAL 
-    x = (gt * f / 2) ** (2.0/3.0) # NRTidal paper
+    x = (PI * M_s * f) ** (2.0/3.0) # NRTidal paper
 
-    print("Kappa")
-    print(kappa)
+    print("Kappa")  
+    print(kappa) 
 
     # Get BBH amplitude and phase
+    print(h0_bbh)
     A_bbh = jnp.abs(h0_bbh)
-    exponent_bbh = h0_bbh / A_bbh
     psi_bbh = jnp.log(h0_bbh / A_bbh) * 1.j
-    amp0 = get_Amp0(f * M_s, eta)
+    
+    print("BBH results")
+    print(A_bbh)
+    print(psi_bbh)
 
     # Get tidal amplitude and Planck taper
-    A_T = get_tidal_amplitude(x, theta_intrinsic, kappa, dL=theta_extrinsic[0])
+    A_T = get_tidal_amplitude(x, theta_intrinsic, kappa, distance=theta_extrinsic[0])
     print("Tidal amplitude")
     print(A_T)
     A_P = jnp.ones_like(f) - get_planck_taper(f, theta_intrinsic, kappa)
@@ -389,8 +427,6 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_
     print("Psi SS")
     print(psi_SS)
 
-    ## Old code
-    # h0 = A_P * (h0_bbh + A_T * jnp.exp(1j * - psi_bbh)) * jnp.exp(1.j * -(psi_T + psi_SS))
     h0 = A_P * (A_bbh + A_T) * jnp.exp(1.j * -(psi_bbh + psi_T + psi_SS))
 
     return h0
@@ -421,13 +457,10 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     
     # Get component masses
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
+    chi1, chi2 = params[2], params[3]
     lambda1, lambda2 = params[4], params[5]
     
-    # TODO - Divide given lambdas by the masses?
-    # lambda1, lambda2 = params[4] / (m1 ** 5), params[5] / (m2 ** 5)
-    # lambda1, lambda2 = params[4] / ((m1 * MSUN)**5), params[5] / ((m2 * MSUN)**5)
-    
-    theta_intrinsic = jnp.array([m1, m2, params[2], params[3], lambda1, lambda2])
+    theta_intrinsic = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
     theta_extrinsic = params[6:]
 
@@ -443,6 +476,9 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     else:
         print("IMRPhenom string not recognized")
         return jnp.zeros_like(f)
+    
+    # print("Calling ripple's IMRPhenomD with:")
+    # print(f, bbh_params, f_ref)
 
     # Generate BBH waveform strain and get its amplitude and phase
     h0_bbh = bbh_waveform_generator(f, bbh_params, f_ref)
