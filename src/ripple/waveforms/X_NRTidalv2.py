@@ -121,6 +121,9 @@ def _compute_quadparam_octparam(lambda_: float) -> tuple[float, float]:
     
     return jax.lax.cond(is_low_lambda, _compute_quadparam_octparam_low, _compute_quadparam_octparam_high, lambda_)
 
+def universal_relation(coeffs, x):
+    return coeffs[0] + coeffs[1] * x + coeffs[2] * x ** 2 + coeffs[3] * x ** 3 + coeffs[4] * x ** 4
+
 def _compute_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
     """
     Computes quadparameter, see eq (28) of NRTidalv2 paper and also LALSimUniversalRelations.c of lalsuite
@@ -136,24 +139,20 @@ def _compute_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
         octparam: Octupole coefficient called C_Oc in NRTidalv2 paper
     """
     
+    # Coefficients of universal relation
+    quad_coeffs = [0.1940, 0.09163, 0.04812, -4.283e-3, 1.245e-4]
+    oct_coeffs = [0.003131, 2.071, -0.7152, 0.2458, -0.03309]
+    
     # Extension of the fit in the range lambda2 = [0,1.] so that the BH limit is enforced, lambda2bar->0 gives quadparam->1. and the junction with the universal relation is smooth, of class C2
     quadparam = 1. + lambda_ * (0.427688866723244 + lambda_ * (-0.324336526985068 + lambda_ * 0.1107439432180572))
     log_quadparam = jnp.log(quadparam)
         
     # Compute octparam:
-    log_octparam = 0.003131 + 2.071 * log_quadparam - 0.7152 * log_quadparam ** 2 + 0.2458 * log_quadparam ** 3 - 0.03309 * log_quadparam ** 4
+    log_octparam = universal_relation(oct_coeffs, log_quadparam)
 
     # Get rid of log and remove 1 for BBH baseline
     quadparam = jnp.exp(log_quadparam) - 1
     octparam = jnp.exp(log_octparam) - 1
-
-    ### TODO - how to enforce this BBH limit properly?
-    # octparam = 0
-
-    print("quadparam")
-    print(quadparam)
-    print("octparam")
-    print(octparam)
 
     return quadparam, octparam
 
@@ -171,30 +170,26 @@ def _compute_quadparam_octparam_high(lambda_: float) -> tuple[float, float]:
         quadparam: Quadrupole coefficient called C_Q in NRTidalv2 paper
         octparam: Octupole coefficient called C_Oc in NRTidalv2 paper
     """
+    
+    # Coefficients of universal relation
+    quad_coeffs = [0.1940, 0.09163, 0.04812, -4.283e-3, 1.245e-4]
+    oct_coeffs = [0.003131, 2.071, -0.7152, 0.2458, -0.03309]
         
     # High lambda (above 1): use universal relation
     log_lambda = jnp.log(lambda_)
-    log_quadparam = 0.1940 + 0.09163 * log_lambda + 0.04812 * log_lambda ** 2. - 0.004286 * log_lambda ** 3 + 0.00012450 * log_lambda ** 4
+    log_quadparam = universal_relation(quad_coeffs, log_lambda)
     
     # Compute octparam:
-    log_octparam = 0.003131 + 2.071 * log_quadparam - 0.7152 * log_quadparam ** 2 + 0.2458 * log_quadparam ** 3 - 0.03309 * log_quadparam ** 4
+    log_octparam = universal_relation(oct_coeffs, log_quadparam)
 
     # Get rid of log and remove 1 for BBH baseline
     quadparam = jnp.exp(log_quadparam) - 1
     octparam = jnp.exp(log_octparam) - 1
 
-    ### TODO - how to enforce this BBH limit properly?
-    # octparam = 0
-
-    print("quadparam")
-    print(quadparam)
-    print("octparam")
-    print(octparam)
-
     return quadparam, octparam
 
 
-def get_spin_phase_correction(f: Array, theta: Array) -> Array:
+def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     
     m1, m2, chi1, chi2, lambda1, lambda2 = theta
 
@@ -216,22 +211,25 @@ def get_spin_phase_correction(f: Array, theta: Array) -> Array:
     # Compute quadparam1
     quadparam1, octparam1 = _compute_quadparam_octparam(lambda1)
     quadparam2, octparam2 = _compute_quadparam_octparam(lambda2)
+    
+    octparam1 = 7.28
+    octparam2 = 7.28
 
     SS_2 =  - 50. * quadparam1 * X1sq * chi1_sq
     SS_2 += - 50. * quadparam2 * X2sq * chi2_sq
 
     SS_3 =  (5. / 84.) * (9407. + 8218. * X1 - 2016. * X1 ** 2) * quadparam1 * X1 ** 2 * chi1 ** 2
     SS_3 += (5. / 84.) * (9407. + 8218. * X2 - 2016. * X2 ** 2) * quadparam2 * X2 ** 2 * chi2 ** 2
-
+    
     # Following is taken from LAL source code
-    SS_3p5 = - 400. * PI * (quadparam1) * chi1_sq * X1sq - 400. * PI * (quadparam2) * chi2_sq * X2sq
-    SS_3p5 += 10.*((X1sq + 308./3. * X1) * chi1 + (X2 - 89./3. * X2) * chi2) * (quadparam1) * X1sq * chi1_sq + 10. * ((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2) * X2sq * chi2_sq - 440. * octparam1 * X1 * X1sq * chi1_sq * chi1 - 440. * octparam2 * X2 * X2sq * chi2_sq * chi2
+    SS_3p5 = - 400. * PI * (quadparam1) * chi1_sq * X1sq \
+             - 400. * PI * (quadparam2) * chi2_sq * X2sq
+    SS_3p5 += 10. * ((X1sq + 308./3. * X1) * chi1 + (X2sq - 89./3. * X2) * chi2) * (quadparam1) * X1sq * chi1_sq \
+            + 10. * ((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2) * X2sq * chi2_sq \
+                - 440. * octparam1 * X1 * X1sq * chi1_sq * chi1 \
+                - 440. * octparam2 * X2 * X2sq * chi2_sq * chi2
 
-    psi_SS = (3. / (128. * eta)) * (SS_2 * f ** (-1./2.) + SS_3 * f ** (1./2.) + SS_3p5 * f)
-
-    # FIXME - these corrections are wrong, have to double check then remove this override
-    # Override - making SS contribution zero
-    psi_SS = jnp.zeros_like(f)
+    psi_SS = (3. / (128. * eta)) * (SS_2 * x ** (-1./2.) + SS_3 * x ** (1./2.) + SS_3p5 * x)
 
     return psi_SS
 
@@ -291,12 +289,6 @@ def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float =1
     print(amp0)
     ampT *= amp0 * 2 * jnp.sqrt(PI / 5)
     
-    ### Old implementation, following ripple and NRTidal paper
-    # Note, for prefac, we differ from the LAL implementation and follow directly the IMRPhenomD_NRTidalv2 paper
-    # prefac = - ( (5. * PI * eta) / (24.)) ** (1. / 2.) * 9 * M_s ** 2  * kappa
-    # dist_s = (dL * m_per_Mpc) / C
-    # ampT /= dist_s
-    
     return ampT 
 
 
@@ -337,8 +329,6 @@ def _get_merger_frequency(theta, kappa=None):
     return fHz_merger
 
 
-# FIXME - what about the Planck taper? See Eq 25 of NRTidalv2 paper
-
 def _planck_taper(t: Array, t1: float, t2: float) -> Array:
     """
     As taken from Lalsuite
@@ -362,14 +352,6 @@ def _planck_taper(t: Array, t1: float, t2: float) -> Array:
 
 def get_planck_taper(f: Array, theta: Array, kappa: float):
     
-    # Already rescaled below in global function
-    # m1, m2, chi1, chi2, lambda1, lambda2 = theta
-    # # Convert the mass variables
-    # m1_s = m1 * gt
-    # m2_s = m2 * gt
-    # M_s = m1_s + m2_s
-    # eta = m1_s * m2_s / (M_s**2.0)
-    
     # Get the merger frequency
     f_merger = _get_merger_frequency(theta, kappa)
 
@@ -392,10 +374,8 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_
     # Compute auxiliary quantities like kappa
     kappa = get_kappa(theta=theta_intrinsic)
 
-    # Compute x
-    # TODO check two pi difference here
-    # x = (PI * gt * f) ** (2.0/3.0) # LAL 
-    x = (PI * M_s * f) ** (2.0/3.0) # NRTidal paper
+    # Compute x: see NRTidalv2 paper
+    x = (PI * M_s * f) ** (2.0/3.0)
 
     print("Kappa")  
     print(kappa) 
@@ -417,8 +397,10 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_
 
     # Get tidal phase and spin corrections for BNS
     psi_T = get_tidal_phase(x, theta_intrinsic, kappa)
-    # FIXME - get correct SS terms
+    
     psi_SS = get_spin_phase_correction(x, theta_intrinsic)
+    
+    # FIXME - override HO spin phase contribution
     psi_SS = jnp.zeros_like(psi_SS)
 
     print("Psi tidal")
@@ -477,9 +459,6 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
         print("IMRPhenom string not recognized")
         return jnp.zeros_like(f)
     
-    # print("Calling ripple's IMRPhenomD with:")
-    # print(f, bbh_params, f_ref)
-
     # Generate BBH waveform strain and get its amplitude and phase
     h0_bbh = bbh_waveform_generator(f, bbh_params, f_ref)
 
