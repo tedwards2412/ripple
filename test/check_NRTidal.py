@@ -38,7 +38,6 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
 
     # TODO - check at higher frequency
     f_u = f_sampling // 2
-    f_u = 200
     f_ref = f_l
     T = 16
 
@@ -102,11 +101,11 @@ def non_precessing_matchmaking(
 
     m1 = np.random.uniform(m_l, m_u)
     m2 = np.random.uniform(m_l, m_u)
-    eps = 1e-6
     s1 = np.random.uniform(chi_l, chi_u)
     s2 = np.random.uniform(chi_l, chi_u)
     l1 = np.random.uniform(0, lambda_u)
-    l2 = np.random.uniform(0, lambda_u)
+    l2 = l1
+    # l2 = np.random.uniform(0, lambda_u)
     
     tc = 0.0
     phic = 0.0
@@ -122,9 +121,6 @@ def non_precessing_matchmaking(
         raise ValueError("Something went wrong with the parameters")
     approximant = lalsim.SimInspiralGetApproximantFromString(IMRphenom)
     
-    # # Limit freqs alread here below the end of planck taper
-    # f_merger = float(_get_merger_frequency(np.array([m1, m2, s1, s2, l1, l2])))
-
     f_ref = f_l
     m1_kg = theta[0] * lal.MSUN_SI
     m2_kg = theta[1] * lal.MSUN_SI
@@ -176,11 +172,6 @@ def non_precessing_matchmaking(
     
     if jnp.isnan(hp_lalsuite).any():
         print("NaNs in lalsuite strain")
-        
-    # mask = fs < 1.2 * f_merger 
-    # fs = fs[mask]
-    # hp_ripple = hp_ripple[mask]
-    # hp_lalsuite = hp_lalsuite[mask]
         
     # Compute match
     PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
