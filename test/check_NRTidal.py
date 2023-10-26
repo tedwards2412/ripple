@@ -95,7 +95,7 @@ def non_precessing_matchmaking(
 ):
     
     # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
-    m_l, m_u = 1, 3.0
+    m_l, m_u = 1, 5.0
     chi_l, chi_u = 0, 0
     lambda_u = 5000
 

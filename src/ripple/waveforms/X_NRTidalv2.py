@@ -9,39 +9,7 @@ from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, MSUN, MRSUN
 from ..typing import Array
 from ripple import Mc_eta_to_ms, ms_to_Mc_eta
 import sys
-from .IMRPhenomD import get_Amp0# , Amp, Phase
-
-## Unused for now?
-# from .IMRPhenomD_QNMdata import fM_CUT
-# from .IMRPhenomD_utils import (
-#     get_coeffs,
-#     get_delta0,
-#     get_delta1,
-#     get_delta2,
-#     get_delta3,
-#     get_delta4,
-#     get_transition_frequencies,
-# )
-
-
-### TODO remove these, they are not exact
-# # Eq. (20)
-# C_1 = 3115./1248.
-# C_THREE_HALVES = - PI
-# C_2 = 28024205./3302208.
-# C_FIVE_HALVES = - 4283. * PI / 1092.
-#
-# # Eq. (21)
-#
-# N_FIVE_HALVES = 90.550822
-# N_3 = -60.253578
-# D_1 = -15.111208
-# D_2 = 8.0641096
-
-# N_1 = C_1 + D_1
-# N_THREE_HALVES = (C_1 * C_THREE_HALVES - C_FIVE_HALVES - C_THREE_HALVES * D_1 + N_FIVE_HALVES) / C_1
-# N_2 = C_2 + C_1 * D_1 + D_2
-# D_THREE_HALVES = - (C_FIVE_HALVES + C_THREE_HALVES * D_1 - N_FIVE_HALVES) / C_1
+from .IMRPhenomD import get_Amp0
 
 # D: just below Eq. (24)
 NRTidalv2_coeffs = jnp.array([
@@ -122,7 +90,7 @@ def _compute_quadparam_octparam(lambda_: float) -> tuple[float, float]:
     return jax.lax.cond(is_low_lambda, _compute_quadparam_octparam_low, _compute_quadparam_octparam_high, lambda_)
 
 def universal_relation(coeffs, x):
-    return coeffs[0] + coeffs[1] * x + coeffs[2] * x ** 2 + coeffs[3] * x ** 3 + coeffs[4] * x ** 4
+    return coeffs[0] + coeffs[1] * x + coeffs[2] * (x ** 2) + coeffs[3] * (x ** 3) + coeffs[4] * (x ** 4)
 
 def _compute_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
     """
@@ -151,7 +119,7 @@ def _compute_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
     log_octparam = universal_relation(oct_coeffs, log_quadparam)
 
     # Get rid of log and remove 1 for BBH baseline
-    quadparam = jnp.exp(log_quadparam) - 1
+    # quadparam = jnp.exp(log_quadparam) - 1
     octparam = jnp.exp(log_octparam) - 1
 
     return quadparam, octparam
@@ -183,7 +151,7 @@ def _compute_quadparam_octparam_high(lambda_: float) -> tuple[float, float]:
     log_octparam = universal_relation(oct_coeffs, log_quadparam)
 
     # Get rid of log and remove 1 for BBH baseline
-    quadparam = jnp.exp(log_quadparam) - 1
+    quadparam = jnp.exp(log_quadparam) # - 1 ### correct?
     octparam = jnp.exp(log_octparam) - 1
 
     return quadparam, octparam
@@ -212,22 +180,30 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     quadparam1, octparam1 = _compute_quadparam_octparam(lambda1)
     quadparam2, octparam2 = _compute_quadparam_octparam(lambda2)
     
-    octparam1 = 7.28
-    octparam2 = 7.28
+    print("quadparams")
+    print(quadparam1, quadparam2)
+    
+    print("octparams")
+    print(octparam1, octparam2)
+    
+    ### TODO what happens to these guys?
+    # SS_2 =  - 50. * quadparam1 * X1sq * chi1_sq
+    # SS_2 += - 50. * quadparam2 * X2sq * chi2_sq
 
-    SS_2 =  - 50. * quadparam1 * X1sq * chi1_sq
-    SS_2 += - 50. * quadparam2 * X2sq * chi2_sq
-
-    SS_3 =  (5. / 84.) * (9407. + 8218. * X1 - 2016. * X1 ** 2) * quadparam1 * X1 ** 2 * chi1 ** 2
-    SS_3 += (5. / 84.) * (9407. + 8218. * X2 - 2016. * X2 ** 2) * quadparam2 * X2 ** 2 * chi2 ** 2
+    # SS_3 =  (5. / 84.) * (9407. + 8218. * X1 - 2016. * X1 ** 2) * quadparam1 * X1 ** 2 * chi1 ** 2
+    # SS_3 += (5. / 84.) * (9407. + 8218. * X2 - 2016. * X2 ** 2) * quadparam2 * X2 ** 2 * chi2 ** 2
     
     # Following is taken from LAL source code
-    SS_3p5 = - 400. * PI * (quadparam1) * chi1_sq * X1sq \
-             - 400. * PI * (quadparam2) * chi2_sq * X2sq
-    SS_3p5 += 10. * ((X1sq + 308./3. * X1) * chi1 + (X2sq - 89./3. * X2) * chi2) * (quadparam1) * X1sq * chi1_sq \
-            + 10. * ((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2) * X2sq * chi2_sq \
+    SS_3p5 = - 400. * PI * (quadparam1 - 1) * chi1_sq * X1sq \
+             - 400. * PI * (quadparam2 - 1) * chi2_sq * X2sq
+    # Just add SSS_3p5 to SS_3p5 for simplicity
+    SS_3p5 += 10. * ((X1sq + 308./3. * X1) * chi1 + (X2sq - 89./3. * X2) * chi2) * (quadparam1 - 1) * X1sq * chi1_sq \
+            + 10. * ((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2 - 1) * X2sq * chi2_sq \
                 - 440. * octparam1 * X1 * X1sq * chi1_sq * chi1 \
                 - 440. * octparam2 * X2 * X2sq * chi2_sq * chi2
+
+    SS_2 = 0
+    SS_3 = 0
 
     psi_SS = (3. / (128. * eta)) * (SS_2 * x ** (-1./2.) + SS_3 * x ** (1./2.) + SS_3p5 * x)
 
@@ -401,7 +377,7 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_
     psi_SS = get_spin_phase_correction(x, theta_intrinsic)
     
     # FIXME - override HO spin phase contribution
-    psi_SS = jnp.zeros_like(psi_SS)
+    # psi_SS = jnp.zeros_like(psi_SS)
 
     print("Psi tidal")
     print(psi_T)

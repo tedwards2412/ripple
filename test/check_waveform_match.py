@@ -182,6 +182,10 @@ def random_match_waveforms(n, IMRphenom):
     print("Mean match:", np.mean(matches))
     print("Median match:", np.median(matches))
     print("Minimum match:", np.min(matches))
+    
+    print("Mean mismatch:", np.log10(1 - np.mean(matches)))
+    print("High mismatch:", np.log10(1 - np.min(matches)))
+    print("Low mismatch:", np.log10(1 - np.max(matches)))
 
     return None
 
@@ -189,10 +193,24 @@ def random_match_waveforms(n, IMRphenom):
 def non_precessing_matchmaking(
     IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches
 ):
+    
+    # Original range
     m1 = np.random.uniform(1.0, 100.0)
     m2 = np.random.uniform(1.0, 100.0)
     s1 = np.random.uniform(-1.0, 1.0)
     s2 = np.random.uniform(-1.0, 1.0)
+    
+    # # Intermediate range
+    # m1 = np.random.uniform(10, 30)
+    # m2 = np.random.uniform(10, 30)
+    # s1 = 0.0
+    # s2 = 0.0
+    
+    # Low range range
+    # m1 = np.random.uniform(1, 3)
+    # m2 = np.random.uniform(1, 3)
+    # s1 = 0.0
+    # s2 = 0.0
 
     tc = 0.0
     phic = 0.0
