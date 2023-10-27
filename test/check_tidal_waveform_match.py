@@ -7,9 +7,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from ripple import get_eff_pads, get_match_arr
-from ripple.waveforms.X_NRTidalv2 import gen_NRTidalv2_hphc as waveform_generator
-from ripple.waveforms.X_NRTidalv2 import _get_merger_frequency
 from ripple import ms_to_Mc_eta, Mc_eta_to_ms
+from ripple.constants import PI
 
 import lal
 import lalsimulation as lalsim
@@ -30,8 +29,6 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
         TODO
     """
 
-    from ripple.waveforms.X_NRTidalv2 import gen_NRTidalv2_hphc as waveform_generator
-
     # Specify frequency range
     f_l = 20
     f_sampling = 2 * 4096
@@ -48,18 +45,39 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
     df = freqs[1] - freqs[0]
     fs = freqs[(freqs > f_l) & (freqs < f_u)]
     
-
-    @jax.jit
-    def waveform(theta):
-        hp, _ = waveform_generator(fs, theta, f_ref, IMRphenom="IMRPhenomD")
-        return hp
+    if IMRphenom == "IMRPhenomD_NRTidalv2":
+        
+        # Import the waveform
+        from ripple.waveforms.X_NRTidalv2 import gen_NRTidalv2_hphc as waveform_generator
+        
+        # Get jitted version (note, use IMRPhenomD as underlying waveform model)
+        @jax.jit
+        def waveform(theta):
+            hp, _ = waveform_generator(fs, theta, f_ref, IMRphenom="IMRPhenomD")
+            return hp
+        
+    elif IMRphenom == "TaylorF2":
+        
+        # Import the waveform
+        from ripple.waveforms.TaylorF2 import gen_TaylorF2_hphc as waveform_generator
+        
+        # Get jitted version
+        @jax.jit
+        def waveform(theta):
+            hp, _ = waveform_generator(fs, theta, f_ref)
+            return hp
+    
+    else:
+        print("Tidal waveform string not recognized")
+        exit()
+    
 
     # Get a frequency domain waveform
     thetas = []
     matches = []
     f_ASD, ASD = np.loadtxt("O3Livingston.txt", unpack=True)
 
-    ### TODO - check NRTidal with precession
+    ### TODO - check with precession
     # if "PhenomP" in IMRphenom:
     #     for i in tqdm(range(n)):
     #         precessing_matchmaking(
@@ -74,7 +92,7 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
     thetas = np.array(thetas)
     matches = np.array(matches)
 
-    df = save_matches("NRTidal_matches.csv", thetas, matches)
+    df = save_matches(f"matches_data/check_{IMRphenom}_matches.csv", thetas, matches)
 
     mismatches = np.log10(1 - matches)
     print("Mean match:", np.mean(matches))
@@ -95,8 +113,8 @@ def non_precessing_matchmaking(
 ):
     
     # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
-    m_l, m_u = 1, 5.0
-    chi_l, chi_u = 0, 0
+    m_l, m_u = 0.5, 5.0
+    chi_l, chi_u = -1, 1
     lambda_u = 5000
 
     m1 = np.random.uniform(m_l, m_u)
@@ -104,19 +122,19 @@ def non_precessing_matchmaking(
     s1 = np.random.uniform(chi_l, chi_u)
     s2 = np.random.uniform(chi_l, chi_u)
     l1 = np.random.uniform(0, lambda_u)
-    l2 = l1
-    # l2 = np.random.uniform(0, lambda_u)
+    l2 = np.random.uniform(0, lambda_u)
+
+    dist_mpc = np.random.uniform(0, 1000)
+    inclination = np.random.uniform(0, PI)
+    phi_ref = np.random.uniform(0, PI)
     
+    # TODO fix time of coalescence?
     tc = 0.0
-    phic = 0.0
-    dist_mpc = 1
-    inclination = 0 # np.pi / 2.0con
-    phi_ref = 0.0
 
     if m1 < m2:
-        theta = np.array([m2, m1, s2, s1, l2, l1, dist_mpc, tc, phic, inclination])
+        theta = np.array([m2, m1, s2, s1, l2, l1, dist_mpc, tc, phi_ref, inclination])
     elif m1 >= m2:
-        theta = np.array([m1, m2, s1, s2, l1, l2, dist_mpc, tc, phic, inclination])
+        theta = np.array([m1, m2, s1, s2, l1, l2, dist_mpc, tc, phi_ref, inclination])
     else:
         raise ValueError("Something went wrong with the parameters")
     approximant = lalsim.SimInspiralGetApproximantFromString(IMRphenom)
@@ -129,6 +147,11 @@ def non_precessing_matchmaking(
     laldict = lal.CreateDict()
     lalsim.SimInspiralWaveformParamsInsertTidalLambda1(laldict, l1)
     lalsim.SimInspiralWaveformParamsInsertTidalLambda2(laldict, l2)
+    quad1 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l1)
+    quad2 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l2)
+    # Note that these are dquadmon, not quadmon, hence have to subtract 1 since that is added again later
+    lalsim.SimInspiralWaveformParamsInsertdQuadMon1(laldict, quad1 - 1)
+    lalsim.SimInspiralWaveformParamsInsertdQuadMon2(laldict, quad2 - 1)
 
     hp, _ = lalsim.SimInspiralChooseFDWaveform(
         m1_kg,
@@ -161,7 +184,7 @@ def non_precessing_matchmaking(
     # Get the ripple waveform
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
     theta_ripple = jnp.array(
-        [Mc, eta, theta[2], theta[3], l1, l2, dist_mpc, tc, phic, inclination]
+        [Mc, eta, theta[2], theta[3], l1, l2, dist_mpc, tc, phi_ref, inclination]
     )
     hp_ripple = waveform(theta_ripple)
     # hp_ripple = hp_ripple[mask_lal]
@@ -212,7 +235,7 @@ def non_precessing_matchmaking(
 #     s2z = s2_amp * np.cos(s2_theta)
 
 #     tc = 0.0
-#     phic = 0.0
+#     phi_ref = 0.0
 #     dist_mpc = 440
 #     inclination = np.pi / 2.0
 #     phi_ref = 0
@@ -271,7 +294,7 @@ def non_precessing_matchmaking(
 #             theta[7],
 #             dist_mpc,
 #             tc,
-#             phic,
+#             phi_ref,
 #             inclination,
 #         ]
 #     )
@@ -297,14 +320,28 @@ def non_precessing_matchmaking(
 def save_matches(filename, thetas, matches):
     # header = ["m1", "m2", "chi1", "chi2", "lambda1", "lambda2", "match"]
 
-    m1      = thetas[:, 0]
-    m2      = thetas[:, 1]
-    chi1    = thetas[:, 2]
-    chi2    = thetas[:, 3]
-    lambda1 = thetas[:, 4]
-    lambda2 = thetas[:, 5]
+    m1          = thetas[:, 0]
+    m2          = thetas[:, 1]
+    chi1        = thetas[:, 2]
+    chi2        = thetas[:, 3]
+    lambda1     = thetas[:, 4]
+    lambda2     = thetas[:, 5]
+    dist_mpc    = thetas[:, 6]
+    tc          = thetas[:, 7]
+    phi_ref     = thetas[:, 8]
+    inclination = thetas[:, 9]
 
-    my_dict = {'m1': m1, 'm2': m2, 'chi1': chi1, 'chi2': chi2, 'lambda1': lambda1, 'lambda2': lambda2, 'match': matches}
+    my_dict = {'m1': m1, 
+               'm2': m2, 
+               'chi1': chi1, 
+               'chi2': chi2, 
+               'lambda1': lambda1, 
+               'lambda2': lambda2,
+               'dist_mpc': dist_mpc,
+               'tc': tc,
+               'phi_ref': phi_ref,
+               'inclination': inclination,
+               'match': matches}
 
     df = pd.DataFrame.from_dict(my_dict)
     df.to_csv(filename)
@@ -315,6 +352,6 @@ def save_matches(filename, thetas, matches):
 
 
 if __name__ == "__main__":
-    df = random_match_NRTidal(1000)
+    df = random_match_NRTidal(1000, "TaylorF2")
 
     print(df)

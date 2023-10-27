@@ -10,6 +10,7 @@ from ..typing import Array
 from ripple import Mc_eta_to_ms, ms_to_Mc_eta
 import sys
 from .IMRPhenomD import get_Amp0
+from ..utils_tidal import get_quadparam_octparam
 
 # D: just below Eq. (24)
 NRTidalv2_coeffs = jnp.array([
@@ -82,79 +83,6 @@ def get_tidal_phase(x: Array, theta: Array, kappa: float) -> Array:
     
     return psi_T
 
-def _compute_quadparam_octparam(lambda_: float) -> tuple[float, float]:
-    
-    # Check if lambda is low or not
-    is_low_lambda = lambda_ < 1
-    
-    return jax.lax.cond(is_low_lambda, _compute_quadparam_octparam_low, _compute_quadparam_octparam_high, lambda_)
-
-def universal_relation(coeffs, x):
-    return coeffs[0] + coeffs[1] * x + coeffs[2] * (x ** 2) + coeffs[3] * (x ** 3) + coeffs[4] * (x ** 4)
-
-def _compute_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
-    """
-    Computes quadparameter, see eq (28) of NRTidalv2 paper and also LALSimUniversalRelations.c of lalsuite
-    
-    Version for lambdas smaller than 1.
-    
-    LALsuite has an extension where a separate formula is used for lambdas smaller than one, and another formula is used for lambdas larger than one.
-    Args:
-        lambda_: tidal deformability
-
-    Returns:
-        quadparam: Quadrupole coefficient called C_Q in NRTidalv2 paper
-        octparam: Octupole coefficient called C_Oc in NRTidalv2 paper
-    """
-    
-    # Coefficients of universal relation
-    quad_coeffs = [0.1940, 0.09163, 0.04812, -4.283e-3, 1.245e-4]
-    oct_coeffs = [0.003131, 2.071, -0.7152, 0.2458, -0.03309]
-    
-    # Extension of the fit in the range lambda2 = [0,1.] so that the BH limit is enforced, lambda2bar->0 gives quadparam->1. and the junction with the universal relation is smooth, of class C2
-    quadparam = 1. + lambda_ * (0.427688866723244 + lambda_ * (-0.324336526985068 + lambda_ * 0.1107439432180572))
-    log_quadparam = jnp.log(quadparam)
-        
-    # Compute octparam:
-    log_octparam = universal_relation(oct_coeffs, log_quadparam)
-
-    # Get rid of log and remove 1 for BBH baseline
-    # quadparam = jnp.exp(log_quadparam) - 1
-    octparam = jnp.exp(log_octparam) - 1
-
-    return quadparam, octparam
-
-def _compute_quadparam_octparam_high(lambda_: float) -> tuple[float, float]:
-    """
-    Computes quadparameter, see eq (28) of NRTidalv2 paper and also LALSimUniversalRelations.c of lalsuite
-    
-    Version for lambdas greater than 1.
-    
-    LALsuite has an extension where a separate formula is used for lambdas smaller than one, and another formula is used for lambdas larger than one.
-    Args:
-        lambda_: tidal deformability
-
-    Returns:
-        quadparam: Quadrupole coefficient called C_Q in NRTidalv2 paper
-        octparam: Octupole coefficient called C_Oc in NRTidalv2 paper
-    """
-    
-    # Coefficients of universal relation
-    quad_coeffs = [0.1940, 0.09163, 0.04812, -4.283e-3, 1.245e-4]
-    oct_coeffs = [0.003131, 2.071, -0.7152, 0.2458, -0.03309]
-        
-    # High lambda (above 1): use universal relation
-    log_lambda = jnp.log(lambda_)
-    log_quadparam = universal_relation(quad_coeffs, log_lambda)
-    
-    # Compute octparam:
-    log_octparam = universal_relation(oct_coeffs, log_quadparam)
-
-    # Get rid of log and remove 1 for BBH baseline
-    quadparam = jnp.exp(log_quadparam) # - 1 ### correct?
-    octparam = jnp.exp(log_octparam) - 1
-
-    return quadparam, octparam
 
 
 def get_spin_phase_correction(x: Array, theta: Array) -> Array:
@@ -177,8 +105,8 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     chi2_sq = chi2 * chi2
 
     # Compute quadparam1
-    quadparam1, octparam1 = _compute_quadparam_octparam(lambda1)
-    quadparam2, octparam2 = _compute_quadparam_octparam(lambda2)
+    quadparam1, octparam1 = get_quadparam_octparam(lambda1)
+    quadparam2, octparam2 = get_quadparam_octparam(lambda2)
     
     print("quadparams")
     print(quadparam1, quadparam2)
@@ -187,11 +115,11 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     print(octparam1, octparam2)
     
     ### TODO what happens to these guys?
-    # SS_2 =  - 50. * quadparam1 * X1sq * chi1_sq
-    # SS_2 += - 50. * quadparam2 * X2sq * chi2_sq
+    SS_2 =  - 50. * (quadparam1 - 1) * X1sq * chi1_sq
+    SS_2 += - 50. * (quadparam2 - 1) * X2sq * chi2_sq
 
-    # SS_3 =  (5. / 84.) * (9407. + 8218. * X1 - 2016. * X1 ** 2) * quadparam1 * X1 ** 2 * chi1 ** 2
-    # SS_3 += (5. / 84.) * (9407. + 8218. * X2 - 2016. * X2 ** 2) * quadparam2 * X2 ** 2 * chi2 ** 2
+    SS_3 = (5. / 84.) * (9407. + 8218. * X1 - 2016. * X1 ** 2) * (quadparam1 - 1) * X1 ** 2 * chi1 ** 2 \
+         + (5. / 84.) * (9407. + 8218. * X2 - 2016. * X2 ** 2) * (quadparam2 - 1) * X2 ** 2 * chi2 ** 2
     
     # Following is taken from LAL source code
     SS_3p5 = - 400. * PI * (quadparam1 - 1) * chi1_sq * X1sq \
@@ -202,10 +130,8 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
                 - 440. * octparam1 * X1 * X1sq * chi1_sq * chi1 \
                 - 440. * octparam2 * X2 * X2sq * chi2_sq * chi2
 
-    SS_2 = 0
-    SS_3 = 0
-
     psi_SS = (3. / (128. * eta)) * (SS_2 * x ** (-1./2.) + SS_3 * x ** (1./2.) + SS_3p5 * x)
+    
 
     return psi_SS
 
@@ -375,9 +301,6 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_
     psi_T = get_tidal_phase(x, theta_intrinsic, kappa)
     
     psi_SS = get_spin_phase_correction(x, theta_intrinsic)
-    
-    # FIXME - override HO spin phase contribution
-    # psi_SS = jnp.zeros_like(psi_SS)
 
     print("Psi tidal")
     print(psi_T)

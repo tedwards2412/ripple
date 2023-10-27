@@ -28,3 +28,8 @@ m_per_Mpc = 3.085677581491367278913937957796471611e22
 """
 Meters per Mpc.
 """
+
+clightGpc = C/3.0856778570831e+22
+"""
+Speed of light in vacuum (:math:`c`), in gigaparsecs per second
+"""
