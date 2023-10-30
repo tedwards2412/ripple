@@ -5,7 +5,7 @@
 import jax
 import jax.numpy as jnp
 
-from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, MSUN, MRSUN
+from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, TWO_PI, MSUN, MRSUN
 from ..typing import Array
 from ripple import Mc_eta_to_ms, ms_to_Mc_eta
 import sys
@@ -116,20 +116,24 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     
     # Remember to remove 1 from quadrupole and octupole, for the BBH baseline
     
-    SS_2 = - 50. * ((quadparam1 - 1) * chi1_sq * X1sq + (quadparam2 - 1) * chi2_sq * X2 ** 2)
-    SS_3 = 5.0/84.0 * (9407.0 + 8218.0 * X1 - 2016.0 * X1 ** 2) * (quadparam1 - 1) * X1 ** 2 * chi1_sq \
-         + 5.0/84.0 * (9407.0 + 8218.0 * X2 - 2016.0 * X2 ** 2) * (quadparam2 - 1) * X2 ** 2 * chi2_sq
+    SS_2 = - 50. * ((quadparam1 - 1) * chi1_sq * X1sq + (quadparam2 - 1) * chi2_sq * X2sq)
+    SS_3 = 5.0/84.0 * (9407.0 + 8218.0 * X1 - 2016.0 * X1sq) * (quadparam1 - 1) * X1sq * chi1_sq \
+         + 5.0/84.0 * (9407.0 + 8218.0 * X2 - 2016.0 * X2sq) * (quadparam2 - 1) * X2sq * chi2_sq
     
     # Following is taken from LAL source code
     SS_3p5 = - 400. * PI * (quadparam1 - 1) * chi1_sq * X1sq \
              - 400. * PI * (quadparam2 - 1) * chi2_sq * X2sq
     # Just add SSS_3p5 to SS_3p5 for simplicity
-    SSS_3p5 = 10. * ((X1sq + 308./3. * X1) * chi1 + (X2sq - 89./3. * X2) * chi2) * (quadparam1 - 1) * X1sq * chi1_sq \
-            + 10. * ((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2 - 1) * X2sq * chi2_sq \
+    SSS_3p5 = 10. * ((X1sq + 308./3. * X1) * chi1 + (X2sq - 89./3. * X2) * chi2) * (quadparam1 - 1) * X1sq \
+            + 10. * ((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2 - 1) * X2sq \
                 - 440. * (octparam1 - 1) * X1 * X1sq * chi1_sq * chi1 \
                 - 440. * (octparam2 - 1) * X2 * X2sq * chi2_sq * chi2
 
     prefac = (3. / (128. * eta))
+    
+    print("Higher order spin correction prefactor")
+    print(SS_3p5, SSS_3p5)
+    
     psi_SS = prefac * (SS_2 * x ** (-1./2.) + SS_3 * x ** (1./2.) + (SS_3p5 + SSS_3p5) * x)
 
     return psi_SS
@@ -201,12 +205,13 @@ def _get_merger_frequency(theta, kappa=None):
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
+    M = m1 + m2
 
     q = m1_s / m2_s
 
     X1 = m1_s / M_s
     X2 = m2_s / M_s
-
+    
     # If kappa was not given, compute it
     if kappa is None:
         kappa = get_kappa(theta)
@@ -216,16 +221,18 @@ def _get_merger_frequency(theta, kappa=None):
     n_2 = 4.31460284e-5
     d_1 = 7.54224145e-2
     d_2 = 2.23626859e-4
+    
+    kappa_2 = kappa * kappa
 
-    num = 1.0 + n_1 * kappa + n_2 * kappa ** 2.0
-    den = 1.0 + d_1 * kappa + d_2 * kappa ** 2.0
-    Q_0 = a_0 / jnp.sqrt(q)
+    num = 1.0 + n_1 * kappa + n_2 * kappa_2
+    den = 1.0 + d_1 * kappa + d_2 * kappa_2
+    Q_0 = a_0 * (q) ** (-1./2.)
 
     # Dimensionless angular frequency of merger
     Momega_merger = Q_0 * (num / den)
 
     # convert from angular frequency to frequency (divide by 2*pi) and then convert from dimensionless frequency to Hz (divide by mtot * LAL_MTSUN_SI)
-    fHz_merger = Momega_merger / (M_s) / (2 * PI)
+    fHz_merger = Momega_merger / (M * gt) / (TWO_PI)
 
     return fHz_merger
 

@@ -31,7 +31,7 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
 
     # Specify frequency range
     f_l = 20
-    f_sampling = 2 * 4096
+    f_sampling = 2 * 2048
 
     # TODO - check at higher frequency
     f_u = f_sampling // 2
@@ -104,6 +104,7 @@ def random_match_NRTidal(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
     print("Mean mismatch:", np.mean(mismatches))
     print("Median mismatch:", np.median(mismatches))
     print("Minimum mismatch:", np.min(mismatches))
+    print("Maximum mismatch:", np.max(mismatches))
 
     return df
 
