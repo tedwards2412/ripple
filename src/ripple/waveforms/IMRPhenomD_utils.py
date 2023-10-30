@@ -94,13 +94,10 @@ def get_fRD_fdamp(m1, m2, chi1, chi2):
     # )
 
     a = FinalSpin0815_s(eta_s, S)
+    Erad = EradRational0815(eta_s, chi1, chi2)
 
-    fRD = jnp.interp(a, QNMData_a, QNMData_fRD) / (
-        1.0 - EradRational0815(eta_s, chi1, chi2)
-    )
-    fdamp = jnp.interp(a, QNMData_a, QNMData_fdamp) / (
-        1.0 - EradRational0815(eta_s, chi1, chi2)
-    )
+    fRD = jnp.interp(a, QNMData_a, QNMData_fRD) / (1.0 - Erad)
+    fdamp = jnp.interp(a, QNMData_a, QNMData_fdamp) / (1.0 - Erad)
 
     return fRD / M_s, fdamp / M_s
 
