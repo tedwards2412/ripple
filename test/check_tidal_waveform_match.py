@@ -352,6 +352,6 @@ def save_matches(filename, thetas, matches):
 
 
 if __name__ == "__main__":
-    df = random_match_NRTidal(1000, "TaylorF2")
+    df = random_match_NRTidal(1000, "IMRPhenomD_NRTidalv2")
 
     print(df)

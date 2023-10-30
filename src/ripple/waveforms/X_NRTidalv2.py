@@ -114,24 +114,23 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     print("octparams")
     print(octparam1, octparam2)
     
-    ### TODO what happens to these guys?
-    SS_2 =  - 50. * (quadparam1 - 1) * X1sq * chi1_sq
-    SS_2 += - 50. * (quadparam2 - 1) * X2sq * chi2_sq
-
-    SS_3 = (5. / 84.) * (9407. + 8218. * X1 - 2016. * X1 ** 2) * (quadparam1 - 1) * X1 ** 2 * chi1 ** 2 \
-         + (5. / 84.) * (9407. + 8218. * X2 - 2016. * X2 ** 2) * (quadparam2 - 1) * X2 ** 2 * chi2 ** 2
+    # Remember to remove 1 from quadrupole and octupole, for the BBH baseline
+    
+    SS_2 = - 50. * ((quadparam1 - 1) * chi1_sq * X1sq + (quadparam2 - 1) * chi2_sq * X2 ** 2)
+    SS_3 = 5.0/84.0 * (9407.0 + 8218.0 * X1 - 2016.0 * X1 ** 2) * (quadparam1 - 1) * X1 ** 2 * chi1_sq \
+         + 5.0/84.0 * (9407.0 + 8218.0 * X2 - 2016.0 * X2 ** 2) * (quadparam2 - 1) * X2 ** 2 * chi2_sq
     
     # Following is taken from LAL source code
     SS_3p5 = - 400. * PI * (quadparam1 - 1) * chi1_sq * X1sq \
              - 400. * PI * (quadparam2 - 1) * chi2_sq * X2sq
     # Just add SSS_3p5 to SS_3p5 for simplicity
-    SS_3p5 += 10. * ((X1sq + 308./3. * X1) * chi1 + (X2sq - 89./3. * X2) * chi2) * (quadparam1 - 1) * X1sq * chi1_sq \
+    SSS_3p5 = 10. * ((X1sq + 308./3. * X1) * chi1 + (X2sq - 89./3. * X2) * chi2) * (quadparam1 - 1) * X1sq * chi1_sq \
             + 10. * ((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2 - 1) * X2sq * chi2_sq \
-                - 440. * octparam1 * X1 * X1sq * chi1_sq * chi1 \
-                - 440. * octparam2 * X2 * X2sq * chi2_sq * chi2
+                - 440. * (octparam1 - 1) * X1 * X1sq * chi1_sq * chi1 \
+                - 440. * (octparam2 - 1) * X2 * X2sq * chi2_sq * chi2
 
-    psi_SS = (3. / (128. * eta)) * (SS_2 * x ** (-1./2.) + SS_3 * x ** (1./2.) + SS_3p5 * x)
-    
+    prefac = (3. / (128. * eta))
+    psi_SS = prefac * (SS_2 * x ** (-1./2.) + SS_3 * x ** (1./2.) + (SS_3p5 + SSS_3p5) * x)
 
     return psi_SS
 

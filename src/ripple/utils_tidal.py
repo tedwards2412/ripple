@@ -42,7 +42,7 @@ def _get_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
 
     # Get rid of log and remove 1 for BBH baseline
     # quadparam = jnp.exp(log_quadparam) - 1
-    octparam = jnp.exp(log_octparam) - 1
+    octparam = jnp.exp(log_octparam)
 
     return quadparam, octparam
 
@@ -72,8 +72,7 @@ def _get_quadparam_octparam_high(lambda_: float) -> tuple[float, float]:
     # Compute octparam:
     log_octparam = universal_relation(oct_coeffs, log_quadparam)
 
-    # Get rid of log and remove 1 for BBH baseline
-    quadparam = jnp.exp(log_quadparam) # - 1 ### correct?
-    octparam = jnp.exp(log_octparam) - 1
+    quadparam = jnp.exp(log_quadparam)
+    octparam = jnp.exp(log_octparam)
 
     return quadparam, octparam
