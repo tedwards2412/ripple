@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, MRSUN
 from ..typing import Array
 from ripple import Mc_eta_to_ms, ms_to_Mc_eta
-from ..utils_tidal import get_quadparam_octparam
+from .utils_tidal import *
 
 def get_3PNSOCoeff(mByM):
     return  mByM * (25. + 38./3. * mByM)
