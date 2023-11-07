@@ -195,10 +195,12 @@ def non_precessing_matchmaking(
 ):
     
     # Original range
-    m1 = np.random.uniform(1.0, 100.0)
-    m2 = np.random.uniform(1.0, 100.0)
-    s1 = np.random.uniform(-1.0, 1.0)
-    s2 = np.random.uniform(-1.0, 1.0)
+    m_l, m_u = 1.0, 100.0
+    chi_l, chi_u = -1.0, 1.0
+    m1 = np.random.uniform(m_l, m_u)
+    m2 = np.random.uniform(m_l, m_u)
+    s1 = np.random.uniform(chi_l, chi_u)
+    s2 = np.random.uniform(chi_l, chi_u)
     
     # # Intermediate range
     # m1 = np.random.uniform(10, 30)

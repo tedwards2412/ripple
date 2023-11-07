@@ -75,7 +75,8 @@ def get_tidal_phase(f: Array, theta: Array, kappa: float) -> Array:
     s2 = 1 + s20 + s21 * kappa + s22 * q * kappa
     s3 =     s30 + s31 * kappa + s32 * q * kappa
     
-    dynk2bar = 1.0 + (s1 - 1.0) / (1.0 + jnp.exp(- s2 * (2.0 * M_omega - s3))) - (s1 - 1.0) / (1.0 + jnp.exp(s2 * s3)) - 2.0 * M_omega * (s1 - 1) * s2 / ((1.0 + jnp.exp(s2 * s3)) ** 2.0)
+    # TODO why jnp.exp(s2 * s3) in final term? Not in the equation?
+    dynk2bar = 1.0 + (s1 - 1.0) / (1.0 + jnp.exp(- s2 * (2.0 * M_omega - s3))) - (s1 - 1.0) / (1.0 + jnp.exp(s2 * s3)) - 2.0 * M_omega * (s1 - 1) * s2 * jnp.exp(s2 * s3) / ((1.0 + jnp.exp(s2 * s3)) ** 2.0)
 
     kappaA = 3.0 * X2 * (X1 ** 4.0) * lambda1
     kappaB = 3.0 * X1 * (X2 ** 4.0) * lambda2
@@ -97,8 +98,8 @@ def get_tidal_phase(f: Array, theta: Array, kappa: float) -> Array:
     n_3A      = n_30 + n_31 * X1 + n_32 * kappaA_alpha + n_33 * Xa_beta
     n_3B      = n_30 + n_31 * X2 + n_32 * kappaB_alpha + n_33 * Xb_beta
     
-    d_1A      = d_10 + d_11 * X1 + d_12 * Xa_beta
-    d_1B      = d_10 + d_11 * X2 + d_12 * Xb_beta
+    d_1A      = d_10 + d_11 * X1                       + d_12 * Xa_beta
+    d_1B      = d_10 + d_11 * X2                       + d_12 * Xb_beta
     
     # 7.5PN coefficients
     c_NewtA   = (3.0 * (X1 + X2) ** 2.0 * (12.0 - 11.0 * X1)) / (16 * X1 * (X2) ** 2.0)
@@ -133,11 +134,11 @@ def get_tidal_phase(f: Array, theta: Array, kappa: float) -> Array:
     factorA = - c_NewtA * x_5over2 * dynkappaA
     factorB = - c_NewtB * x_5over2 * dynkappaB
 
-    numA = 1.0 + (n_1A * x) + (n_3over2A * x_3over2) + (n_2A * x_2) + (n_5over2A * x_5over2) + (n_3A * x_3)
-    numB = 1.0 + (n_1B * x) + (n_3over2B * x_3over2) + (n_2B * x_2) + (n_5over2B * x_5over2) + (n_3B * x_3)
+    numA = 1.0 + n_1A * x + n_3over2A * x_3over2 + n_2A * x_2 + n_5over2A * x_5over2 + n_3A * x_3
+    numB = 1.0 + n_1B * x + n_3over2B * x_3over2 + n_2B * x_2 + n_5over2B * x_5over2 + n_3B * x_3
     
-    denA = 1.0 + (d_1A * x) + (d_3over2A * x_3over2) # + (d_2A*PN_x_2)
-    denB = 1.0 + (d_1B * x) + (d_3over2B * x_3over2) # + (d_2B*PN_x_2)
+    denA = 1.0 + d_1A * x + d_3over2A * x_3over2 # + (d_2A*PN_x_2)
+    denB = 1.0 + d_1B * x + d_3over2B * x_3over2 # + (d_2B*PN_x_2)
     
     ratioA = numA / denA
     ratioB = numB / denB
@@ -387,7 +388,7 @@ def gen_NRTidalv3(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     lambda1, lambda2 = params[4], params[5]
     
     theta_intrinsic = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
-    M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
+    # M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
     theta_extrinsic = params[6:]
 
     # Get the parameters that are passed to the BBH waveform, all except lambdas

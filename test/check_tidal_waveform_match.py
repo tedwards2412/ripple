@@ -115,8 +115,8 @@ def non_precessing_matchmaking(
     
     # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
     m_l, m_u = 0.5, 3.0
-    chi_l, chi_u = -0.05, 0.05
-    lambda_u = 5000
+    chi_l, chi_u = 1, 1
+    lambda_u = 0
 
     m1 = np.random.uniform(m_l, m_u)
     m2 = np.random.uniform(m_l, m_u)
