@@ -1,3 +1,4 @@
+"""This file implements the TaylorF2 waveform."""
 import jax
 import jax.numpy as jnp
 
@@ -6,6 +7,7 @@ from ..typing import Array
 from ripple import Mc_eta_to_ms, ms_to_Mc_eta
 from .utils_tidal import *
 
+# All auxiliary functions to get the required coefficients for TaylorF2:
 def get_3PNSOCoeff(mByM):
     return  mByM * (25. + 38./3. * mByM)
 
@@ -16,7 +18,6 @@ def get_6PNSOCoeff(mByM):
     return PI * mByM * (1490./3. + mByM * 260.)
 
 def get_7PNSOCoeff(mByM):
-    
     eta = mByM*(1.-mByM)
     return mByM * (-17097.8035/4.8384 + eta * 28764.25/6.72 + eta * eta * 47.35/1.44 \
          + mByM * (-7189.233785/1.524096 + eta * 458.555/3.024 - eta * eta * 534.5/7.2))
@@ -71,67 +72,47 @@ def get_15PNTidalCoeff(mByM):
 def get_flux_0PNCoeff(eta):
 	return 32.0 * eta*eta / 5.0
 
-# def get_flux_2PNCoeff(eta):
-# 	return -(12.47/3.36 + 3.5/1.2 * eta)
-
-# def get_flux_3PNCoeff(eta):
-# 	return 4.0 * PI
-
-# def get_flux_4PNCoeff(eta):
-# 	return -(44.711/9.072 - 92.71/5.04 * eta - 6.5/1.8 * eta*eta)
-
-# def get_flux_5PNCoeff(eta):
-# 	return -(81.91/6.72 + 58.3/2.4 * eta) * PI
-
-# def get_flux_6PNCoeff(eta):
-#         return (664.3739519/6.9854400 + 16.0/3.0 * PI*PI - 17.12/1.05 * EulerGamma - 17.12/1.05*jnp.log(4.) + (4.1/4.8 * PI*PI - 134.543/7.776) * eta - 94.403/3.024 * eta*eta - 7.75/3.24 * eta*eta*eta)
-    
-# def get_flux_7PNCoeff(eta):
-# 	return -(162.85/5.04 - 214.745/1.728 * eta - 193.385/3.024 * eta*eta) * PI
-
-# def get_flux_6PNLogCoeff(eta):
-# 	return -17.12/1.05
-
 def get_energy_0PNCoeff(eta):
 	return -eta / 2.0
 
-# def get_energy_2PNCoeff(eta):
-# 	return -(0.75 + eta/12.0)
 
-# def get_energy_4PNCoeff(eta):
-# 	return -(27.0/8.0 - 19.0/8.0 * eta + 1./24.0 * eta*eta)
+# Functions to compute the waveform
 
-# def get_energy_6PNCoeff(eta):
-# 	return -(67.5/6.4 - (344.45/5.76 - 20.5/9.6 * PI*PI) * eta + 15.5/9.6 * eta*eta + 3.5/518.4 * eta*eta*eta)
+def get_PNPhasing_F2(m1: float, m2: float, S1z: float, S2z: float, lambda1: float, lambda2: float) -> tuple[dict, dict]:
+    """Gets dicitonaries giving the phasing coefficients to be used in the approximant.
+    Keys are the different PN orders, with values being the corresponding coefficient. 
+    Implementation of XLALSimInspiralPNPhasing_F2 from lalsuite.
 
-# def get_energy_8PNCoeff(eta):
-#     #see arXiv:1305.4884, or eq.(26) of arXiv:1309.3474 note that in getting a4 from PRD 62, 084011 (2000), the first reference is using the fact that \omega_{static} = 0 (see arXiv:gr-qc/0105038)
-#     return (-39.69/1.28 + (-123.671/5.76 + 9.037/1.536 *PI*PI+ 1792./15.*jnp.log(2)+89.6/1.5*EulerGamma)* eta + (-498.449/3.456 +31.57/5.76*PI*PI)*eta*eta + 3.01/17.28 *eta*eta*eta + 7.7/3110.4*eta*eta*eta*eta)
+    Args:
+        m1 (float): Mass of first object (heavier)
+        m2 (float): Mass of second object (lighter)
+        S1z (float): z-component of spin of first object
+        S2z (float): z-component of spin of second object
+        lambda1 (float): Tidal deformability first object
+        lambda2 (float): Tidal deformability first object
 
-
-def get_PNPhasing_F2(m1, m2, S1z, S2z, lambda1, lambda2):
+    Returns:
+        tuple[dict, dict]: phasing_coeffs, phasing_log_coeffs as defined in the LAL source code, coefficients for various PN orders.
     """
-    Implementation of XLALSimInspiralPNPhasing_F2
-    """
+    
+    # Mass variables
     M = m1 + m2
     m1M = m1 / M
     m2M = m2 / M
-    
     m1_s = m1 * gt
     m2_s = m2 * gt
-    
     M_s = m1_s + m2_s
     eta = m1_s * m2_s / (M_s**2.0)
-    pfaN = 3.0 / (128.0 * eta) 
     
-    # Extra variables:
+    # Auxiliary variables
+    pfaN = 3.0 / (128.0 * eta) # prefactor
     S1z_2 = S1z ** 2 # spin one squared
     S2z_2 = S2z ** 2 # spin two squared
     S1z_dot_S2z = S1z * S2z # dot product spins
+    qm_def1, _ = get_quadparam_octparam(lambda1) # quadrupole parameter 1
+    qm_def2, _ = get_quadparam_octparam(lambda2) # quadrupole parameter 2
     
-    qm_def1, _ = get_quadparam_octparam(lambda1)
-    qm_def2, _ = get_quadparam_octparam(lambda2)
-    
+    # We are going to build a dictionary with coefficients for varying PN orders
     phasing_coeffs = dict()
     phasing_log_coeffs = dict()
     
@@ -152,7 +133,7 @@ def get_PNPhasing_F2(m1, m2, S1z, S2z, lambda1, lambda2):
     phasing_coeffs["7PN"] = PI * (770.96675/2.54016 + 378.515/1.512 * eta - 740.45/7.56 * eta * eta)
     
     # Spin terms for phasing
-    # TODO lal uses spinL here, but what is the difference?
+    # Note: lal uses `spinL`` here, but no difference
     phasing_coeffs["7PN"] += get_7PNSOCoeff(m1M) * S1z + get_7PNSOCoeff(m2M) * S2z
     phasing_coeffs["6PN"] += get_6PNSOCoeff(m1M) * S1z + get_6PNSOCoeff(m2M) * S2z \
                             + get_6PNS1S2OCoeff(eta) * S1z * S2z \
@@ -167,7 +148,7 @@ def get_PNPhasing_F2(m1, m2, S1z, S2z, lambda1, lambda2):
 	      + (get_4PNQM2SOCoeff(m2M) * qm_def2 + get_4PNSelf2SOCoeff(m2M)) * S2z_2 \
 	      + (get_4PNQM2SCoeff(m1M) * qm_def1 + get_4PNSelf2SCoeff(m1M)) * S1z_2 \
 	      + (get_4PNQM2SCoeff(m2M) * qm_def2 + get_4PNSelf2SCoeff(m2M)) * S2z_2 
-       
+
     phasing_coeffs["3PN"] += get_3PNSOCoeff(m1M) * S1z + get_3PNSOCoeff(m2M) * S2z
     
     # Tidal contributions
@@ -179,7 +160,7 @@ def get_PNPhasing_F2(m1, m2, S1z, S2z, lambda1, lambda2):
     phasing_coeffs["12PN"] = (lambda1 * get_12PNTidalCoeff(m1M) + lambda2 * get_12PNTidalCoeff(m2M))
     phasing_coeffs["10PN"] = (lambda1 * get_10PNTidalCoeff(m1M) + lambda2 * get_10PNTidalCoeff(m2M))
     
-    # Multiply all at the end with prefactor
+    # Multiply all at the end with the prefactor
     for key in phasing_coeffs.keys():
         phasing_coeffs[key] *= pfaN
     for key in phasing_log_coeffs.keys():
@@ -190,7 +171,8 @@ def get_PNPhasing_F2(m1, m2, S1z, S2z, lambda1, lambda2):
 
 def gen_TaylorF2(f: Array, params: Array, f_ref: float):
     """
-    Generate PhenomD frequency domain waveform following 1508.07253.
+    Generate TaylorF2 frequency domain waveform 
+    
     vars array contains both intrinsic and extrinsic variables
     theta = [Mchirp, eta, chi1, chi2, lambda1, lambda1, D, tc, phic]
     Mchirp: Chirp mass of the system [solar masses]
@@ -207,19 +189,19 @@ def gen_TaylorF2(f: Array, params: Array, f_ref: float):
 
     Returns:
     --------
-      h0 (array): Strain
+        h0 (array): Strain
     """
     # Lets make this easier by starting in Mchirp and eta space
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s**2.0)
     
     theta_intrinsic = jnp.array([m1, m2, params[2], params[3], params[4], params[5]])
     theta_extrinsic = jnp.array([params[6], params[7], params[8]])
     
     h0 = _gen_TaylorF2(f, theta_intrinsic, theta_extrinsic, f_ref)
+    
     return h0
 
 
@@ -241,8 +223,8 @@ def gen_TaylorF2_hphc(f: Array, params: Array, f_ref: float):
 
     Returns:
     --------
-      hp (array): Strain of the plus polarization
-      hc (array): Strain of the cross polarization
+        hp (array): Strain of the plus polarization
+        hc (array): Strain of the cross polarization
     """
     iota = params[-1]
     h0 = gen_TaylorF2(f, params, f_ref)
@@ -405,6 +387,7 @@ def _gen_TaylorF2(
     
     amp = amp0 * jnp.sqrt(-dEnergy/flux) * v
     
+    # Assemble everything in final waveform
     h0 = amp * jnp.cos(phasing - PI/4) - amp * jnp.sin(phasing - PI/4) * 1.0j
 
     return h0

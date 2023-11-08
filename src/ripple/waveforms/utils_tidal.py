@@ -1,47 +1,72 @@
-"""Small utility script for shared functions between tidal waveforms, especially for NRTidalv2 and NRTidalv3"""
+"""Small utility script for shared functions between tidal waveforms, especially for NRTidalv2"""
 
 import jax
 import jax.numpy as jnp
 from ..typing import Array
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, TWO_PI, MSUN, MRSUN
 
-def universal_relation(coeffs, x):
+def universal_relation(coeffs: Array, x: float):
+    """Applies the general formula of a universal relationship, which is a quartic polynomial.
+
+    Args:
+        coeffs (Array): Array of coefficients for the quartic polynomial, starting from the constant term and going to the fourth order.
+        x (float): Variable of quartic polynomial
+
+    Returns:
+        float: Result of universal relation
+    """
     return coeffs[0] + coeffs[1] * x + coeffs[2] * (x ** 2) + coeffs[3] * (x ** 3) + coeffs[4] * (x ** 4)
 
 def get_quadparam_octparam(lambda_: float) -> tuple[float, float]:
+    """Compute the quadrupole and octupole parameter by checking the value of lambda and choosing the right subroutine.
+    If lambda is smaller than 1, we make use of the fit formula as given by the LAL source code. Otherwise, we rely on the equations of
+    the NRTidalv2 paper to get these parameters.
+
+    Args:
+        lambda_ (float): Tidal deformability of object.
+
+    Returns:
+        tuple[float, float]: Quadrupole and octupole parameters.
+    """
     
-    # Check if lambda is low or not
+    # Check if lambda is low or not, and choose right subroutine
     is_low_lambda = lambda_ < 1
-    
     return jax.lax.cond(is_low_lambda, _get_quadparam_octparam_low, _get_quadparam_octparam_high, lambda_)
 
-def get_kappa(theta):
+def get_kappa(theta: Array) -> float:
+    """Computes the tidal deformability parameter kappa according to equation (8) of the NRTidalv2 paper.
+
+    Args:
+        theta (Array): Intrinsic parameters m1, m2, chi1, chi2, lambda1, lambda2
+
+    Returns:
+        float: kappa_eff^T from equation (8) of NRTidalv2 paper.
+    """
+    
+    # Auxiliary variables
     m1, m2, _, _, lambda1, lambda2 = theta
     M = m1 + m2
-
-    # Compute X
     X1 = m1 / M
     X2 = m2 / M
 
+    # Get kappa
     term1 = (1.0 + 12.0 * X2 / X1) * (X1 ** 5.0) * lambda1
     term2 = (1.0 + 12.0 * X1 / X2) * (X2 ** 5.0) * lambda2
-    
     kappa = (3./13.) * (term1 + term2)
     
     return kappa 
 
-def get_amp0_lal(M, distance):
-    """amp0 as defined by LAL in LALSimIMRPhenomD, line 331. 
-    
+def get_amp0_lal(M: float, distance: float):
+    """Get the amp0 prefactor as defined in LAL in LALSimIMRPhenomD, line 331. 
+
     Args:
-        distance: Distance to source in meters
+        M (float): Total mass in solar masses
+        distance (float): Distance to the source in Mpc.
 
     Returns:
-        float: amp0 defined by LALSimIMRPhenomD, line 331. 
+        float: amp0 from LAL.
     """
-    
     amp0 = 2. * jnp.sqrt(5. / (64. * PI)) * M * MRSUN * M * gt / distance
-    
     return amp0
 
 def _get_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
@@ -60,7 +85,6 @@ def _get_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
     """
     
     # Coefficients of universal relation
-    quad_coeffs = [0.1940, 0.09163, 0.04812, -4.283e-3, 1.245e-4]
     oct_coeffs = [0.003131, 2.071, -0.7152, 0.2458, -0.03309]
     
     # Extension of the fit in the range lambda2 = [0,1.] so that the BH limit is enforced, lambda2bar->0 gives quadparam->1. and the junction with the universal relation is smooth, of class C2
@@ -69,9 +93,6 @@ def _get_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
         
     # Compute octparam:
     log_octparam = universal_relation(oct_coeffs, log_quadparam)
-
-    # Get rid of log and remove 1 for BBH baseline
-    # quadparam = jnp.exp(log_quadparam) - 1
     octparam = jnp.exp(log_octparam)
 
     return quadparam, octparam
@@ -108,46 +129,52 @@ def _get_quadparam_octparam_high(lambda_: float) -> tuple[float, float]:
     return quadparam, octparam
 
 def planck_taper(t: Array, t1: float, t2: float) -> Array:
-    """
-    As taken from Lalsuite
+    """Function to compute the Planck taper window between t1 and t2.
+
     Args:
-        t:
-        t1:
-        t2:
+        t (Array): Times at which the Planck taper has to be computed.
+        t1 (float): Start of Planck taper.
+        t2 (float): End of Planck taper.
 
     Returns:
-        Planck taper
+        Array: Planck taper A_P
     """
 
-    # Middle part: transition formula for Planck taper
+    # Planck taper consists of three parts:
+    begin = jnp.zeros_like(t)
+    end = jnp.ones_like(t)
     middle = 1. / (jnp.exp((t2 - t1)/(t - t1) + (t2 - t1)/(t - t2)) + 1.)
 
-    taper = jnp.heaviside(t1 - t, 1) * jnp.zeros_like(t) \
+    # Build the taper from the three parts with step functions
+    taper = jnp.heaviside(t1 - t, 1) * begin \
             + jnp.heaviside(t - t1, 1) * jnp.heaviside(t2 - t, 1) * middle \
-            + jnp.heaviside(t - t2, 1) * jnp.ones_like(t)
+            + jnp.heaviside(t - t2, 1) * end
 
     return taper
 
-def get_planck_taper(f: Array, f_merger: float):
-    
-    f_start = f_merger
-    f_end   = 1.2 * f_merger
-
-    A_P = planck_taper(f, f_start, f_end)
-
-    return A_P
-
-def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float =1):
-    """_summary_
+def get_planck_taper(f: Array, f_merger: float) -> Array:
+    """Get the Planck taper for the purpose of NRTidalv2, namely by applying it in the window [f_merger, 1.2f_merger]
 
     Args:
-        x (Array): _description_
-        theta (Array): _description_
-        kappa (float): _description_
-        distance (float, optional): Distance to source in megaparsecs. Defaults to 1.
+        f (Array): Frequency grid at which the GW is being computed.
+        f_merger (float): Merger frequency in Hz.
 
     Returns:
-        _type_: _description_
+        Array: Planck taper for NRTidalv2
+    """
+    return planck_taper(f, f_merger, 1.2 * f_merger)
+
+def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float =1):
+    """Get the tidal amplitude corrections as given in equation (24) of the NRTidal paper.
+
+    Args:
+        x (Array): Angular frequency, in particular, x = (pi M f)^(2/3)
+        theta (Array): Intrinsic parameters (mass1, mass2, chi1, chi2, lambda1, lambda2)
+        kappa (float): Tidal parameter kappa
+        distance (float, optional): Distance to the source in Mpc.
+
+    Returns:
+        Array: Tidal amplitude corrections A_T from NRTidalv2 paper.
     """
     
     # Mass variables
@@ -155,9 +182,8 @@ def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float =1
     M = m1 + m2
     m1_s = m1 * gt
     m2_s = m2 * gt
-    M_s = m1_s + m2_s
-    eta = m1_s * m2_s / (M_s ** 2.0)
     
+    # Convert distance to meters
     distance *= m_per_Mpc
     
     # Pade approximant
@@ -168,11 +194,9 @@ def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float =1
     den = 1.0 + d * x ** 4.
     poly = num / den
     
-    # Prefactor from lal
+    # Prefactors are taken from lal source code
     prefac = - 9.0 * kappa
     ampT = prefac * x ** (13. / 4.) * poly
-    
-    # Now get the FULL tidal amplitude - have two extra prefactors to take into account
     amp0 = get_amp0_lal(M, distance)
     ampT *= amp0 * 2 * jnp.sqrt(PI / 5)
     
