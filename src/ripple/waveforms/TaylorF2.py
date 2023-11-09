@@ -214,6 +214,8 @@ def gen_TaylorF2_hphc(f: Array, params: Array, f_ref: float):
     eta: Symmetric mass ratio [between 0.0 and 0.25]
     chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
     chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
+    lambda1: Dimensionless tidal deformability of the primary object [between 0 and 5000]
+    lambda2: Dimensionless tidal deformability of the secondary object [between 0 and 5000]
     D: Luminosity distance to source [Mpc]
     tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
     phic: Phase of coalesence

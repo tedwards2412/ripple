@@ -134,9 +134,10 @@ def non_precessing_matchmaking(
     inclination = np.random.uniform(0, PI)
     phi_ref = np.random.uniform(0, PI)
     
-    # TODO fix time of coalescence?
+    # # TODO fix time of coalescence?
+    # tc = np.random.uniform(-5, 5)
     tc = 0.0
-    tc = np.random.uniform(-5, 5)
+    
 
     if m1 < m2:
         theta = np.array([m2, m1, s2, s1, l2, l1, dist_mpc, tc, phi_ref, inclination])
@@ -359,6 +360,8 @@ def save_matches(filename, thetas, matches):
 
 
 if __name__ == "__main__":
-    df = random_match_NRTidal(1000, "TaylorF2")
+    approximant = "TaylorF2"
+    print(f"Checking approximant {approximant}")
+    df = random_match_NRTidal(1000, approximant)
 
     print(df)
