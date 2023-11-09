@@ -136,6 +136,7 @@ def non_precessing_matchmaking(
     
     # TODO fix time of coalescence?
     tc = 0.0
+    tc = np.random.uniform(-5, 5)
 
     if m1 < m2:
         theta = np.array([m2, m1, s2, s1, l2, l1, dist_mpc, tc, phi_ref, inclination])
@@ -358,6 +359,6 @@ def save_matches(filename, thetas, matches):
 
 
 if __name__ == "__main__":
-    df = random_match_NRTidal(1000, "IMRPhenomD_NRTidalv2")
+    df = random_match_NRTidal(1000, "TaylorF2")
 
     print(df)
