@@ -228,6 +228,9 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
         h0 (array): Strain
     """
     
+    # TODO make sure this gets called with a Jax array
+    params = jnp.array(params)
+    
     # Get component masses
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     lambda1, lambda2 = lambda_tildes_to_lambdas(jnp.array([params[4], params[5], m1, m2]))
