@@ -5,7 +5,7 @@ import jax.numpy as jnp
 
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, TWO_PI, MSUN, MRSUN
 from ..typing import Array
-from ripple import Mc_eta_to_ms, ms_to_Mc_eta
+from ripple import Mc_eta_to_ms, ms_to_Mc_eta, lambda_tildes_to_lambdas, lambdas_to_lambda_tildes
 import sys
 from .IMRPhenomD import get_Amp0
 from .utils_tidal import *
@@ -230,8 +230,8 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     
     # Get component masses
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
+    lambda1, lambda2 = lambda_tildes_to_lambdas(jnp.array([params[4], params[5], m1, m2]))
     chi1, chi2 = params[2], params[3]
-    lambda1, lambda2 = params[4], params[5]
     
     theta_intrinsic = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
     theta_extrinsic = params[6:]

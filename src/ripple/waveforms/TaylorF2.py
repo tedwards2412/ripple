@@ -4,7 +4,7 @@ import jax.numpy as jnp
 
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, MRSUN
 from ..typing import Array
-from ripple import Mc_eta_to_ms, ms_to_Mc_eta
+from ripple import Mc_eta_to_ms, ms_to_Mc_eta, lambda_tildes_to_lambdas, lambdas_to_lambda_tildes
 from .utils_tidal import *
 
 # All auxiliary functions to get the required coefficients for TaylorF2:
@@ -179,8 +179,8 @@ def gen_TaylorF2(f: Array, params: Array, f_ref: float):
     eta: Symmetric mass ratio [between 0.0 and 0.25]
     chi1: Dimensionless aligned spin of the primary object [between -1 and 1]
     chi2: Dimensionless aligned spin of the secondary object [between -1 and 1]
-    lambda1: Dimensionless tidal deformability first object [between 0 and 5000]
-    lambda2: Dimensionless tidal deformability second object [between 0 and 5000]
+    lambda tilde: Dimensionless tidal deformability first object [between 0 and 5000]
+    delta lamda tilde: Dimensionless tidal deformability second object [between 0 and 5000]
     D: Luminosity distance to source [Mpc]
     tc: Time of coalesence. This only appears as an overall linear in f contribution to the phase
     phic: Phase of coalesence
@@ -193,11 +193,11 @@ def gen_TaylorF2(f: Array, params: Array, f_ref: float):
     """
     # Lets make this easier by starting in Mchirp and eta space
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
+    lambda1, lambda2 = lambda_tildes_to_lambdas(jnp.array([params[4], params[5], m1, m2]))
     m1_s = m1 * gt
     m2_s = m2 * gt
-    M_s = m1_s + m2_s
     
-    theta_intrinsic = jnp.array([m1, m2, params[2], params[3], params[4], params[5]])
+    theta_intrinsic = jnp.array([m1, m2, params[2], params[3], lambda1, lambda2])
     theta_extrinsic = jnp.array([params[6], params[7], params[8]])
     
     h0 = _gen_TaylorF2(f, theta_intrinsic, theta_extrinsic, f_ref)
@@ -267,7 +267,6 @@ def _gen_TaylorF2(
     
     m1, m2, chi1, chi2, lambda1, lambda2 = theta_intrinsic
     dist_mpc, tc, phi_ref = theta_extrinsic
-    Mc, _ = ms_to_Mc_eta(jnp.array([m1, m2]))
     m1_s = m1 * gt
     m2_s = m2 * gt
     M = m1 + m2
