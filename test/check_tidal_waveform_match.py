@@ -7,7 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from ripple import get_eff_pads, get_match_arr
-from ripple import ms_to_Mc_eta, Mc_eta_to_ms
+from ripple import ms_to_Mc_eta, Mc_eta_to_ms, lambdas_to_lambda_tildes
 from ripple.constants import PI
 
 import lal
@@ -15,7 +15,7 @@ import lalsimulation as lalsim
 
 config.update("jax_enable_x64", True)
 
-def random_match_NRTidal(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
+def random_match(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
     """
     Generates random wavefporm match scores between LAL and ripple.
     
@@ -115,8 +115,8 @@ def non_precessing_matchmaking(
     
     # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
     m_l, m_u = 0.5, 3.0
-    chi_l, chi_u = 1, 1
-    lambda_u = 0
+    chi_l, chi_u = -1, 1
+    lambda_u = 5000
 
     m1 = np.random.uniform(m_l, m_u)
     m2 = np.random.uniform(m_l, m_u)
@@ -137,7 +137,6 @@ def non_precessing_matchmaking(
     # # TODO fix time of coalescence?
     # tc = np.random.uniform(-5, 5)
     tc = 0.0
-    
 
     if m1 < m2:
         theta = np.array([m2, m1, s2, s1, l2, l1, dist_mpc, tc, phi_ref, inclination])
@@ -191,8 +190,10 @@ def non_precessing_matchmaking(
     
     # Get the ripple waveform
     Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
+    lambda_tilde, delta_lambda_tilde = lambdas_to_lambda_tildes(jnp.array([l1, l2, m1, m2]))
+
     theta_ripple = jnp.array(
-        [Mc, eta, theta[2], theta[3], l1, l2, dist_mpc, tc, phi_ref, inclination]
+        [Mc, eta, theta[2], theta[3], lambda_tilde, delta_lambda_tilde, dist_mpc, tc, phi_ref, inclination]
     )
     hp_ripple = waveform(theta_ripple)
     # hp_ripple = hp_ripple[mask_lal]
@@ -362,6 +363,6 @@ def save_matches(filename, thetas, matches):
 if __name__ == "__main__":
     approximant = "TaylorF2"
     print(f"Checking approximant {approximant}")
-    df = random_match_NRTidal(1000, approximant)
+    df = random_match(1000, approximant)
 
     print(df)
