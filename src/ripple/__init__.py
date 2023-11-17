@@ -116,7 +116,7 @@ def lambda_tildes_to_lambdas(params: Array):
     
     lambda_tilde, delta_lambda_tilde, mass_1, mass_2 = params
     
-    _, eta = ms_to_Mc_eta(mass_1, mass_2)
+    _, eta = ms_to_Mc_eta(jnp.array([mass_1, mass_2]))
     coefficient_1 = (1 + 7 * eta - 31 * eta**2)
     coefficient_2 = (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2)
     coefficient_3 = (1 - 4 * eta)**0.5 *\
