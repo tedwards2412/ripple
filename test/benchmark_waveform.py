@@ -7,8 +7,9 @@ from jax import vmap
 import numpy as np
 from ripple import ms_to_Mc_eta
 
-# from jax.config import config
-# config.update("jax_enable_x64", True)
+from jax.config import config
+
+config.update("jax_enable_x64", True)
 
 
 def benchmark_waveform_call(IMRphenom: str):
@@ -34,7 +35,7 @@ def benchmark_waveform_call(IMRphenom: str):
     fs = freqs[(freqs > f_l) & (freqs < f_u)]
     f_ref = f_l
 
-    n = 1_000_000
+    n = 1_0000
     # Intrinsic parameters
     m1 = np.random.uniform(1.0, 100.0, n)
     m2 = np.random.uniform(1.0, 100.0, n)
@@ -59,7 +60,7 @@ def benchmark_waveform_call(IMRphenom: str):
             phic,
             inclination,
         ]
-    )
+    ).T
 
     @jax.jit
     def waveform(theta):
@@ -89,6 +90,6 @@ def benchmark_waveform_call(IMRphenom: str):
 
 
 if __name__ == "__main__":
-    # Choose from "IMRPhenomD", "IMRPhenomXAS", "IMRPhenomPv2"
+    # Choose from "IMRPhenomD", "IMRPhenomXAS"
     benchmark_waveform_call("IMRPhenomD")
     None

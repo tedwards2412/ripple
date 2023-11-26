@@ -11,7 +11,7 @@ from .IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
     EradRational0815,
-    FinalSpin0815_s
+    FinalSpin0815_s,
 )
 from ..typing import Array
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
@@ -29,6 +29,7 @@ def ROTATEY(angle, x, y, z):
     tmp_z = -x * jnp.sin(angle) + z * jnp.cos(angle)
     return tmp_x, y, tmp_z
 
+
 def FinalSpin0815(eta, chi1, chi2):
     Seta = jnp.sqrt(1.0 - 4.0 * eta)
     m1 = 0.5 * (1.0 + Seta)
@@ -38,9 +39,10 @@ def FinalSpin0815(eta, chi1, chi2):
     s = m1s * chi1 + m2s * chi2
     return FinalSpin0815_s(eta, s)
 
+
 def convert_spins(
-    m1_SI: float,
-    m2_SI: float,
+    m1: float,
+    m2: float,
     f_ref: float,
     phiRef: float,
     incl: float,
@@ -51,8 +53,8 @@ def convert_spins(
     s2y: float,
     s2z: float,
 ) -> Tuple[float, float, float, float, float, float, float]:
-    m1 = m1_SI / MSUN  # Masses in solar masses
-    m2 = m2_SI / MSUN
+    # m1 = m1_SI / MSUN  # Masses in solar masses
+    # m2 = m2_SI / MSUN
     M = m1 + m2
     m1_2 = m1 * m1
     m2_2 = m2 * m2
@@ -196,6 +198,7 @@ def SpinWeightedY(theta, phi, s, l, m):
             else:
                 raise ValueError(f"Invalid mode s={s}, l={l}, m={m} - require |m| <= l")
     return fac * np.exp(1j * m * phi)
+
 
 def L2PNR(v: float, eta: float) -> float:
     eta2 = eta**2
@@ -342,6 +345,7 @@ def ComputeNNLOanglecoeffs(q, chil, chip):
     )
     return angcoeffs
 
+
 def FinalSpin_inplane(m1, m2, chi1_l, chi2_l, chip):
     M = m1 + m2
     eta = m1 * m2 / (M * M)
@@ -363,12 +367,9 @@ def phP_get_fRD_fdamp(m1, m2, chi1_l, chi2_l, chip):
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     eta_s = m1_s * m2_s / (M_s**2.0)
-    fRD = jnp.interp(finspin, QNMData_a, QNMData_fRD) / (
-        1.0 - EradRational0815(eta_s, chi1_l, chi2_l)
-    )
-    fdamp = jnp.interp(finspin, QNMData_a, QNMData_fdamp) / (
-        1.0 - EradRational0815(eta_s, chi1_l, chi2_l)
-    )
+    Erad = EradRational0815(eta_s, chi1_l, chi2_l)
+    fRD = jnp.interp(finspin, QNMData_a, QNMData_fRD) / (1.0 - Erad)
+    fdamp = jnp.interp(finspin, QNMData_a, QNMData_fdamp) / (1.0 - Erad)
 
     return fRD / M_s, fdamp / M_s
 
