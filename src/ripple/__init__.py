@@ -136,7 +136,11 @@ def lambda_tildes_to_lambdas(params: Array):
 
     return lambda_1, lambda_2
 
-
+def get_chi_eff(params: Array) -> float:
+    
+    m1, m2, chi1, chi2 = params 
+    
+    return (m1 * chi1 + m2 * chi2) / (m1 + m2)
 
 def get_f_isco(m):
     r"""
