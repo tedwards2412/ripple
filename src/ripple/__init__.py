@@ -137,6 +137,7 @@ def lambda_tildes_to_lambdas(params: Array):
     return lambda_1, lambda_2
 
 def get_chi_eff(params: Array) -> float:
+    def get_chi_eff(params: Array) -> float:
     """Compute effective spin.
 
     Args:
@@ -147,6 +148,9 @@ def get_chi_eff(params: Array) -> float:
     """
     m1, m2, chi1, chi2 = params
     
+    m1, m2, chi1, chi2 = params 
+    
+    return (m1 * chi1 + m2 * chi2) / (m1 + m2)
     chi_eff = (m1 * chi1 + m2 * chi2) / (m1 + m2)
     return chi_eff
 
