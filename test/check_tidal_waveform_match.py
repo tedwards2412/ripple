@@ -115,7 +115,7 @@ def non_precessing_matchmaking(
     
     # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
     m_l, m_u = 0.5, 3.0
-    chi_l, chi_u = -1, 1
+    chi_l, chi_u = -0.05, 0.05
     lambda_u = 5000
 
     m1 = np.random.uniform(m_l, m_u)
@@ -124,20 +124,12 @@ def non_precessing_matchmaking(
     s2 = np.random.uniform(chi_l, chi_u)
     l1 = np.random.uniform(0, lambda_u)
     l2 = np.random.uniform(0, lambda_u)
-    
-    ### Override for equal masses/spins/lambdas
-    m2 = m1 - 1e-6 # small nudge otherwise we can get NaNs
-    s2 = s1
-    l2 = l1
 
     dist_mpc = np.random.uniform(0, 1000)
-    inclination = np.random.uniform(0, PI)
-    phi_ref = np.random.uniform(0, PI)
-    
-    # # TODO fix time of coalescence?
-    # tc = np.random.uniform(-5, 5)
     tc = 0.0
-
+    inclination = np.random.uniform(0, 2*PI)
+    phi_ref = np.random.uniform(0, 2*PI)
+    
     if m1 < m2:
         theta = np.array([m2, m1, s2, s1, l2, l1, dist_mpc, tc, phi_ref, inclination])
     elif m1 >= m2:
@@ -357,11 +349,8 @@ def save_matches(filename, thetas, matches):
 
     return df
 
-
-
-
 if __name__ == "__main__":
-    approximant = "TaylorF2"
+    approximant = "TaylorF2" # supported: "TaylorF2" and "IMRPhenomD_NRTidalv2"
     print(f"Checking approximant {approximant}")
     df = random_match(1000, approximant)
 
