@@ -16,8 +16,8 @@ from .IMRPhenomD_utils import *
 def PhenomPCoreTwistUp(
     fHz,
     hPhenom,
-    phase,
-    Amp,
+    # phase,
+    # Amp,
     eta,
     chi1_l,
     chi2_l,
@@ -39,7 +39,7 @@ def PhenomPCoreTwistUp(
     Sperp = chip * (
         m2 * m2
     )  # Dimensionfull spin component in the orbital plane. S_perp = S_2_perp
-    chi_eff = m1 * chi1_l + m2 * chi2_l  # effective spin for M=1
+    # chi_eff = m1 * chi1_l + m2 * chi2_l  # effective spin for M=1
 
     SL = chi1_l * m1 * m1 + chi2_l * m2 * m2  # Dimensionfull aligned spin.
 
@@ -74,15 +74,15 @@ def PhenomPCoreTwistUp(
     sBetah3 = sBetah2 * sBetah
     sBetah4 = sBetah3 * sBetah
 
-    d2 = jnp.array(
-        [
-            sBetah4,
-            2 * cBetah * sBetah3,
-            jnp.sqrt(6) * sBetah2 * cBetah2,
-            2 * cBetah3 * sBetah,
-            cBetah4,
-        ]
-    )
+    # d2 = jnp.array(
+    #     [
+    #         sBetah4,
+    #         2 * cBetah * sBetah3,
+    #         jnp.sqrt(6) * sBetah2 * cBetah2,
+    #         2 * cBetah3 * sBetah,
+    #         cBetah4,
+    #     ]
+    # )
     Y2mA = jnp.array(Y2m)  # need to pass Y2m in a 5-component list
     hp_sum = 0
     hc_sum = 0
@@ -114,7 +114,7 @@ def PhenomPCoreTwistUp(
 
     return hp, hc
 
-def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc, ppes):
+def PhenomPOneFrequency(fs, m1, m2, chi1, chi2, chip, phic, M, dist_mpc, ppes):
     """
     m1, m2: in solar masses
     phic: Orbital phase at the peak of the underlying non precessing model (rad)
@@ -123,46 +123,46 @@ def PhenomPOneFrequency(fsHz, m1, m2, chi1, chi2, chip, phic, M, dist_mpc, ppes)
     # These are the parametrs that go into the waveform generator
     # Note that JAX does not give index errors, so if you pass in the
     # the wrong array it will behave strangely
-    magicalnumber = 2.0 * jnp.sqrt(5.0 / (64.0 * jnp.pi))
-    f = fsHz  # * MSUN * M
+    norm = 2.0 * jnp.sqrt(5.0 / (64.0 * jnp.pi))
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(theta_ripple)
     transition_freqs = phP_get_transition_frequencies(
         theta_ripple, coeffs[5], coeffs[6], chip
     )
 
-    phase = PPEPhDPhase(f, theta_ripple, ppes, coeffs, transition_freqs)
+    phase = PPEPhDPhase(fs, theta_ripple, ppes, coeffs, transition_freqs)   
+    Dphi = lambda f: -PPEPhDPhase(f, theta_ripple, coeffs, transition_freqs)
 
     phase -= phic
-    Amp = PPEPhDAmp(f, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / magicalnumber
+    Amp = PPEPhDAmp(fs, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / norm
 
     # phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(-1j * phase))
-    return hPhenom, phase, Amp
+    return hPhenom, Dphi
 
 
-def PhenomPOneFrequency_phase(
-    f: float,
-    m1: float,
-    m2: float,
-    chi1: float,
-    chi2: float,
-    chip: float,
-    phic: float,
-    M: float,
-    dist_mpc: float,
-    ppes: Array
-):
-    """
-    """
-    theta_ripple = jnp.array([m1, m2, chi1, chi2])
-    coeffs = get_coeffs(theta_ripple)
-    transition_freqs = phP_get_transition_frequencies(
-        theta_ripple, coeffs[5], coeffs[6], chip
-    )
-
-    phase = PPEPhDPhase(f, theta_ripple, ppes, coeffs, transition_freqs)
-    return -phase
+# def PhenomPOneFrequency_phase(
+#     f: float,
+#     m1: float,
+#     m2: float,
+#     chi1: float,
+#     chi2: float,
+#     chip: float,
+#     phic: float,
+#     M: float,
+#     dist_mpc: float,
+#     ppes: Array
+# ):
+#     """
+#     """
+#     theta_ripple = jnp.array([m1, m2, chi1, chi2])
+#     coeffs = get_coeffs(theta_ripple)
+#     transition_freqs = phP_get_transition_frequencies(
+#         theta_ripple, coeffs[5], coeffs[6], chip
+#     )
+# 
+#     phase = PPEPhDPhase(f, theta_ripple, ppes, coeffs, transition_freqs)
+#     return -phase
 
 
 def gen_IMRPhenomPv2(
@@ -184,8 +184,8 @@ def gen_IMRPhenomPv2(
     s1z, s2z = s2z, s1z
     # from now on, m1 < m2
 
-    m1_SI = m1 * MSUN
-    m2_SI = m2 * MSUN
+    # m1_SI = m1 * MSUN
+    # m2_SI = m2 * MSUN
     (
         chi1_l,
         chi2_l,
@@ -194,9 +194,7 @@ def gen_IMRPhenomPv2(
         alpha0,
         phi_aligned,
         zeta_polariz,
-    ) = convert_spins(
-        m1_SI, m2_SI, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z
-    )
+    ) = convert_spins(m1, m2, f_ref, phiRef, incl, s1x, s1y, s1z, s2x, s2y, s2z)
     phic = 2 * phi_aligned
     q = m2 / m1  # q>=1
     M = m1 + m2
@@ -236,15 +234,23 @@ def gen_IMRPhenomPv2(
     Y22 = SpinWeightedY(thetaJN, 0, -2, 2, 2)
     Y2 = [Y2m2, Y2m1, Y20, Y21, Y22]
 
-    hPhenomDs, phase, Amp = PhenomPOneFrequency(
+    # Shift phase so that peak amplitude matches t = 0
+    theta_intrinsic = jnp.array([m2, m1, chi2_l, chi1_l])
+    coeffs = get_coeffs(theta_intrinsic)
+
+    transition_freqs = phP_get_transition_frequencies(
+        theta_intrinsic, coeffs[5], coeffs[6], chip
+    )
+
+    hPhenomDs, phi_IIb = PhenomPOneFrequency(
         fs, m2, m1, chi2_l, chi1_l, chip, phic, M, dist_mpc, ppes
     )
 
     hp, hc = PhenomPCoreTwistUp(
         fs,
         hPhenomDs,
-        phase,
-        Amp,
+        # phase,
+        # Amp,
         eta,
         chi1_l,
         chi2_l,
@@ -255,22 +261,12 @@ def gen_IMRPhenomPv2(
         alphaNNLOoffset - alpha0,
         epsilonNNLOoffset,
     )
-
-    # Shift phase so that peak amplitude matches t = 0
-    theta_intrinsic = jnp.array([m2, m1, chi2_l, chi1_l])
-    coeffs = get_coeffs(theta_intrinsic)
-
-    theta_ripple = jnp.array([m2, m1, chi2_l, chi1_l])
-
-    transition_freqs = phP_get_transition_frequencies(
-        theta_ripple, coeffs[5], coeffs[6], chip
-    )
     # unpack transition_freqs
     _, _, _, _, f_RD, _ = transition_freqs
 
-    phi_IIb = lambda f: PhenomPOneFrequency_phase(
-        f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc, ppes
-    )
+    # phi_IIb = lambda f: PhenomPOneFrequency_phase(
+    #     f, m2, m1, chi2_l, chi1_l, chip, phiRef, M, dist_mpc, ppes
+    # )
     t0 = jax.grad(phi_IIb)(f_RD) / (2 * jnp.pi)
     phase_corr = jnp.cos(2 * jnp.pi * fs * (t0)) - 1j * jnp.sin(2 * jnp.pi * fs * (t0))
     M_s = (m1 + m2) * gt
