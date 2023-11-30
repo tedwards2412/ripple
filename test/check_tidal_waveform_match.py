@@ -110,25 +110,37 @@ def random_match(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
 
 
 def non_precessing_matchmaking(
-    IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches
+    IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches, fixed_extrinsic = True, fixed_intrinsic = False,
 ):
     
     # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
     m_l, m_u = 0.5, 3.0
-    chi_l, chi_u = -0.05, 0.05
-    lambda_u = 5000
+    chi_l, chi_u = -1, 1
+    lambda_l, lambda_u = 0, 5000
 
     m1 = np.random.uniform(m_l, m_u)
     m2 = np.random.uniform(m_l, m_u)
     s1 = np.random.uniform(chi_l, chi_u)
     s2 = np.random.uniform(chi_l, chi_u)
-    l1 = np.random.uniform(0, lambda_u)
-    l2 = np.random.uniform(0, lambda_u)
+    l1 = np.random.uniform(lambda_l, lambda_u)
+    l2 = np.random.uniform(lambda_l, lambda_u)
 
     dist_mpc = np.random.uniform(0, 1000)
     tc = 0.0
     inclination = np.random.uniform(0, 2*PI)
     phi_ref = np.random.uniform(0, 2*PI)
+    
+    if fixed_extrinsic:
+        dist_mpc = 440.0
+        inclination = 0.0
+        phi_ref = 0.0
+        
+    if fixed_intrinsic:
+        l1 = 20.0
+        l2 = 20.0
+        
+        s1 = 1.0
+        s2 = 1.0 
     
     if m1 < m2:
         theta = np.array([m2, m1, s2, s1, l2, l1, dist_mpc, tc, phi_ref, inclination])
@@ -331,6 +343,8 @@ def save_matches(filename, thetas, matches):
     tc          = thetas[:, 7]
     phi_ref     = thetas[:, 8]
     inclination = thetas[:, 9]
+    
+    mismatches = np.log10(1 - matches)
 
     my_dict = {'m1': m1, 
                'm2': m2, 
@@ -342,15 +356,17 @@ def save_matches(filename, thetas, matches):
                'tc': tc,
                'phi_ref': phi_ref,
                'inclination': inclination,
-               'match': matches}
-
+               'match': matches, 
+               'mismatch': mismatches}
+    
     df = pd.DataFrame.from_dict(my_dict)
+    df = df.sort_values(by="mismatch", ascending=False)
     df.to_csv(filename)
 
     return df
 
 if __name__ == "__main__":
-    approximant = "TaylorF2" # supported: "TaylorF2" and "IMRPhenomD_NRTidalv2"
+    approximant = "IMRPhenomD_NRTidalv2" # supported: "TaylorF2" and "IMRPhenomD_NRTidalv2"
     print(f"Checking approximant {approximant}")
     df = random_match(1000, approximant)
 

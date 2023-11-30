@@ -95,7 +95,6 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     quadparam2, octparam2 = get_quadparam_octparam(lambda2)
     
     # Remember to remove 1 from quadrupole and octupole, for the BBH baseline
-    
     SS_2 = - 50. * ((quadparam1 - 1) * chi1_sq * X1sq + (quadparam2 - 1) * chi2_sq * X2sq)
     SS_3 = 5.0/84.0 * (9407.0 + 8218.0 * X1 - 2016.0 * X1sq) * (quadparam1 - 1) * X1sq * chi1_sq \
          + 5.0/84.0 * (9407.0 + 8218.0 * X2 - 2016.0 * X2sq) * (quadparam2 - 1) * X2sq * chi2_sq
@@ -106,13 +105,21 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
             + 10. * ((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * (quadparam2 - 1) * X2sq * chi1_sq \
                 - 440. * (octparam1 - 1) * X1 * X1sq * chi1_sq * chi1 \
                 - 440. * (octparam2 - 1) * X2 * X2sq * chi2_sq * chi2
-
+                
     prefac = (3. / (128. * eta))
     psi_SS = prefac * (SS_2 * x ** (-1./2.) + SS_3 * x ** (1./2.) + (SS_3p5 + SSS_3p5) * x)
 
     return psi_SS
 
-
+def subtract_3pn_ss(m1: float, m2: float, chi1: float, chi2: float):
+    M = m1 + m2
+    m1M = m1 / M
+    m2M = m2 / M
+    eta = m1 * m2 / (M**2.0)
+    pn_ss3 = (326.75 / 1.12 + 557.5 / 1.8 * eta) * eta * chi1 * chi2
+    pn_ss3 += ((4703.5 / 8.4 + 2935 / 6 * m1M - 120 * m1M * m1M) + (-4108.25 / 6.72 - 108.5 / 1.2 * m1M + 125.5 / 3.6 * m1M * m1M)) * m1M * m1M * chi1 * chi1
+    pn_ss3 += ((4703.5 / 8.4 + 2935 / 6 * m2M - 120 * m2M * m2M) + (-4108.25 / 6.72 - 108.5 / 1.2 * m2M + 125.5 / 3.6 * m2M * m2M)) * m2M * m2M * chi2 * chi2
+    return pn_ss3
 
 def _get_merger_frequency(theta: Array, kappa: float = None):
     """Computes the merger frequency in Hz of the given system, see equation (11) in https://arxiv.org/abs/1804.02235 or the lal source code.
