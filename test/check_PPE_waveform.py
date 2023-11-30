@@ -266,25 +266,33 @@ def precessing_matchmaking_PPE():
 
 
     # Get random waveform parameters
-    m1 = np.random.uniform(1.0, 100.0)
-    m2 = np.random.uniform(1.0, 100.0)
-    s1_amp = np.random.uniform(0.0, 1.0)
-    s2_amp = np.random.uniform(0.0, 1.0)
-    s1_phi = np.random.uniform(0, 2 * np.pi)
-    s2_phi = np.random.uniform(0, 2 * np.pi)
-    s1_thetahelper = np.random.uniform(0, 1)
-    s2_thetahelper = np.random.uniform(0, 1)
-    s1_theta = np.arccos(1 - 2 * s1_thetahelper)
-    s2_theta = np.arccos(1 - 2 * s2_thetahelper)
+    #m1 = np.random.uniform(1.0, 100.0)
+    #m2 = np.random.uniform(1.0, 100.0)
+    #s1_amp = np.random.uniform(0.0, 1.0)
+    #s2_amp = np.random.uniform(0.0, 1.0)
+    #s1_phi = np.random.uniform(0, 2 * np.pi)
+    #s2_phi = np.random.uniform(0, 2 * np.pi)
+    #s1_thetahelper = np.random.uniform(0, 1)
+    #s2_thetahelper = np.random.uniform(0, 1)
+    #s1_theta = np.arccos(1 - 2 * s1_thetahelper)
+    #s2_theta = np.arccos(1 - 2 * s2_thetahelper)
     # translate that into cartesian
-    s1x = s1_amp * np.sin(s1_theta) * np.cos(s1_phi)
-    s1y = s1_amp * np.sin(s1_theta) * np.sin(s1_phi)
-    s1z = s1_amp * np.cos(s1_theta)
+    #s1x = s1_amp * np.sin(s1_theta) * np.cos(s1_phi)
+    #s1y = s1_amp * np.sin(s1_theta) * np.sin(s1_phi)
+    #s1z = s1_amp * np.cos(s1_theta)
 
-    s2x = s2_amp * np.sin(s2_theta) * np.cos(s2_phi)
-    s2y = s2_amp * np.sin(s2_theta) * np.sin(s2_phi)
-    s2z = s2_amp * np.cos(s2_theta)
-
+    #s2x = s2_amp * np.sin(s2_theta) * np.cos(s2_phi)
+    #s2y = s2_amp * np.sin(s2_theta) * np.sin(s2_phi)
+    #s2z = s2_amp * np.cos(s2_theta)
+    m1 = 20.0 # In solar masses
+    m2 = 15.0
+    s1x = 0.5
+    s1y = 0.5
+    s1z = 0.4
+    s2x = 0.0
+    s2y = 0.9
+    s2z = -0.2
+    
     tc = 0.0
     phic = 0.0
     dist_mpc = 440
@@ -320,7 +328,9 @@ def precessing_matchmaking_PPE():
             inclination,
         ]
     )
-    ppes = np.zeros(15)
+    ppes = jnp.zeros(15)
+    ppes = ppes.at[2].set(15)
+    print("ppes:", ppes)
     hp_pv2, _ = gen_IMRPhenomPv2_hphc(fs, theta_pv2, f_ref)
     hp_PPE_pv2, _ = gen_PPE_IMRPhenomPv2_hphc(fs, theta_pv2, ppes, f_ref)
         
@@ -337,11 +347,13 @@ def precessing_matchmaking_PPE():
                             hp_pv2,
                             hp_PPE_pv2,
                         )
-    plt.plot(fs, hp_pv2, linewidth=2, label="vanilla")
-    plt.plot(fs, hp_PPE_pv2, linewidth=1,label="PPE")
+    
+    plt.figure(figsize=(15, 5))
+    plt.plot(fs, hp_pv2.real, linewidth=1, label="vanilla",alpha=0.4)
+    plt.plot(fs, hp_PPE_pv2.real, linewidth=1,label="PPE", alpha=0.4)
     plt.legend()
     print("matches: ", match)
-    plt.savefig("./PPE_null_test.png",dpi=200)
+    plt.savefig("./PPE_null_test.png",dpi=300)
 
 
 

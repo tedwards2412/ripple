@@ -143,15 +143,15 @@ def get_inspiral_phase(fM_s: Array, theta: Array, ppes: Array, coeffs: Array) ->
 
     phi_TF2 = (
         ppes[0] * ((PI * fM_s) ** -(7.0 / 3.0))
-        + (phi0 * (1. + ppes[1])) * ((PI * fM_s) ** -(5.0 / 3.0))
-        + (phi1 * (1. + ppes[2])) * ((PI * fM_s) ** -(4.0 / 3.0))
-        + (phi2 * (1. + ppes[3])) * ((PI * fM_s) ** -1.0)
-        + (phi3 * (1. + ppes[4])) * ((PI * fM_s) ** -(2.0 / 3.0))
-        + (phi4 * (1. + ppes[5])) * ((PI * fM_s) ** -(1.0 / 3.0))
-        + (phi5_log * (1. + ppes[6])) * jnp.log(v) + phi5
-        + (phi6_log * (1. + ppes[8])) * jnp.log(v) * ((PI * fM_s) ** (1.0 / 3.0))
-        + (phi6 * (1. + ppes[7])) * ((PI * fM_s) ** (1.0 / 3.0))
-        + (phi7 * (1. + ppes[9])) * ((PI * fM_s) ** (2.0 / 3.0))
+        + (phi0 + ppes[1]) * ((PI * fM_s) ** -(5.0 / 3.0))
+        + (phi1 + ppes[2]) * ((PI * fM_s) ** -(4.0 / 3.0))
+        + (phi2 + ppes[3]) * ((PI * fM_s) ** -1.0)
+        + (phi3 + ppes[4]) * ((PI * fM_s) ** -(2.0 / 3.0))
+        + (phi4 + ppes[5]) * ((PI * fM_s) ** -(1.0 / 3.0))
+        + (phi5_log + ppes[6]) * jnp.log(v) + phi5
+        + (phi6_log + ppes[8]) * jnp.log(v) * ((PI * fM_s) ** (1.0 / 3.0))
+        + (phi6 + ppes[7]) * ((PI * fM_s) ** (1.0 / 3.0))
+        + (phi7 + ppes[9]) * ((PI * fM_s) ** (2.0 / 3.0))
     ) * (3.0 / (128.0 * eta)) - PI/4.0
     phi_Ins = (
         phi_TF2
@@ -175,8 +175,8 @@ def get_IIa_raw_phase(fM_s: Array, theta: Array, ppes: Array, coeffs: Array) -> 
 
     phi_IIa_raw = (
         coeffs[11] * fM_s # beta_1
-        + (coeffs[12] * (1. + ppes[10])) * jnp.log(fM_s) # beta_2
-        - (coeffs[13] * (1. + ppes[11]))* (fM_s**-3.0) / 3.0 # beta_3
+        + (coeffs[12] + ppes[10]) * jnp.log(fM_s) # beta_2
+        - (coeffs[13] + ppes[11])* (fM_s**-3.0) / 3.0 # beta_3
     ) / eta
 
     return phi_IIa_raw
@@ -194,9 +194,9 @@ def get_IIb_raw_phase(fM_s: Array, theta: Array, ppes: Array, coeffs: Array, f_R
 
     phi_IIb_raw = (
         coeffs[14] * fM_s
-        - (coeffs[15] * (1. + ppes[12])) * (fM_s**-1.0) # alpha_2
-        + 4.0 * (coeffs[16] * (1. + ppes[13])) * (fM_s ** (3.0 / 4.0)) / 3.0 # alpha_3
-        + (coeffs[17] * (1. +ppes[14])) * jnp.arctan((fM_s - coeffs[18] * f_RDM_s) / f_dampM_s) # alpha_4
+        - (coeffs[15] + ppes[12]) * (fM_s**-1.0) # alpha_2
+        + 4.0 * (coeffs[16] + ppes[13]) * (fM_s ** (3.0 / 4.0)) / 3.0 # alpha_3
+        + (coeffs[17] + ppes[14]) * jnp.arctan((fM_s - coeffs[18] * f_RDM_s) / f_dampM_s) # alpha_4
     ) / eta
 
     return phi_IIb_raw
