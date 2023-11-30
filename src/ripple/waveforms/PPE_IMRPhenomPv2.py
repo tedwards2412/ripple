@@ -131,7 +131,7 @@ def PhenomPOneFrequency(fs, m1, m2, chi1, chi2, chip, phic, M, dist_mpc, ppes):
     )
 
     phase = PPEPhDPhase(fs, theta_ripple, ppes, coeffs, transition_freqs)   
-    Dphi = lambda f: -PPEPhDPhase(f, theta_ripple, coeffs, transition_freqs)
+    Dphi = lambda f: -PPEPhDPhase(f, theta_ripple, ppes, coeffs, transition_freqs)
 
     phase -= phic
     Amp = PPEPhDAmp(fs, theta_ripple, coeffs, transition_freqs, D=dist_mpc) / norm
