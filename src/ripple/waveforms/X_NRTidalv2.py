@@ -204,7 +204,7 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_
 
     return h0
 
-def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Array:
+def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str, use_lambda_tildes: bool=True) -> Array:
     """
     Generate NRTidalv2 frequency domain waveform following NRTidalv2 paper.
     vars array contains both intrinsic and extrinsic variables
@@ -233,7 +233,10 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     
     # Get component masses
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
-    lambda1, lambda2 = lambda_tildes_to_lambdas(jnp.array([params[4], params[5], m1, m2]))
+    if use_lambda_tildes:
+        lambda1, lambda2 = lambda_tildes_to_lambdas(jnp.array([params[4], params[5], m1, m2]))
+    else:
+        lambda1, lambda2 = params[4], params[5]
     chi1, chi2 = params[2], params[3]
     
     theta_intrinsic = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
@@ -258,7 +261,7 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str) -> Arra
     return _gen_NRTidalv2(f, theta_intrinsic, theta_extrinsic, h0_bbh)
 
 
-def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, IMRphenom: str="IMRPhenomD"):
+def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, IMRphenom: str="IMRPhenomD", use_lambda_tildes: bool=True):
     """
     vars array contains both intrinsic and extrinsic variables
     
@@ -282,7 +285,7 @@ def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, IMRphenom: str="IM
         hc (array): Strain of the cross polarization
     """
     iota = params[-1]
-    h0 = gen_NRTidalv2(f, params[:-1], f_ref, IMRphenom=IMRphenom)
+    h0 = gen_NRTidalv2(f, params[:-1], f_ref, IMRphenom=IMRphenom, use_lambda_tildes=use_lambda_tildes)
     
     hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
     hc = -1j * h0 * jnp.cos(iota)
