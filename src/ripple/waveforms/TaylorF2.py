@@ -241,7 +241,8 @@ def _gen_TaylorF2(
     f: Array,
     theta_intrinsic: Array,
     theta_extrinsic: Array,
-    f_ref: float
+    f_ref: float,
+    add_psi_qm: bool = False,
 ):
     """Generates the TaylorF2 waveform accoding to lal implementation.
     
@@ -385,7 +386,12 @@ def _gen_TaylorF2(
     dEnergy = dETaN * v
     
     shft = 2 * PI * tc
-    phasing += shft * f - 2.*phi_ref - ref_phasing
+    # Add (if desired the phase from the spin-induced quadrupole moment)
+    if add_psi_qm:
+        phase_qm = get_spin_induced_quadrupole_phase(v, theta_intrinsic)
+    else:
+        phase_qm = 0.        
+    phasing += shft * f - 2.*phi_ref - ref_phasing + phase_qm
     
     amp = amp0 * jnp.sqrt(-dEnergy/flux) * v
     

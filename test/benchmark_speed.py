@@ -366,7 +366,7 @@ def save_matches(filename, thetas, matches):
     return df
 
 if __name__ == "__main__":
-    approximant = "TaylorF2" # supported: "TaylorF2" and "IMRPhenomD_NRTidalv2"
+    approximant = "IMRPhenomD_NRTidalv2" # supported: "TaylorF2" and "IMRPhenomD_NRTidalv2"
     print(f"Checking approximant {approximant}")
     df = random_match(1000, approximant)
 
