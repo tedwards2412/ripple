@@ -418,13 +418,155 @@ def benchmark_speed(IMRphenom: str, n: int = 10_000):
     end = time.time()
     print("Vmapped ripple waveform call takes: %.6f ms" % ((end - start) * 1000 / n))
     
+    
+def benchmark_speed_lal(IMRphenom, n: int = 10_000):
+    
+    # Specify frequency range
+    f_l = 20
+    f_sampling = 1 * 2048 # 2048 for IMRPhenomD benchmark
+    T = 16
+
+    f_u = f_sampling // 2
+    f_ref = f_l
+    fs = get_freqs(f_l, f_u, f_sampling, T)
+    df = fs[1] - fs[0]
+    
+    is_tidal = check_is_tidal(IMRphenom)
+    
+    m_l, m_u = 0.5, 3.0
+    chi_l, chi_u = -1, 1
+    lambda_l, lambda_u = 0, 5000
+
+    m1 = np.random.uniform(m_l, m_u, n)
+    m2 = np.random.uniform(m_l, m_u, n)
+    s1 = np.random.uniform(chi_l, chi_u, n)
+    s2 = np.random.uniform(chi_l, chi_u, n)
+    l1 = np.random.uniform(lambda_l, lambda_u, n)
+    l2 = np.random.uniform(lambda_l, lambda_u, n)
+
+    dist_mpc = np.random.uniform(0, 1000, n)
+    tc = np.zeros_like(dist_mpc)
+    inclination = np.random.uniform(0, 2*PI, n)
+    phi_ref = np.random.uniform(0, 2*PI, n)
+        
+    theta = np.array([m1, m2, s1, s2, l1, l2, dist_mpc, tc, phi_ref, inclination]).T
+    # Ensure m1 > m2, but now for all entries in theta
+    booleans = theta[:, 0] < theta[:, 1]
+    booleans = np.repeat(booleans[:, np.newaxis], 10, axis=1)
+    theta = np.where(booleans, theta[:, [1, 0, 3, 2, 5, 4, 6, 7, 8, 9]], theta)
+    
+    # Get approximant for lal
+    approximant = lalsim.SimInspiralGetApproximantFromString(IMRphenom)
+    
+    f_ref = f_l
+    
+    # Define the lal waveform generators
+    def lal_waveform_tidal(theta):
+        
+        # Get the tidal parameters and create laldict
+        l1 = theta[4]
+        l2 = theta[5]
+        
+        laldict = lal.CreateDict()
+        lalsim.SimInspiralWaveformParamsInsertTidalLambda1(laldict, l1)
+        lalsim.SimInspiralWaveformParamsInsertTidalLambda2(laldict, l2)
+        quad1 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l1)
+        quad2 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l2)
+        # Note that these are dquadmon, not quadmon, hence have to subtract 1 since that is added again later
+        lalsim.SimInspiralWaveformParamsInsertdQuadMon1(laldict, quad1 - 1)
+        lalsim.SimInspiralWaveformParamsInsertdQuadMon2(laldict, quad2 - 1)
+        
+        m1_kg = theta[0] * lal.MSUN_SI
+        m2_kg = theta[1] * lal.MSUN_SI
+        # Get distance parameter
+        distance = theta[6] * 1e6 * lal.PC_SI
+        # Get inclination and phi_ref
+        phi_ref = theta[8]
+        inclination = theta[9]
+
+        hp, _ = lalsim.SimInspiralChooseFDWaveform(
+            m1_kg,
+            m2_kg,
+            0.0,
+            0.0,
+            theta[2], # spin m1 zero component
+            0.0,
+            0.0,
+            theta[3], # spin m2 zero component
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0,
+            0,
+            df,
+            f_l,
+            f_u,
+            f_ref,
+            laldict,
+            approximant,
+        )
+
+    def lal_waveform_no_tidal(theta):
+        
+        # Note: theta still has lambda parameters, but we just select the ones we need here
+        
+        m1_kg = theta[0] * lal.MSUN_SI
+        m2_kg = theta[1] * lal.MSUN_SI
+        # Get distance parameter
+        distance = theta[6] * 1e6 * lal.PC_SI
+        # Get inclination and phi_ref
+        phi_ref = theta[8]
+        inclination = theta[9]
+
+        hp, _ = lalsim.SimInspiralChooseFDWaveform(
+            m1_kg,
+            m2_kg,
+            0.0,
+            0.0,
+            theta[2], # spin m1 zero component
+            0.0,
+            0.0,
+            theta[3], # spin m2 zero component
+            distance,
+            inclination,
+            phi_ref,
+            0,
+            0,
+            0,
+            df,
+            f_l,
+            f_u,
+            f_ref,
+            None,
+            approximant,
+        )
+        
+    # Start benchmarking
+    if is_tidal:
+        print("Benchmarking tidal waveform")
+        start = time.time()
+        for t in theta:
+            lal_waveform_tidal(t)
+        end = time.time()
+        print("LAL tidal waveform call takes: %.6f ms" % ((end - start) * 1000 / n))
+    else:
+        print("Benchmarking non-tidal waveform")
+        start = time.time()
+        for t in theta:
+            lal_waveform_no_tidal(t)
+        end = time.time()
+        print("LAL non-tidal waveform call takes: %.6f ms" % ((end - start) * 1000 / n))
+
+    print("Done")
 
 if __name__ == "__main__":
     
     check_mismatch = False
-    check_speed = True
+    check_speed = False
+    check_speed_lal = True
     
-    approximant = "IMRPhenomD_NRTidalv2" # "TaylorF2", "IMRPhenomD_NRTidalv2" or "IMRPhenomD"
+    approximant = "IMRPhenomD" # "TaylorF2", "IMRPhenomD_NRTidalv2" or "IMRPhenomD"
     print(f"Checking approximant {approximant}")
     
     ### Computing and reporting mismatches
@@ -437,6 +579,11 @@ if __name__ == "__main__":
     if check_speed:
         print("Checking speed")
         benchmark_speed(approximant)
+        print("Done.")
+        
+    if check_speed_lal:
+        print("Checking speed for lalsuite")
+        benchmark_speed_lal(approximant)
         print("Done.")
     
 
