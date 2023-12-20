@@ -1,95 +1,443 @@
-from math import pi
-import jax.numpy as jnp
+"""
+New, cleaned up version to test BNS waveforms and compare them against IMRPhenomD waveforms.
+
+Both speed and mismatches are checked.
+
+TODO: Implement precession here as well.
+"""
 import time
-import jax
-from jax import vmap
-
 import numpy as np
-from ripple import ms_to_Mc_eta
+import jax
+import jax.numpy as jnp
+import jaxlib
+# Checking which device
+print(jax.devices())
+import matplotlib.pyplot as plt
+import pandas as pd
+from tqdm import tqdm
 
-from jax.config import config
+from ripple import get_eff_pads, get_match_arr
+from ripple import ms_to_Mc_eta, Mc_eta_to_ms, lambdas_to_lambda_tildes
+from ripple.constants import PI
 
-config.update("jax_enable_x64", True)
+import lal
+import lalsimulation as lalsim
 
+jax.config.update("jax_enable_x64", True)
 
-def benchmark_waveform_call(IMRphenom: str):
-    # Get a frequency domain waveform
-    f_l = 16
-    f_u = 512
-    T = 16
+########################### 
+### Auxiliary functions ###
+###########################
 
+def check_is_tidal(IMRphenom: str):
+    # Check if the given waveform is supported:
+    bns_waveforms = ["IMRPhenomD_NRTidalv2", "TaylorF2"]
+    bbh_waveforms = ["IMRPhenomD"]
+    
+    if IMRphenom in bns_waveforms:
+        is_tidal = True
+    else:
+        is_tidal = False
+    
+    return is_tidal
+
+def get_jitted_waveform(IMRphenom: str, fs: np.array, f_ref: float):
+    # Check if the given waveform is supported:
+    
     if IMRphenom == "IMRPhenomD":
-        from ripple.waveforms.IMRPhenomD import (
-            gen_IMRPhenomD_hphc as waveform_generator,
-        )
+        
+        # Import the waveform
+        from ripple.waveforms.IMRPhenomD import gen_IMRPhenomD_hphc as waveform_generator
+        
+        # Get jitted version (note, use IMRPhenomD as underlying waveform model)
+        @jax.jit
+        def waveform(theta):
+            hp, _ = waveform_generator(fs, theta, f_ref)
+            return hp
+    
+    elif IMRphenom == "IMRPhenomD_NRTidalv2":
+        
+        # Import the waveform
+        from ripple.waveforms.X_NRTidalv2 import gen_NRTidalv2_hphc as waveform_generator
+        
+        # Get jitted version (note, use IMRPhenomD as underlying waveform model)
+        @jax.jit
+        def waveform(theta):
+            hp, _ = waveform_generator(fs, theta, f_ref, IMRphenom="IMRPhenomD")
+            return hp
+        
+    elif IMRphenom == "TaylorF2":
+        
+        # Import the waveform
+        from ripple.waveforms.TaylorF2 import gen_TaylorF2_hphc as waveform_generator
+        
+        # Get jitted version
+        @jax.jit
+        def waveform(theta):
+            hp, _ = waveform_generator(fs, theta, f_ref)
+            return hp
+    
+    else:
+        raise ValueError("IMRPhenom not recognized ")
+    
+    return waveform
 
-    if IMRphenom == "IMRPhenomXAS":
-        from ripple.waveforms.IMRPhenomXAS import (
-            gen_IMRPhenomXAS_hphc as waveform_generator,
-        )
-
-    f_sampling = 4096
+def get_freqs(f_l, f_u, f_sampling, T):
+    # Build the frequency grid
     delta_t = 1 / f_sampling
     tlen = int(round(T / delta_t))
     freqs = np.fft.rfftfreq(tlen, delta_t)
     fs = freqs[(freqs > f_l) & (freqs < f_u)]
+    
+    return fs
+
+
+#########################
+### Match against LAL ###
+#########################
+
+def random_match(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
+    """
+    Generates random waveform match scores between LAL and ripple.
+    
+    Note, currently only IMRPhenomD is supported.
+    Args:
+        n: int
+            number of matches to be made
+        IMRphenom: str
+            string indicating which waveform to use
+
+    Returns:
+        TODO
+    """
+
+    # Specify frequency range
+    f_l = 20
+    f_sampling = 2 * 2048
+    T = 16
+
+    # TODO - check at higher frequency
+    f_u = f_sampling // 2
     f_ref = f_l
+    fs = get_freqs(f_l, f_u, f_sampling, T)
+    df = fs[1] - fs[0]
+    
+    waveform = get_jitted_waveform(IMRphenom, fs, f_ref)
+    is_tidal = check_is_tidal(IMRphenom)
 
-    n = 1_0000
-    # Intrinsic parameters
-    m1 = np.random.uniform(1.0, 100.0, n)
-    m2 = np.random.uniform(1.0, 100.0, n)
-    s1 = np.random.uniform(-1.0, 1.0, n)
-    s2 = np.random.uniform(-1.0, 1.0, n)
+    # Get a frequency domain waveform
+    thetas = []
+    matches = []
+    f_ASD, ASD = np.loadtxt("l1_psd.txt", unpack=True)
 
-    # Extrinsic parameters
-    dist_mpc = np.random.uniform(300.0, 1000.0, n)
-    tc = np.random.uniform(-2.0, 2.0, n)
-    phic = np.random.uniform(0.0, 0.0, n)
-    inclination = np.random.uniform(0.0, pi, n)
+    ### Mismatches computations
+    for i in tqdm(range(n)):
+        non_precessing_matchmaking(
+            IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches  
+        )
 
+    # Save and report mismatches
+    thetas = np.array(thetas)
+    matches = np.array(matches)
+
+    df = save_matches(f"matches_data/check_{IMRphenom}_matches.csv", thetas, matches, is_tidal = is_tidal, verbose=True)
+
+    return df
+
+
+def non_precessing_matchmaking(
+    IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches, fixed_extrinsic = True, fixed_intrinsic = False,
+):
+    
+    is_tidal = check_is_tidal(IMRphenom)
+    
+    # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
+    m_l, m_u = 0.5, 3.0
+    chi_l, chi_u = -1, 1
+    lambda_l, lambda_u = 0, 5000
+
+    m1 = np.random.uniform(m_l, m_u)
+    m2 = np.random.uniform(m_l, m_u)
+    s1 = np.random.uniform(chi_l, chi_u)
+    s2 = np.random.uniform(chi_l, chi_u)
+    l1 = np.random.uniform(lambda_l, lambda_u)
+    l2 = np.random.uniform(lambda_l, lambda_u)
+
+    dist_mpc = np.random.uniform(0, 1000)
+    tc = 0.0
+    inclination = np.random.uniform(0, 2*PI)
+    phi_ref = np.random.uniform(0, 2*PI)
+    
+    if fixed_extrinsic:
+        dist_mpc = 440.0
+        inclination = 0.0
+        phi_ref = 0.0
+        
+    if fixed_intrinsic:
+        l1 = 20.0
+        l2 = 20.0
+        
+        s1 = 1.0
+        s2 = 1.0 
+        
+    # Ensure m1 > m2
+    if m1 < m2:
+        theta = np.array([m2, m1, s2, s1, l2, l1, dist_mpc, tc, phi_ref, inclination])
+    elif m1 >= m2:
+        theta = np.array([m1, m2, s1, s2, l1, l2, dist_mpc, tc, phi_ref, inclination])
+    else:
+        raise ValueError("Something went wrong with the parameters")
+    
+    # If not tidal, remove l1 and l2 from theta
+    if not is_tidal:
+        theta = np.delete(theta, [4, 5])
+        l1 = 0.0
+        l2 = 0.0
+    
+    # Get approximant for lal
+    approximant = lalsim.SimInspiralGetApproximantFromString(IMRphenom)
+    
+    f_ref = f_l
+    m1_kg = theta[0] * lal.MSUN_SI
+    m2_kg = theta[1] * lal.MSUN_SI
+    distance = dist_mpc * 1e6 * lal.PC_SI
+    
+    if is_tidal:
+        laldict = lal.CreateDict()
+        lalsim.SimInspiralWaveformParamsInsertTidalLambda1(laldict, l1)
+        lalsim.SimInspiralWaveformParamsInsertTidalLambda2(laldict, l2)
+        quad1 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l1)
+        quad2 = lalsim.SimUniversalRelationQuadMonVSlambda2Tidal(l2)
+        # Note that these are dquadmon, not quadmon, hence have to subtract 1 since that is added again later
+        lalsim.SimInspiralWaveformParamsInsertdQuadMon1(laldict, quad1 - 1)
+        lalsim.SimInspiralWaveformParamsInsertdQuadMon2(laldict, quad2 - 1)
+    else:
+        laldict = None
+
+    hp, _ = lalsim.SimInspiralChooseFDWaveform(
+        m1_kg,
+        m2_kg,
+        0.0,
+        0.0,
+        theta[2], # spin m1 zero component
+        0.0,
+        0.0,
+        theta[3], # spin m2 zero component
+        distance,
+        inclination,
+        phi_ref,
+        0,
+        0,
+        0,
+        df,
+        f_l,
+        f_u,
+        f_ref,
+        laldict,
+        approximant,
+    )
+
+    freqs_lal = np.arange(len(hp.data.data)) * df
+    mask_lal = (freqs_lal > f_l) & (freqs_lal < f_u)
+    freqs_lal = freqs_lal[mask_lal]
+    hp_lalsuite = hp.data.data[mask_lal]
+    
+    # Get the ripple waveform
+    Mc, eta = ms_to_Mc_eta(jnp.array([theta[0], theta[1]]))
+    lambda_tilde, delta_lambda_tilde = lambdas_to_lambda_tildes(jnp.array([l1, l2, m1, m2]))
+
+    theta_ripple = jnp.array(
+        [Mc, eta, theta[2], theta[3], lambda_tilde, delta_lambda_tilde, dist_mpc, tc, phi_ref, inclination]
+    )
+    
+    # If not tidal, remove lambda parameters
+    if not is_tidal:
+        theta_ripple = jnp.delete(theta_ripple, jnp.array([4, 5]))
+    
+    hp_ripple = waveform(theta_ripple)
+    # hp_ripple = hp_ripple[mask_lal]
+    
+    # Check if the ripple strain has NaNs
+    if jnp.isnan(hp_ripple).any():
+        print("NaNs in ripple strain")
+    
+    if jnp.isnan(hp_lalsuite).any():
+        print("NaNs in lalsuite strain")
+        
+    # Compute match
+    PSD_vals = np.interp(fs, f_ASD, ASD) ** 2
+    pad_low, pad_high = get_eff_pads(fs)
+    matches.append(
+        get_match_arr(
+            pad_low,
+            pad_high,
+            # np.ones_like(fs) * 1.0e-42,
+            PSD_vals,
+            hp_ripple,
+            hp_lalsuite,
+        )
+    )
+    thetas.append(theta)
+
+def save_matches(filename, thetas, matches, verbose=True, is_tidal = False):
+
+    # Get the parameters, which depends on whether or not tidal:
+    if is_tidal:
+        m1          = thetas[:, 0]
+        m2          = thetas[:, 1]
+        chi1        = thetas[:, 2]
+        chi2        = thetas[:, 3]
+        lambda1     = thetas[:, 4]
+        lambda2     = thetas[:, 5]
+        dist_mpc    = thetas[:, 6]
+        tc          = thetas[:, 7]
+        phi_ref     = thetas[:, 8]
+        inclination = thetas[:, 9]
+        
+        my_dict = {'m1': m1, 
+                'm2': m2, 
+                'chi1': chi1, 
+                'chi2': chi2, 
+                'lambda1': lambda1, 
+                'lambda2': lambda2,
+                'dist_mpc': dist_mpc,
+                'tc': tc,
+                'phi_ref': phi_ref,
+                'inclination': inclination,
+                'match': matches, 
+                'mismatch': mismatches}
+    else:
+        m1          = thetas[:, 0]
+        m2          = thetas[:, 1]
+        chi1        = thetas[:, 2]
+        chi2        = thetas[:, 3]
+        dist_mpc    = thetas[:, 4]
+        tc          = thetas[:, 5]
+        phi_ref     = thetas[:, 6]
+        inclination = thetas[:, 7]
+        
+        mismatches = np.log10(1 - matches)
+
+        my_dict = {'m1': m1, 
+                'm2': m2, 
+                'chi1': chi1, 
+                'chi2': chi2, 
+                'dist_mpc': dist_mpc,
+                'tc': tc,
+                'phi_ref': phi_ref,
+                'inclination': inclination,
+                'match': matches, 
+                'mismatch': mismatches}
+        
+    # Sort the dict and print if desired
+    mismatches = np.log10(1 - matches)
+    df = pd.DataFrame.from_dict(my_dict)
+    df = df.sort_values(by="mismatch", ascending=False)
+    df.to_csv(filename)
+    
+    if verbose:
+        print("Mean mismatch:", np.mean(mismatches))
+        print("Median mismatch:", np.median(mismatches))
+        print("Minimum mismatch:", np.min(mismatches))
+        print("Maximum mismatch:", np.max(mismatches))
+
+    return df
+
+##########################
+### Speed benchmarking ###
+##########################
+
+def benchmark_speed(IMRphenom: str, n: int = 10_000):
+    
+    # Specify frequency range
+    f_l = 20
+    f_sampling = 1 * 2048 # 2048 for IMRPhenomD benchmark
+    T = 16
+
+    f_u = f_sampling // 2
+    f_ref = f_l
+    fs = get_freqs(f_l, f_u, f_sampling, T)
+    df = fs[1] - fs[0]
+    
+    # @jax.jit
+    # def waveform(theta):
+    #     return waveform_generator(fs, theta, f_ref)
+    
+    is_tidal = check_is_tidal(IMRphenom)
+    
+    # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
+    m_l, m_u = 0.5, 3.0
+    chi_l, chi_u = -1, 1
+    lambda_l, lambda_u = 0, 5000
+
+    m1 = np.random.uniform(m_l, m_u, n)
+    m2 = np.random.uniform(m_l, m_u, n)
+    s1 = np.random.uniform(chi_l, chi_u, n)
+    s2 = np.random.uniform(chi_l, chi_u, n)
+    l1 = np.random.uniform(lambda_l, lambda_u, n)
+    l2 = np.random.uniform(lambda_l, lambda_u, n)
+
+    dist_mpc = np.random.uniform(0, 1000, n)
+    tc = np.zeros_like(dist_mpc)
+    inclination = np.random.uniform(0, 2*PI, n)
+    phi_ref = np.random.uniform(0, 2*PI, n)
+    
+    waveform = get_jitted_waveform(IMRphenom, fs, f_ref)
+    
     Mc, eta = ms_to_Mc_eta(jnp.array([m1, m2]))
+    lambda_tilde, delta_lambda_tilde = lambdas_to_lambda_tildes(jnp.array([l1, l2, m1, m2]))
+
     theta_ripple = np.array(
-        [
-            Mc,
-            eta,
-            s1,
-            s2,
-            dist_mpc,
-            tc,
-            phic,
-            inclination,
-        ]
+        [Mc, eta, s1, s2, lambda_tilde, delta_lambda_tilde, dist_mpc, tc, phi_ref, inclination]
     ).T
-
-    @jax.jit
-    def waveform(theta):
-        return waveform_generator(fs, theta, f_ref)
-
+    
+    # If not tidal, remove lambda parameters
+    if not is_tidal:
+        theta_ripple = np.delete(theta_ripple, [4, 5], axis=1)
+    
+    # Perform the compilation before we time
     print("JIT compiling")
     waveform(theta_ripple[0])[0].block_until_ready()
     print("Finished JIT compiling")
-
+    
+    # First, benchmark the jitted version
+    print("Benchmarking . . .")
     start = time.time()
     for t in theta_ripple:
         waveform(t)[0].block_until_ready()
     end = time.time()
-
     print("Ripple waveform call takes: %.6f ms" % ((end - start) * 1000 / n))
 
-    func = vmap(waveform)
+    # Second, benchmark the vmapped version
+    func = jax.vmap(waveform)
     func(theta_ripple)[0].block_until_ready()
-
+    
+    print("Benchmarking . . .")
     start = time.time()
     func(theta_ripple)[0].block_until_ready()
     end = time.time()
-
     print("Vmapped ripple waveform call takes: %.6f ms" % ((end - start) * 1000 / n))
-
-    return None
-
+    
 
 if __name__ == "__main__":
-    # Choose from "IMRPhenomD", "IMRPhenomXAS"
-    benchmark_waveform_call("IMRPhenomD")
-    None
+    
+    check_mismatch = False
+    check_speed = True
+    
+    approximant = "IMRPhenomD_NRTidalv2" # "TaylorF2", "IMRPhenomD_NRTidalv2" or "IMRPhenomD"
+    print(f"Checking approximant {approximant}")
+    
+    ### Computing and reporting mismatches
+    if check_mismatch:
+        print("Checking mismatches wrt LAL")
+        df = random_match(1000, approximant)
+        print("Done. The dataframe is:")
+        print(df)
+        
+    if check_speed:
+        print("Checking speed")
+        benchmark_speed(approximant)
+        print("Done.")
+    
+
+    
