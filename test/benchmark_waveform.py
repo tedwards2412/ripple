@@ -10,7 +10,8 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 import jaxlib
-# Checking which device
+# Choose device here
+jax.config.update("jax_platform_name", "gpu")
 print(jax.devices())
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -563,10 +564,10 @@ def benchmark_speed_lal(IMRphenom, n: int = 10_000):
 if __name__ == "__main__":
     
     check_mismatch = False
-    check_speed = False
+    check_speed = True
     check_speed_lal = True
     
-    approximant = "IMRPhenomD" # "TaylorF2", "IMRPhenomD_NRTidalv2" or "IMRPhenomD"
+    approximant = "IMRPhenomD_NRTidalv2" # "TaylorF2", "IMRPhenomD_NRTidalv2" or "IMRPhenomD"
     print(f"Checking approximant {approximant}")
     
     ### Computing and reporting mismatches
