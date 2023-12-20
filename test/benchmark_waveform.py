@@ -140,8 +140,10 @@ def random_match(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
     # Save and report mismatches
     thetas = np.array(thetas)
     matches = np.array(matches)
-
-    df = save_matches(f"matches_data/check_{IMRphenom}_matches.csv", thetas, matches, is_tidal = is_tidal, verbose=True)
+    
+    csv_name = f"matches_data/check_{IMRphenom}_matches.csv"
+    print(f"Saving matches to {csv_name}")
+    df = save_matches(csv_name, thetas, matches, is_tidal = is_tidal, verbose=True)
 
     return df
 
@@ -163,6 +165,7 @@ def non_precessing_matchmaking(
     s2 = np.random.uniform(chi_l, chi_u)
     l1 = np.random.uniform(lambda_l, lambda_u)
     l2 = np.random.uniform(lambda_l, lambda_u)
+    
 
     dist_mpc = np.random.uniform(0, 1000)
     tc = 0.0
@@ -295,6 +298,8 @@ def save_matches(filename, thetas, matches, verbose=True, is_tidal = False):
         phi_ref     = thetas[:, 8]
         inclination = thetas[:, 9]
         
+        mismatches = np.log10(1 - matches)
+        
         my_dict = {'m1': m1, 
                 'm2': m2, 
                 'chi1': chi1, 
@@ -331,7 +336,6 @@ def save_matches(filename, thetas, matches, verbose=True, is_tidal = False):
                 'mismatch': mismatches}
         
     # Sort the dict and print if desired
-    mismatches = np.log10(1 - matches)
     df = pd.DataFrame.from_dict(my_dict)
     df = df.sort_values(by="mismatch", ascending=False)
     df.to_csv(filename)
@@ -563,9 +567,9 @@ def benchmark_speed_lal(IMRphenom, n: int = 10_000):
 
 if __name__ == "__main__":
     
-    check_mismatch = False
-    check_speed = True
-    check_speed_lal = True
+    check_mismatch = True
+    check_speed = False
+    check_speed_lal = False
     
     approximant = "IMRPhenomD_NRTidalv2" # "TaylorF2", "IMRPhenomD_NRTidalv2" or "IMRPhenomD"
     print(f"Checking approximant {approximant}")
