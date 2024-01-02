@@ -573,7 +573,7 @@ if __name__ == "__main__":
     check_speed = False
     check_speed_lal = False
     
-    approximant = "IMRPhenomD_NRTidalv2" # "TaylorF2", "IMRPhenomD_NRTidalv2" or "IMRPhenomD"
+    approximant = "IMRPhenomD" # "TaylorF2", "IMRPhenomD_NRTidalv2" or "IMRPhenomD"
     print(f"Checking approximant {approximant}")
     
     ### Computing and reporting mismatches
