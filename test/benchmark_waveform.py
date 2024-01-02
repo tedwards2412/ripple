@@ -11,7 +11,8 @@ import jax
 import jax.numpy as jnp
 import jaxlib
 # Choose device here
-jax.config.update("jax_platform_name", "gpu")
+# jax.config.update("jax_platform_name", "gpu")
+jax.config.update("jax_platform_name", "cpu")
 print(jax.devices())
 import matplotlib.pyplot as plt
 import pandas as pd

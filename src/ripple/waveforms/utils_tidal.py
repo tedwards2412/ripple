@@ -33,42 +33,6 @@ def get_quadparam_octparam(lambda_: float) -> tuple[float, float]:
     is_low_lambda = lambda_ < 1
     return jax.lax.cond(is_low_lambda, _get_quadparam_octparam_low, _get_quadparam_octparam_high, lambda_)
 
-def get_kappa(theta: Array) -> float:
-    """Computes the tidal deformability parameter kappa according to equation (8) of the NRTidalv2 paper.
-
-    Args:
-        theta (Array): Intrinsic parameters m1, m2, chi1, chi2, lambda1, lambda2
-
-    Returns:
-        float: kappa_eff^T from equation (8) of NRTidalv2 paper.
-    """
-    
-    # Auxiliary variables
-    m1, m2, _, _, lambda1, lambda2 = theta
-    M = m1 + m2
-    X1 = m1 / M
-    X2 = m2 / M
-
-    # Get kappa
-    term1 = (1.0 + 12.0 * X2 / X1) * (X1 ** 5.0) * lambda1
-    term2 = (1.0 + 12.0 * X1 / X2) * (X2 ** 5.0) * lambda2
-    kappa = (3./13.) * (term1 + term2)
-    
-    return kappa 
-
-def get_amp0_lal(M: float, distance: float):
-    """Get the amp0 prefactor as defined in LAL in LALSimIMRPhenomD, line 331. 
-
-    Args:
-        M (float): Total mass in solar masses
-        distance (float): Distance to the source in Mpc.
-
-    Returns:
-        float: amp0 from LAL.
-    """
-    amp0 = 2. * jnp.sqrt(5. / (64. * PI)) * M * MRSUN * M * gt / distance
-    return amp0
-
 def _get_quadparam_octparam_low(lambda_: float) -> tuple[float, float]:
     """
     Computes quadparameter, see eq (28) of NRTidalv2 paper and also LALSimUniversalRelations.c of lalsuite
@@ -127,6 +91,44 @@ def _get_quadparam_octparam_high(lambda_: float) -> tuple[float, float]:
     octparam = jnp.exp(log_octparam)
 
     return quadparam, octparam
+
+def get_kappa(theta: Array) -> float:
+    """Computes the tidal deformability parameter kappa according to equation (8) of the NRTidalv2 paper.
+
+    Args:
+        theta (Array): Intrinsic parameters m1, m2, chi1, chi2, lambda1, lambda2
+
+    Returns:
+        float: kappa_eff^T from equation (8) of NRTidalv2 paper.
+    """
+    
+    # Auxiliary variables
+    m1, m2, _, _, lambda1, lambda2 = theta
+    M = m1 + m2
+    X1 = m1 / M
+    X2 = m2 / M
+
+    # Get kappa
+    term1 = (1.0 + 12.0 * X2 / X1) * (X1 ** 5.0) * lambda1
+    term2 = (1.0 + 12.0 * X1 / X2) * (X2 ** 5.0) * lambda2
+    kappa = (3./13.) * (term1 + term2)
+    
+    return kappa 
+
+def get_amp0_lal(M: float, distance: float):
+    """Get the amp0 prefactor as defined in LAL in LALSimIMRPhenomD, line 331. 
+
+    Args:
+        M (float): Total mass in solar masses
+        distance (float): Distance to the source in Mpc.
+
+    Returns:
+        float: amp0 from LAL.
+    """
+    amp0 = 2. * jnp.sqrt(5. / (64. * PI)) * M * MRSUN * M * gt / distance
+    return amp0
+
+
 
 def planck_taper(t: Array, t1: float, t2: float) -> Array:
     """Function to compute the Planck taper window between t1 and t2.
