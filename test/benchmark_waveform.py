@@ -158,6 +158,7 @@ def non_precessing_matchmaking(
     # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
     m_l, m_u = 0.5, 3.0
     chi_l, chi_u = -1, 1
+    chi_l, chi_u = -0.6, 0.6
     lambda_l, lambda_u = 0, 5000
 
     m1 = np.random.uniform(m_l, m_u)
@@ -174,7 +175,7 @@ def non_precessing_matchmaking(
     phi_ref = np.random.uniform(0, 2*PI)
     
     if fixed_extrinsic:
-        dist_mpc = 440.0
+        dist_mpc = 40.0
         inclination = 0.0
         phi_ref = 0.0
         

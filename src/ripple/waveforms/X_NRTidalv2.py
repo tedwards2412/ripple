@@ -175,7 +175,7 @@ def _get_merger_frequency(theta: Array, kappa: float = None):
 
     return fHz_merger
 
-def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_bbh: Array):
+def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, bbh_amp: Array, bbh_psi: Array):
     """Master internal function to get the GW strain for given parameters. The function takes 
     a BBH strain, computed from an underlying BBH approximant, e.g. IMRPhenomD, and applies the
     tidal corrections to it afterwards, according to equation (25) of the NRTidalv2 paper.
@@ -196,14 +196,9 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     x = (PI * M_s * f) ** (2.0/3.0)
-    # M = m1 + m2
 
     # Compute kappa
     kappa = get_kappa(theta=theta_intrinsic)
-
-    # Get BBH amplitude and phase
-    A_bbh = jnp.abs(h0_bbh)
-    psi_bbh = jnp.log(h0_bbh / A_bbh) * 1.j
     
     # Get tidal amplitude and Planck taper
     A_T = get_tidal_amplitude(x, theta_intrinsic, kappa, distance=theta_extrinsic[0])
@@ -215,7 +210,7 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, h0_
     psi_SS = get_spin_phase_correction(x, theta_intrinsic)
     
     # Assemble everything
-    h0 = A_P * (A_bbh + A_T) * jnp.exp(1.j * -(psi_bbh + psi_T + psi_SS))
+    h0 = A_P * (bbh_amp + A_T) * jnp.exp(1.j * -(bbh_psi + psi_T + psi_SS))
 
     return h0
 
@@ -255,25 +250,64 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, IMRphenom: str, use_lam
     chi1, chi2 = params[2], params[3]
     
     theta_intrinsic = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
+    bbh_theta_intrinsic = jnp.array([m1, m2, chi1, chi2])
     theta_extrinsic = params[6:]
 
-    # Get the parameters that are passed to the BBH waveform, i.e. remove lambdas
-    bbh_params = jnp.concatenate((jnp.array([params[0], params[1], params[2], params[3]]), theta_extrinsic))
-
-    # TODO - make compatible with other waveforms as well
+    # Fetch the amplitude and phase from the BBH waveform
     if IMRphenom == "IMRPhenomD":
-        from ripple.waveforms.IMRPhenomD import (
-            gen_IMRPhenomD as bbh_waveform_generator,
+        # from ripple.waveforms.IMRPhenomD import (
+        #     gen_IMRPhenomD as bbh_waveform_generator,
+        # )
+        from ripple.waveforms.IMRPhenomD import Phase, Amp, get_IIb_raw_phase
+        
+        # Compute the amplitude
+        from .IMRPhenomD_utils import (
+            get_coeffs,
+            get_delta0,
+            get_delta1,
+            get_delta2,
+            get_delta3,
+            get_delta4,
+            get_transition_frequencies,
         )
+        from .IMRPhenomD_QNMdata import fM_CUT
+        
+        ## TODO improve organization of this code
+        
+        coeffs = get_coeffs(bbh_theta_intrinsic)
+        M_s = (bbh_theta_intrinsic[0] + bbh_theta_intrinsic[1]) * gt
+
+        # Shift phase so that peak amplitude matches t = 0
+        transition_freqs = get_transition_frequencies(bbh_theta_intrinsic, coeffs[5], coeffs[6])
+        _, _, _, f4, f_RD, f_damp = transition_freqs
+        t0 = jax.grad(get_IIb_raw_phase)(f4 * M_s, bbh_theta_intrinsic, coeffs, f_RD, f_damp)
+
+        # Lets call the amplitude and phase now
+        Psi = Phase(f, bbh_theta_intrinsic, coeffs, transition_freqs)
+        Mf_ref = f_ref * M_s
+        Psi_ref = Phase(f_ref, bbh_theta_intrinsic, coeffs, transition_freqs)
+        Psi -= t0 * ((f * M_s) - Mf_ref) + Psi_ref
+        ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] - 2 * theta_extrinsic[2]
+        Psi += ext_phase_contrib
+        fcut_above = lambda f: (fM_CUT / M_s)
+        fcut_below = lambda f: f[jnp.abs(f - (fM_CUT / M_s)).argmin() - 1]
+        fcut_true = jax.lax.cond((fM_CUT / M_s) > f[-1], fcut_above, fcut_below, f)
+        Psi = Psi * jnp.heaviside(fcut_true - f, 0.0) + 2.0 * PI * jnp.heaviside(
+            f - fcut_true, 1.0
+        )
+
+        A = Amp(f, bbh_theta_intrinsic, coeffs, transition_freqs, D=theta_extrinsic[0])
+
+        bbh_amp = A 
+        bbh_psi = Psi
+        
     else:
         print("IMRPhenom string not recognized")
         return jnp.zeros_like(f)
     
-    # Generate BBH waveform strain and get its amplitude and phase
-    h0_bbh = bbh_waveform_generator(f, bbh_params, f_ref)
 
     # Use BBH waveform and add tidal corrections
-    return _gen_NRTidalv2(f, theta_intrinsic, theta_extrinsic, h0_bbh)
+    return _gen_NRTidalv2(f, theta_intrinsic, theta_extrinsic, bbh_amp, bbh_psi)
 
 
 def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, IMRphenom: str="IMRPhenomD", use_lambda_tildes: bool=True):
