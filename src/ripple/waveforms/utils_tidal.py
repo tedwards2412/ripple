@@ -128,8 +128,25 @@ def get_amp0_lal(M: float, distance: float):
     amp0 = 2. * jnp.sqrt(5. / (64. * PI)) * M * MRSUN * M * gt / distance
     return amp0
 
+# The code below to compute the Planck taper is obtained from gwfast (https://github.com/CosmoStatGW/gwfast/blob/ccde00e644682639aa8c9cbae323e42718fd61ca/gwfast/waveforms.py#L1332)
+@jax.custom_jvp
+def planck_taper_fun(x, y):
+    # Terminate the waveform at 1.2 times the merger frequency
+    a=1.2
+    yp = a*y
+    planck_taper = jnp.where(x < y, 1., jnp.where(x > yp, 0., 1. - 1./(jnp.exp((yp - y)/(x - y) + (yp - y)/(x - yp)) + 1.)))
 
+    return planck_taper
 
+def planck_taper_fun_der(x,y):
+    # Terminate the waveform at 1.2 times the merger frequency
+    a = 1.2
+    yp = a*y
+    tangent_out = jnp.where(x < y, 0., jnp.where(x > yp, 0., jnp.exp((yp - y)/(x - y) + (yp - y)/(x - yp))*((-1.+a)/(x-y) + (-1.+a)/(x-yp) + (-y+yp)/((x-y)**2) + 1.2*(-y+yp)/((x-yp)**2))/((jnp.exp((yp - y)/(x - y) + (yp - y)/(x - yp)) + 1.)**2)))
+    tangent_out = jnp.nan_to_num(tangent_out)
+    return tangent_out
+planck_taper_fun.defjvps(None, lambda y_dot, primal_out, x, y: planck_taper_fun_der(x,y) * y_dot)
+        
 def planck_taper(t: Array, t1: float, t2: float) -> Array:
     """Function to compute the Planck taper window between t1 and t2.
 
@@ -153,18 +170,6 @@ def planck_taper(t: Array, t1: float, t2: float) -> Array:
             + jnp.heaviside(t - t2, 1) * end
 
     return taper
-
-def get_planck_taper(f: Array, f_merger: float) -> Array:
-    """Get the Planck taper for the purpose of NRTidalv2, namely by applying it in the window [f_merger, 1.2f_merger]
-
-    Args:
-        f (Array): Frequency grid at which the GW is being computed.
-        f_merger (float): Merger frequency in Hz.
-
-    Returns:
-        Array: Planck taper for NRTidalv2
-    """
-    return planck_taper(f, f_merger, 1.2 * f_merger)
 
 def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float =1):
     """Get the tidal amplitude corrections as given in equation (24) of the NRTidal paper.
