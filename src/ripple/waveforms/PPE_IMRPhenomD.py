@@ -142,7 +142,7 @@ def get_inspiral_phase(fM_s: Array, theta: Array, ppes: Array, coeffs: Array) ->
     v = (PI * fM_s) ** (1.0 / 3.0)
 
     phi_TF2 = (
-        ppes[0] * ((PI * fM_s) ** -(7.0 / 3.0))
+        ppes[0] * ((PI * fM_s) ** -(9.0 / 3.0))
         + (phi0 + ppes[1]) * ((PI * fM_s) ** -(5.0 / 3.0))
         + (phi1 + ppes[2]) * ((PI * fM_s) ** -(4.0 / 3.0))
         + (phi2 + ppes[3]) * ((PI * fM_s) ** -1.0)

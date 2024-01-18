@@ -329,7 +329,7 @@ def precessing_matchmaking_PPE():
         ]
     )
     ppes = jnp.zeros(15)
-    ppes = ppes.at[2].set(15)
+    ppes = ppes.at[11].set(10)
     print("ppes:", ppes)
     hp_pv2, _ = gen_IMRPhenomPv2_hphc(fs, theta_pv2, f_ref)
     hp_PPE_pv2, _ = gen_PPE_IMRPhenomPv2_hphc(fs, theta_pv2, ppes, f_ref)
