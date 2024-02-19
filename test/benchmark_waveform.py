@@ -98,7 +98,7 @@ def get_freqs(f_l, f_u, f_sampling, T):
 ### Match against LAL ###
 #########################
 
-def random_match(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
+def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", outdir: str = None, psd_file: str = "psd.txt"):
     """
     Generates random waveform match scores between LAL and ripple.
     
@@ -106,17 +106,21 @@ def random_match(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
     Args:
         n: int
             number of matches to be made
+        bounds: dict
+            bounds for the parameters TODO make sure format is correct
         IMRphenom: str
             string indicating which waveform to use
+        outdir: str, optional
+            If not None, will save the matches to a csv file, to this directory
 
     Returns:
-        TODO
+        df: pd.DataFrame, showing the mismatches
     """
 
     # Specify frequency range
     f_l = 20
     f_sampling = 2 * 2048
-    T = 16
+    T = 256
 
     # TODO - check at higher frequency
     f_u = f_sampling // 2
@@ -130,61 +134,57 @@ def random_match(n, IMRphenom = "IMRPhenomD_NRTidalv2"):
     # Get a frequency domain waveform
     thetas = []
     matches = []
-    f_ASD, ASD = np.loadtxt("l1_psd.txt", unpack=True)
+    f_ASD, ASD = np.loadtxt(psd_file, unpack=True)
+    ASD = np.sqrt(ASD)
 
     ### Mismatches computations
     for i in tqdm(range(n)):
         non_precessing_matchmaking(
-            IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches  
+            bounds, IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches  
         )
 
     # Save and report mismatches
     thetas = np.array(thetas)
     matches = np.array(matches)
     
-    csv_name = f"matches_data/check_{IMRphenom}_matches.csv"
-    print(f"Saving matches to {csv_name}")
-    df = save_matches(csv_name, thetas, matches, is_tidal = is_tidal, verbose=True)
+    if outdir is not None:
+        csv_name = f"{outdir}matches_data/matches_{IMRphenom}.csv"
+        print(f"Saving matches to {csv_name}")
+        df = save_matches(csv_name, thetas, matches, is_tidal=is_tidal, verbose=True)
 
     return df
 
 
 def non_precessing_matchmaking(
-    IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches, fixed_extrinsic = True, fixed_intrinsic = False,
+    bounds, IMRphenom, f_l, f_u, df, fs, waveform, f_ASD, ASD, thetas, matches, fixed_extrinsic = False, fixed_intrinsic = False,
 ):
     
     is_tidal = check_is_tidal(IMRphenom)
     
-    # These ranges are taken from: https://wiki.ligo.org/CBC/Waveforms/WaveformTable
-    m_l, m_u = 0.5, 3.0
-    chi_l, chi_u = -1, 1
-    chi_l, chi_u = -0.6, 0.6
-    lambda_l, lambda_u = 0, 5000
+    m1 = np.random.uniform(bounds["m"][0], bounds["m"][1])
+    m2 = np.random.uniform(bounds["m"][0], bounds["m"][1])
+    s1 = np.random.uniform(bounds["chi"][0], bounds["chi"][1])
+    s2 = np.random.uniform(bounds["chi"][0], bounds["chi"][1])
+    l1 = np.random.uniform(bounds["lambda"][0], bounds["lambda"][1])
+    l2 = np.random.uniform(bounds["lambda"][0], bounds["lambda"][1])
 
-    m1 = np.random.uniform(m_l, m_u)
-    m2 = np.random.uniform(m_l, m_u)
-    s1 = np.random.uniform(chi_l, chi_u)
-    s2 = np.random.uniform(chi_l, chi_u)
-    l1 = np.random.uniform(lambda_l, lambda_u)
-    l2 = np.random.uniform(lambda_l, lambda_u)
-    
-
-    dist_mpc = np.random.uniform(0, 1000)
+    dist_mpc = np.random.uniform(bounds["d_L"][0], bounds["d_L"][1])
     tc = 0.0
     inclination = np.random.uniform(0, 2*PI)
     phi_ref = np.random.uniform(0, 2*PI)
     
-    if fixed_extrinsic:
-        dist_mpc = 40.0
-        inclination = 0.0
-        phi_ref = 0.0
+    # TODO remove?
+    # if fixed_extrinsic:
+    #     dist_mpc = 40.0
+    #     inclination = 0.0
+    #     phi_ref = 0.0
         
-    if fixed_intrinsic:
-        l1 = 20.0
-        l2 = 20.0
+    # if fixed_intrinsic:
+    #     l1 = 20.0
+    #     l2 = 20.0
         
-        s1 = 1.0
-        s2 = 1.0 
+    #     s1 = 1.0
+    #     s2 = 1.0 
         
     # Ensure m1 > m2
     if m1 < m2:
@@ -285,7 +285,7 @@ def non_precessing_matchmaking(
     )
     thetas.append(theta)
 
-def save_matches(filename, thetas, matches, verbose=True, is_tidal = False):
+def save_matches(filename, thetas, matches, verbose=True, is_tidal=False):
 
     # Get the parameters, which depends on whether or not tidal:
     if is_tidal:
