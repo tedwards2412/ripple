@@ -98,7 +98,7 @@ def get_freqs(f_l, f_u, f_sampling, T):
 ### Match against LAL ###
 #########################
 
-def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", outdir: str = None, psd_file: str = "psd.txt"):
+def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", outdir: str = None, psd_file: str = "psds/psd.txt"):
     """
     Generates random waveform match scores between LAL and ripple.
     
