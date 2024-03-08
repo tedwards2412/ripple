@@ -203,9 +203,9 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, bbh
     # Compute amplitudes
     A_T = get_tidal_amplitude(x, theta_intrinsic, kappa, distance=theta_extrinsic[0])
     f_merger = _get_merger_frequency(theta_intrinsic, kappa)
-    # A_P = jnp.nan_to_num(planck_taper_fun(f, f_merger))
-    # A_P = get_planck_taper(f, f_merger)
-    A_P = jnp.ones_like(f)
+    # A_P = jnp.nan_to_num(planck_taper_fun(f, f_merger)) # TODO remove, NaNs debugged?
+    A_P = get_planck_taper(f, f_merger) # WITH Planck taper
+    # A_P = jnp.ones_like(f) # WITHOUT Planck taper
 
     # Get tidal phase and spin corrections for BNS
     psi_T = get_tidal_phase(x, theta_intrinsic, kappa)
