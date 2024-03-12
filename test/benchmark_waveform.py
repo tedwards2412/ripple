@@ -573,13 +573,18 @@ if __name__ == "__main__":
     check_speed = False
     check_speed_lal = False
     
+    bounds = {"m": [0.5, 3.0],
+              "chi": [-0.05, 0.05],
+              "lambda": [0.0, 5000.0],
+              "d_L": [30.0, 300.0]}
+    
     approximant = "IMRPhenomD_NRTidalv2" # "TaylorF2", "IMRPhenomD_NRTidalv2" or "IMRPhenomD"
     print(f"Checking approximant {approximant}")
     
     ### Computing and reporting mismatches
     if check_mismatch:
         print("Checking mismatches wrt LAL")
-        df = random_match(1000, approximant)
+        df = random_match(1000, bounds, approximant, outdir = "./")
         print("Done. The dataframe is:")
         print(df)
         
