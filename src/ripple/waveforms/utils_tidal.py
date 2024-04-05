@@ -231,12 +231,40 @@ def _get_spin_induced_quadrupole_phase_coeff(lambda_: float, mass: float) -> flo
         mass (float): Mass of object in solar masses
 
     Returns:
+        float: a(m) 
+    """
+    is_low_lambda = lambda_ < 1
+    return jax.lax.cond(is_low_lambda, _get_spin_induced_quadrupole_phase_coeff_low, _get_spin_induced_quadrupole_phase_coeff_high, lambda_)
+        
+
+def _get_spin_induced_quadrupole_phase_coeff_low(lambda_: float) -> float:
+    """Compute the quantity from equation (11) from http://arxiv.org/abs/1503.05405
+
+    Args:
+        lambda_ (float): Tidal deformability of object
+        mass (float): Mass of object in solar masses
+
+    Returns:
+        float: a(m) as defined in https://git.ligo.org/thibeau.wouters/bonz_marlinde/-/blob/main/UniversalRelation/FitUniversalRelation.ipynb?ref_type=heads (fit)
+    """
+    coeffs = jnp.array([1.0, 0.32812816173650255, -0.16209486695933736, 0.05219418106960124, -0.006406318945489099])
+    a = universal_relation(coeffs, lambda_)
+    return a
+
+def _get_spin_induced_quadrupole_phase_coeff_high(lambda_: float) -> float:
+    """Compute the quantity from equation (11) from http://arxiv.org/abs/1503.05405
+
+    Args:
+        lambda_ (float): Tidal deformability of object
+        mass (float): Mass of object in solar masses
+
+    Returns:
         float: a(m) as defined in equation (11) of http://arxiv.org/abs/1503.05405
     """
     
     # Auxiliary parameter:
     # TODO what if lambda is zero or negative?
-    x = jnp.log(lambda_ / (mass ** 5))
+    x = jnp.log(lambda_)
     coeffs = jnp.array([0.194, 0.0936, 0.0474, -4.21e-3, 1.23e-4])
     
     ln_a = universal_relation(coeffs, x)
