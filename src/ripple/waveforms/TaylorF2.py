@@ -1,13 +1,17 @@
-"""This file implements the TaylorF2 waveform."""
-import jax
+"""
+This file implements the TaylorF2 waveform, as described in the LALSuite library.
+"""
+
 import jax.numpy as jnp
-
-from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, MRSUN
+from ..constants import EulerGamma, gt, m_per_Mpc, PI, MRSUN
 from ..typing import Array
-from ripple import Mc_eta_to_ms, ms_to_Mc_eta, lambda_tildes_to_lambdas, lambdas_to_lambda_tildes
-from .utils_tidal import *
+from ripple import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from .utils_tidal import get_quadparam_octparam, get_spin_induced_quadrupole_phase
 
-# All auxiliary functions to get the required coefficients for TaylorF2:
+###########################
+### AUXILIARY FUNCTIONS ###
+###########################
+
 def get_3PNSOCoeff(mByM):
     return  mByM * (25. + 38./3. * mByM)
 
@@ -75,17 +79,19 @@ def get_flux_0PNCoeff(eta):
 def get_energy_0PNCoeff(eta):
 	return -eta / 2.0
 
-
-# Functions to compute the waveform
+################
+### WAVEFORM ###
+################
 
 def get_PNPhasing_F2(m1: float, m2: float, S1z: float, S2z: float, lambda1: float, lambda2: float) -> tuple[dict, dict]:
-    """Gets dicitonaries giving the phasing coefficients to be used in the approximant.
+    """
+    Gets dictionaries giving the phasing coefficients to be used in the approximant.
     Keys are the different PN orders, with values being the corresponding coefficient. 
-    Implementation of XLALSimInspiralPNPhasing_F2 from lalsuite.
+    This follows the implementation of XLALSimInspiralPNPhasing_F2 from lalsuite.
 
     Args:
-        m1 (float): Mass of first object (heavier)
-        m2 (float): Mass of second object (lighter)
+        m1 (float): Mass of first (heavier) object
+        m2 (float): Mass of second (lighter) object
         S1z (float): z-component of spin of first object
         S2z (float): z-component of spin of second object
         lambda1 (float): Tidal deformability first object
@@ -244,7 +250,8 @@ def _gen_TaylorF2(
     f_ref: float,
     add_psi_qm: bool = False,
 ):
-    """Generates the TaylorF2 waveform accoding to lal implementation.
+    """
+    Generates the TaylorF2 waveform accoding to lal implementation.
     
     Note: internal units for mass are solar masses, as in LAL. 
 
@@ -276,7 +283,7 @@ def _gen_TaylorF2(
     eta = m1_s * m2_s / (M_s ** 2.0)
     piM = PI * M_s
     
-    # TODO incorporate this into the waveform
+    # TODO: incorporate this into the waveform
     vISCO = 1. / jnp.sqrt(6.)
     fISCO = vISCO * vISCO * vISCO / piM
     
