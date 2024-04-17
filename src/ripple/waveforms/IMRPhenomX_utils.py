@@ -306,17 +306,9 @@ def calc_phaseatpeak(eta, S, chia, delta):
                 - 380.19778216022763 * eta**2
             )
             * S
-            + (
-                24.72585609641552
-                - 328.3762360751952 * eta
-                + 725.6024119989094 * eta**2
-            )
+            + (24.72585609641552 - 328.3762360751952 * eta + 725.6024119989094 * eta**2)
             * S**2
-            + (
-                23.404604124552
-                - 646.3410199799737 * eta
-                + 1941.8836639529036 * eta**2
-            )
+            + (23.404604124552 - 646.3410199799737 * eta + 1941.8836639529036 * eta**2)
             * S**3
             + (
                 -12.814828278938885
@@ -472,9 +464,7 @@ def Amp_Nospin_CV(NoSpin_coeffs, eta):
         + NoSpin_coeffs[3] * eta**3
         + NoSpin_coeffs[4] * eta**4
     )
-    denominator = (
-        NoSpin_coeffs[5] + NoSpin_coeffs[6] * eta + NoSpin_coeffs[7] * eta**2
-    )
+    denominator = NoSpin_coeffs[5] + NoSpin_coeffs[6] * eta + NoSpin_coeffs[7] * eta**2
     return numerator / denominator
 
 

@@ -143,11 +143,12 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
         + phi2 * ((PI * fM_s) ** -1.0)
         + phi3 * ((PI * fM_s) ** -(2.0 / 3.0))
         + phi4 * ((PI * fM_s) ** -(1.0 / 3.0))
-        + phi5_log * jnp.log(v) + phi5
+        + phi5_log * jnp.log(v)
+        + phi5
         + phi6_log * jnp.log(v) * ((PI * fM_s) ** (1.0 / 3.0))
         + phi6 * ((PI * fM_s) ** (1.0 / 3.0))
         + phi7 * ((PI * fM_s) ** (2.0 / 3.0))
-    ) * (3.0 / (128.0 * eta)) - PI/4.0
+    ) * (3.0 / (128.0 * eta)) - PI / 4.0
     phi_Ins = (
         phi_TF2
         + (
@@ -169,9 +170,7 @@ def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     eta = m1_s * m2_s / (M_s**2.0)
 
     phi_IIa_raw = (
-        coeffs[11] * fM_s
-        + coeffs[12] * jnp.log(fM_s)
-        - coeffs[13] * (fM_s**-3.0) / 3.0
+        coeffs[11] * fM_s + coeffs[12] * jnp.log(fM_s) - coeffs[13] * (fM_s**-3.0) / 3.0
     ) / eta
 
     return phi_IIa_raw

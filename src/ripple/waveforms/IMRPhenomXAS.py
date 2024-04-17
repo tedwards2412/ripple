@@ -844,8 +844,7 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, amp_coeffs: Array) -> Array:
                 428652.0 * chi2**2 * (-1 + delta)
                 + (
                     -1975055.0
-                    + 10584.0
-                    * (81.0 * chi1**2.0 - 94.0 * chi1 * chi2 + 81.0 * chi2**2)
+                    + 10584.0 * (81.0 * chi1**2.0 - 94.0 * chi1 * chi2 + 81.0 * chi2**2)
                 )
                 * eta
                 + 1473794.0 * eta2
