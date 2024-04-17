@@ -15,7 +15,7 @@ from jax import random
 import jax.numpy as jnp
 
 from .constants import C, G
-from .typing import Array, PRNGKeyArray
+from .typing import Array
 
 
 def Mc_eta_to_ms(m):
@@ -250,9 +250,7 @@ def get_f_isco(m):
     return 1 / (6 ** (3 / 2) * pi * m / (C**3 / G))
 
 
-def get_M_eta_sampler(
-    M_range: Tuple[float, float], eta_range: Tuple[float, float]
-) -> Callable[[PRNGKeyArray, int], Array]:
+def get_M_eta_sampler(M_range: Tuple[float, float], eta_range: Tuple[float, float]):
     """
     Uniformly values of the chirp mass and samples over the specified ranges.
     This function may be removed in the future since it is trivial.
@@ -270,9 +268,7 @@ def get_M_eta_sampler(
     return sampler
 
 
-def get_m1_m2_sampler(
-    m1_range: Tuple[float, float], m2_range: Tuple[float, float]
-) -> Callable[[PRNGKeyArray, int], Array]:
+def get_m1_m2_sampler(m1_range: Tuple[float, float], m2_range: Tuple[float, float]):
     r"""
     Creates a function to uniformly sample two parameters, with the restriction
     that the first is larger than the second.

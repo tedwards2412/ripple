@@ -7,5 +7,5 @@ import jax.numpy as jnp
 
 
 # TODO: what type should this be?
-PRNGKeyArray = jax.random.PRNGKeyArray  # type: ignore
+# PRNGKeyArray = jax.random.PRNGKeyArray  # type: ignore
 Array = jnp.ndarray
