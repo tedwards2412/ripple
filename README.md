@@ -6,7 +6,7 @@ A small `jax` package for differentiable and fast gravitational wave data analys
 
 ### Installation
 
-Both waveforms have been tested extensively and match `lalsuite`` implementations to machine precision across all the parameter space. 
+Both waveforms have been tested extensively and match `lalsuite` implementations to machine precision across all the parameter space. 
 
 Ripple can be installed using 
 
