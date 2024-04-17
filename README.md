@@ -6,7 +6,7 @@ A small `jax` package for differentiable and fast gravitational wave data analys
 
 ### Installation
 
-Both waveforms have been tested extensively and match lalsuite implementations to machine precision across all the parameter space. 
+Both waveforms have been tested extensively and match `lalsuite`` implementations to machine precision across all the parameter space. 
 
 Ripple can be installed using 
 
@@ -14,7 +14,7 @@ Ripple can be installed using
 pip3 install ripplegw
 ```
 
-Note that by default we do not include enable float64 in jax since we want allow users to use float32 to improve performance.
+Note that by default we do not include enable float64 in `jax`` since we want allow users to use float32 to improve performance.
 If you require float64, please include the following code at the start of the script:
 
 ```
@@ -29,10 +29,12 @@ See https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html fo
 - IMRPhenomXAS (aligned spin)
 - IMRPhenomD (aligned spin)
 - IMRPhenomPv2 (Still finalizing sampling checks)
+- TaylorF2 with tidal effects
+- IMRPhenomD_NRTidalv2, verified for the low spin regime (chi1, chi2 < 0.05), further testing is required for higher spins
 
 ### Generating a waveform and its derivative
 
-Generating a waveform is increadibly easy. Below is an example of calling the PhenomXAS waveform model
+Generating a waveform is incredibly easy. Below is an example of calling the PhenomXAS waveform model
 to get the h_+ and h_x polarizations of the waveform model
 
 We start with some basic imports:
