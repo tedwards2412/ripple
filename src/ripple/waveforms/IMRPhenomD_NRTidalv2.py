@@ -4,30 +4,21 @@ This file implements the NRTidalv2 corrections that can be applied to any BBH ba
 
 import jax
 import jax.numpy as jnp
-
-from ..constants import EulerGamma, gt, m_per_Mpc, C, PI, TWO_PI, MSUN, MRSUN
+from ..constants import gt, m_per_Mpc, PI, TWO_PI, MRSUN
 from ..typing import Array
 from ripple import Mc_eta_to_ms, lambda_tildes_to_lambdas
-# import sys
-# from .IMRPhenomD import get_Amp0
 from .utils_tidal import get_quadparam_octparam, get_kappa
-
 from ripple.waveforms.IMRPhenomD import Phase, Amp, get_IIb_raw_phase
 from .IMRPhenomD_utils import (
     get_coeffs,
-    # get_delta0,
-    # get_delta1,
-    # get_delta2,
-    # get_delta3,
-    # get_delta4,
     get_transition_frequencies,
 )
 from .IMRPhenomD_QNMdata import fM_CUT
 
-
 #################
 ### AMPLITUDE ###
 #################
+
 
 # The code below to compute the Planck taper is obtained from gwfast (https://github.com/CosmoStatGW/gwfast/blob/ccde00e644682639aa8c9cbae323e42718fd61ca/gwfast/waveforms.py#L1332)
 @jax.custom_jvp
@@ -37,14 +28,23 @@ def get_planck_taper(x: Array, y: float) -> Array:
 
     Args:
         x (Array): Array of frequencies
-        y (float): Point at which the Planck taper starts. The taper ends at 1.2 times y. 
+        y (float): Point at which the Planck taper starts. The taper ends at 1.2 times y.
 
     Returns:
         Array: Planck taper function.
     """
     a = 1.2
-    yp = a*y
-    return jnp.where(x < y, 1., jnp.where(x > yp, 0., 1. - 1./(jnp.exp((yp - y)/(x - y) + (yp - y)/(x - yp)) + 1.)))
+    yp = a * y
+    return jnp.where(
+        x < y,
+        1.0,
+        jnp.where(
+            x > yp,
+            0.0,
+            1.0 - 1.0 / (jnp.exp((yp - y) / (x - y) + (yp - y) / (x - yp)) + 1.0),
+        ),
+    )
+
 
 def get_planck_taper_der(x: Array, y: float):
     """
@@ -58,15 +58,35 @@ def get_planck_taper_der(x: Array, y: float):
         Array: Array of derivative of Planck taper.
     """
     a = 1.2
-    yp = a*y
-    tangent_out = jnp.where(x < y, 0., jnp.where(x > yp, 0., jnp.exp((yp - y)/(x - y) + (yp - y)/(x - yp))*((-1.+a)/(x-y) + (-1.+a)/(x-yp) + (-y+yp)/((x-y)**2) + 1.2*(-y+yp)/((x-yp)**2))/((jnp.exp((yp - y)/(x - y) + (yp - y)/(x - yp)) + 1.)**2)))
+    yp = a * y
+    tangent_out = jnp.where(
+        x < y,
+        0.0,
+        jnp.where(
+            x > yp,
+            0.0,
+            jnp.exp((yp - y) / (x - y) + (yp - y) / (x - yp))
+            * (
+                (-1.0 + a) / (x - y)
+                + (-1.0 + a) / (x - yp)
+                + (-y + yp) / ((x - y) ** 2)
+                + 1.2 * (-y + yp) / ((x - yp) ** 2)
+            )
+            / ((jnp.exp((yp - y) / (x - y) + (yp - y) / (x - yp)) + 1.0) ** 2),
+        ),
+    )
     tangent_out = jnp.nan_to_num(tangent_out)
     return tangent_out
-get_planck_taper.defjvps(None, lambda y_dot, primal_out, x, y: get_planck_taper_der(x,y) * y_dot)
+
+
+get_planck_taper.defjvps(
+    None, lambda y_dot, primal_out, x, y: get_planck_taper_der(x, y) * y_dot
+)
+
 
 def get_amp0_lal(M: float, distance: float):
     """
-    Get the amp0 prefactor as defined in LAL in LALSimIMRPhenomD, line 331. 
+    Get the amp0 prefactor as defined in LAL in LALSimIMRPhenomD, line 331.
 
     Args:
         M (float): Total mass in solar masses
@@ -75,10 +95,11 @@ def get_amp0_lal(M: float, distance: float):
     Returns:
         float: amp0 from LAL.
     """
-    amp0 = 2. * jnp.sqrt(5. / (64. * PI)) * M * MRSUN * M * gt / distance
+    amp0 = 2.0 * jnp.sqrt(5.0 / (64.0 * PI)) * M * MRSUN * M * gt / distance
     return amp0
 
-def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float =1):
+
+def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float = 1):
     """
     Get the tidal amplitude corrections as given in equation (24) of the NRTidal paper.
 
@@ -91,35 +112,35 @@ def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float =1
     Returns:
         Array: Tidal amplitude corrections A_T from NRTidalv2 paper.
     """
-    
+
     # Mass variables
-    m1, m2, _, _, _, _ = theta 
+    m1, m2, _, _, _, _ = theta
     M = m1 + m2
-    m1_s = m1 * gt
-    m2_s = m2 * gt
-    
+
     # Convert distance to meters
     distance *= m_per_Mpc
-    
+
     # Pade approximant
-    n1   = 4.157407407407407
+    n1 = 4.157407407407407
     n289 = 2519.111111111111
-    d    = 13477.8073677
-    num = 1.0 + n1 * x + n289 * x ** 2.89
-    den = 1.0 + d * x ** 4.
+    d = 13477.8073677
+    num = 1.0 + n1 * x + n289 * x**2.89
+    den = 1.0 + d * x**4.0
     poly = num / den
-    
+
     # Prefactors are taken from lal source code
-    prefac = - 9.0 * kappa
-    ampT = prefac * x ** (13. / 4.) * poly
+    prefac = -9.0 * kappa
+    ampT = prefac * x ** (13.0 / 4.0) * poly
     amp0 = get_amp0_lal(M, distance)
     ampT *= amp0 * 2 * jnp.sqrt(PI / 5)
-    
-    return ampT 
+
+    return ampT
+
 
 #############
 ### PHASE ###
 #############
+
 
 def get_tidal_phase(x: Array, theta: Array, kappa: float) -> Array:
     """
@@ -133,44 +154,52 @@ def get_tidal_phase(x: Array, theta: Array, kappa: float) -> Array:
     Returns:
         Array: Tidal phase correction.
     """
-    
+
     # Compute auxiliary quantities
-    m1, m2, _, _, _, _ = theta 
+    m1, m2, _, _, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
     # eta = m1_s * m2_s / (M_s**2.0)
-    
+
     X1 = m1_s / M_s
     X2 = m2_s / M_s
 
     # Compute powers
-    x_2      = x ** (2.)
-    x_3      = x ** (3.)
-    x_3over2 = x ** (3.0/2.0)
-    x_5over2 = x ** (5.0/2.0)
+    x_2 = x ** (2.0)
+    x_3 = x ** (3.0)
+    x_3over2 = x ** (3.0 / 2.0)
+    x_5over2 = x ** (5.0 / 2.0)
 
     # Initialize the coefficients
-    c_Newt   =   2.4375
-    n_1      = -12.615214237993088
-    n_3over2 =  19.0537346970349
-    n_2      = -21.166863146081035
-    n_5over2 =  90.55082156324926
-    n_3      = -60.25357801943598
-    d_1      = -15.111207827736678
-    d_3over2 =  22.195327350624694
-    d_2      =   8.064109635305156
+    c_Newt = 2.4375
+    n_1 = -12.615214237993088
+    n_3over2 = 19.0537346970349
+    n_2 = -21.166863146081035
+    n_5over2 = 90.55082156324926
+    n_3 = -60.25357801943598
+    d_1 = -15.111207827736678
+    d_3over2 = 22.195327350624694
+    d_2 = 8.064109635305156
 
     # Pade approximant
-    num = 1.0 + (n_1 * x) + (n_3over2 * x_3over2) + (n_2 * x_2) + (n_5over2 * x_5over2) + (n_3 * x_3)
+    num = (
+        1.0
+        + (n_1 * x)
+        + (n_3over2 * x_3over2)
+        + (n_2 * x_2)
+        + (n_5over2 * x_5over2)
+        + (n_3 * x_3)
+    )
     den = 1.0 + (d_1 * x) + (d_3over2 * x_3over2) + (d_2 * x_2)
     ratio = num / den
-    
+
     # Assemble everything
-    psi_T  = - kappa * c_Newt / (X1 * X2) * x_5over2
+    psi_T = -kappa * c_Newt / (X1 * X2) * x_5over2
     psi_T *= ratio
-    
+
     return psi_T
+
 
 def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     """
@@ -183,8 +212,8 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     Returns:
         Array: Higher order spin corrections to the phase
     """
-    
-    # Compute auxiliary quantities    
+
+    # Compute auxiliary quantities
     m1, m2, chi1, chi2, lambda1, lambda2 = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -195,7 +224,7 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     X1 = m1_s / M_s
     X1sq = X1 * X1
     chi1_sq = chi1 * chi1
-    
+
     X2 = m2_s / M_s
     X2sq = X2 * X2
     chi2_sq = chi2 * chi2
@@ -203,31 +232,57 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     # Compute quadrupole parameters
     quadparam1, octparam1 = get_quadparam_octparam(lambda1)
     quadparam2, octparam2 = get_quadparam_octparam(lambda2)
-    
+
     # Remove 1 for the BBH baseline, from here on, quadparam is "quadparam hat" as referred to in the NRTidalv2 paper etc
     quadparam1 -= 1
     quadparam2 -= 1
-    octparam1  -= 1
-    octparam2  -= 1
-    
+    octparam1 -= 1
+    octparam2 -= 1
+
     # Get phase contributions
-    SS_2 = - 50. * quadparam1 * chi1_sq * X1sq \
-           - 50. * quadparam2 * chi2_sq * X2sq
-    
-    SS_3 = 5.0/84.0 * (9407.0 + 8218.0 * X1 - 2016.0 * X1sq) * quadparam1 * X1sq * chi1_sq \
-         + 5.0/84.0 * (9407.0 + 8218.0 * X2 - 2016.0 * X2sq) * quadparam2 * X2sq * chi2_sq
-    
-    SS_3p5 = - 400. * PI * quadparam1 * chi1_sq * X1sq \
-             - 400. * PI * quadparam2 * chi2_sq * X2sq
-    SSS_3p5 = 10. * ((X1sq + 308./3. * X1) * chi1 + (X2sq - 89./3. * X2) * chi2) * quadparam1 * X1sq * chi1_sq \
-            + 10. * ((X2sq + 308./3. * X2) * chi2 + (X1sq - 89./3. * X1) * chi1) * quadparam2 * X2sq * chi2_sq \
-                - 440. * octparam1 * X1 * X1sq * chi1_sq * chi1 \
-                - 440. * octparam2 * X2 * X2sq * chi2_sq * chi2 
-                
-    prefac = (3. / (128. * eta))
-    psi_SS = prefac * (SS_2 * x ** (-1./2.) + SS_3 * x ** (1./2.) + (SS_3p5 + SSS_3p5) * x)
+    SS_2 = -50.0 * quadparam1 * chi1_sq * X1sq - 50.0 * quadparam2 * chi2_sq * X2sq
+
+    SS_3 = (
+        5.0
+        / 84.0
+        * (9407.0 + 8218.0 * X1 - 2016.0 * X1sq)
+        * quadparam1
+        * X1sq
+        * chi1_sq
+        + 5.0
+        / 84.0
+        * (9407.0 + 8218.0 * X2 - 2016.0 * X2sq)
+        * quadparam2
+        * X2sq
+        * chi2_sq
+    )
+
+    SS_3p5 = (
+        -400.0 * PI * quadparam1 * chi1_sq * X1sq
+        - 400.0 * PI * quadparam2 * chi2_sq * X2sq
+    )
+    SSS_3p5 = (
+        10.0
+        * ((X1sq + 308.0 / 3.0 * X1) * chi1 + (X2sq - 89.0 / 3.0 * X2) * chi2)
+        * quadparam1
+        * X1sq
+        * chi1_sq
+        + 10.0
+        * ((X2sq + 308.0 / 3.0 * X2) * chi2 + (X1sq - 89.0 / 3.0 * X1) * chi1)
+        * quadparam2
+        * X2sq
+        * chi2_sq
+        - 440.0 * octparam1 * X1 * X1sq * chi1_sq * chi1
+        - 440.0 * octparam2 * X2 * X2sq * chi2_sq * chi2
+    )
+
+    prefac = 3.0 / (128.0 * eta)
+    psi_SS = prefac * (
+        SS_2 * x ** (-1.0 / 2.0) + SS_3 * x ** (1.0 / 2.0) + (SS_3p5 + SSS_3p5) * x
+    )
 
     return psi_SS
+
 
 def _get_merger_frequency(theta: Array, kappa: float = None):
     """
@@ -240,32 +295,29 @@ def _get_merger_frequency(theta: Array, kappa: float = None):
     Returns:
         float: The merger frequency in Hz.
     """
-    
+
     # Compute auxiliary quantities
-    m1, m2, _, _, _, _ = theta 
+    m1, m2, _, _, _, _ = theta
     M = m1 + m2
     m1_s = m1 * gt
     m2_s = m2 * gt
-    M_s = m1_s + m2_s
     q = m1_s / m2_s
-    # X1 = m1_s / M_s
-    # X2 = m2_s / M_s
-    
+
     if kappa is None:
         kappa = get_kappa(theta)
     kappa_2 = kappa * kappa
-    
+
     # Initialize coefficients
     a_0 = 0.3586
     n_1 = 3.35411203e-2
     n_2 = 4.31460284e-5
     d_1 = 7.54224145e-2
     d_2 = 2.23626859e-4
-    
+
     # Get ratio and prefactor
     num = 1.0 + n_1 * kappa + n_2 * kappa_2
     den = 1.0 + d_1 * kappa + d_2 * kappa_2
-    Q_0 = a_0 * (q) ** (-1./2.)
+    Q_0 = a_0 * (q) ** (-1.0 / 2.0)
 
     # Dimensionless angular frequency of merger
     Momega_merger = Q_0 * (num / den)
@@ -275,9 +327,17 @@ def _get_merger_frequency(theta: Array, kappa: float = None):
 
     return fHz_merger
 
-def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, bbh_amp: Array, bbh_psi: Array, no_taper: bool=False):
+
+def _gen_NRTidalv2(
+    f: Array,
+    theta_intrinsic: Array,
+    theta_extrinsic: Array,
+    bbh_amp: Array,
+    bbh_psi: Array,
+    no_taper: bool = False,
+):
     """
-    Master internal function to get the GW strain for given parameters. The function takes 
+    Master internal function to get the GW strain for given parameters. The function takes
     a BBH strain, computed from an underlying BBH approximant, e.g. IMRPhenomD, and applies the
     tidal corrections to it afterwards, according to equation (25) of the NRTidalv2 paper.
 
@@ -296,32 +356,38 @@ def _gen_NRTidalv2(f: Array, theta_intrinsic: Array, theta_extrinsic: Array, bbh
     m1_s = m1 * gt
     m2_s = m2 * gt
     M_s = m1_s + m2_s
-    x = (PI * M_s * f) ** (2.0/3.0)
+    x = (PI * M_s * f) ** (2.0 / 3.0)
 
     # Compute kappa
     kappa = get_kappa(theta=theta_intrinsic)
-    
+
     # Compute amplitudes
     A_T = get_tidal_amplitude(x, theta_intrinsic, kappa, distance=theta_extrinsic[0])
     f_merger = _get_merger_frequency(theta_intrinsic, kappa)
-    
+
     # Decide whether to include the Planck taper or not
     if no_taper:
         A_P = jnp.ones_like(f)
     else:
         A_P = get_planck_taper(f, f_merger)
-    
 
     # Get tidal phase and spin corrections for BNS
     psi_T = get_tidal_phase(x, theta_intrinsic, kappa)
     psi_SS = get_spin_phase_correction(x, theta_intrinsic)
-    
+
     # Assemble everything
-    h0 = A_P * (bbh_amp + A_T) * jnp.exp(1.j * -(bbh_psi + psi_T + psi_SS))
+    h0 = A_P * (bbh_amp + A_T) * jnp.exp(1.0j * -(bbh_psi + psi_T + psi_SS))
 
     return h0
 
-def gen_NRTidalv2(f: Array, params: Array, f_ref: float, use_lambda_tildes: bool=True, no_taper: bool=False) -> Array:
+
+def gen_NRTidalv2(
+    f: Array,
+    params: Array,
+    f_ref: float,
+    use_lambda_tildes: bool = True,
+    no_taper: bool = False,
+) -> Array:
     """
     Generate NRTidalv2 frequency domain waveform following NRTidalv2 paper.
     vars array contains both intrinsic and extrinsic variables
@@ -337,32 +403,38 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, use_lambda_tildes: bool
     phic: Phase of coalesence
 
     f_ref: Reference frequency for the waveform
-    
+
     Returns:
     --------
         h0 (array): Strain
     """
-    
+
     # Get component masses
     m1, m2 = Mc_eta_to_ms(jnp.array([params[0], params[1]]))
     if use_lambda_tildes:
-        lambda1, lambda2 = lambda_tildes_to_lambdas(jnp.array([params[4], params[5], m1, m2]))
+        lambda1, lambda2 = lambda_tildes_to_lambdas(
+            jnp.array([params[4], params[5], m1, m2])
+        )
     else:
         lambda1, lambda2 = params[4], params[5]
     chi1, chi2 = params[2], params[3]
-    
+
     theta_intrinsic = jnp.array([m1, m2, chi1, chi2, lambda1, lambda2])
     theta_extrinsic = params[6:]
-    
+
     # Generate the BBH part:
     bbh_theta_intrinsic = jnp.array([m1, m2, chi1, chi2])
     coeffs = get_coeffs(bbh_theta_intrinsic)
     M_s = (bbh_theta_intrinsic[0] + bbh_theta_intrinsic[1]) * gt
 
     # Shift phase so that peak amplitude matches t = 0
-    transition_freqs = get_transition_frequencies(bbh_theta_intrinsic, coeffs[5], coeffs[6])
+    transition_freqs = get_transition_frequencies(
+        bbh_theta_intrinsic, coeffs[5], coeffs[6]
+    )
     _, _, _, f4, f_RD, f_damp = transition_freqs
-    t0 = jax.grad(get_IIb_raw_phase)(f4 * M_s, bbh_theta_intrinsic, coeffs, f_RD, f_damp)
+    t0 = jax.grad(get_IIb_raw_phase)(
+        f4 * M_s, bbh_theta_intrinsic, coeffs, f_RD, f_damp
+    )
 
     # Call the amplitude and phase now
     Psi = Phase(f, bbh_theta_intrinsic, coeffs, transition_freqs)
@@ -380,19 +452,27 @@ def gen_NRTidalv2(f: Array, params: Array, f_ref: float, use_lambda_tildes: bool
 
     A = Amp(f, bbh_theta_intrinsic, coeffs, transition_freqs, D=theta_extrinsic[0])
 
-    bbh_amp = A 
+    bbh_amp = A
     bbh_psi = Psi
-        
+
     # Use BBH waveform and add tidal corrections
-    return _gen_NRTidalv2(f, theta_intrinsic, theta_extrinsic, bbh_amp, bbh_psi, no_taper=no_taper)
+    return _gen_NRTidalv2(
+        f, theta_intrinsic, theta_extrinsic, bbh_amp, bbh_psi, no_taper=no_taper
+    )
 
 
-def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, use_lambda_tildes: bool=True, no_taper: bool=False):
+def gen_NRTidalv2_hphc(
+    f: Array,
+    params: Array,
+    f_ref: float,
+    use_lambda_tildes: bool = True,
+    no_taper: bool = False,
+):
     """
     vars array contains both intrinsic and extrinsic variables
-    
+
     IMRphenom denotes the name of the underlying BBH approximant used, before applying tidal corrections.
-    
+
     theta = [Mchirp, eta, chi1, chi2, lambda1, lambda2, D, tc, phic, inclination]
     Mchirp: Chirp mass of the system [solar masses]
     eta: Symmetric mass ratio [between 0.0 and 0.25]
@@ -411,8 +491,10 @@ def gen_NRTidalv2_hphc(f: Array, params: Array, f_ref: float, use_lambda_tildes:
         hc (array): Strain of the cross polarization
     """
     iota = params[-1]
-    h0 = gen_NRTidalv2(f, params[:-1], f_ref,use_lambda_tildes=use_lambda_tildes, no_taper=no_taper)
-    
+    h0 = gen_NRTidalv2(
+        f, params[:-1], f_ref, use_lambda_tildes=use_lambda_tildes, no_taper=no_taper
+    )
+
     hp = h0 * (1 / 2 * (1 + jnp.cos(iota) ** 2))
     hc = -1j * h0 * jnp.cos(iota)
 

@@ -21,7 +21,7 @@ PI = 3.141592653589793238462643383279502884
 
 TWO_PI = 6.283185307179586476925286766559005768
 
-gt = G * MSUN / (C ** 3.0)
+gt = G * MSUN / (C**3.0)
 """
 G MSUN / C^3 in seconds
 """
@@ -31,7 +31,7 @@ m_per_Mpc = 3.085677581491367278913937957796471611e22
 Meters per Mpc.
 """
 
-clightGpc = C/3.0856778570831e+22
+clightGpc = C / 3.0856778570831e22
 """
 Speed of light in vacuum (:math:`c`), in gigaparsecs per second
 """

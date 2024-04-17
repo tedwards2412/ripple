@@ -50,6 +50,7 @@ def ms_to_Mc_eta(m):
     m1, m2 = m
     return (m1 * m2) ** (3 / 5) / (m1 + m2) ** (1 / 5), m1 * m2 / (m1 + m2) ** 2
 
+
 # TODO in code below, reduce copy-paste
 def lambdas_to_lambda_tildes_from_q(params: Array):
     """
@@ -77,16 +78,29 @@ def lambdas_to_lambda_tildes_from_q(params: Array):
     eta = q / (1 + q) ** 2
     lambda_plus = lambda_1 + lambda_2
     lambda_minus = lambda_1 - lambda_2
-    lambda_tilde = 8 / 13 * (
-        (1 + 7 * eta - 31 * eta**2) * lambda_plus +
-        (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2) * lambda_minus)
-    
-    delta_lambda_tilde = 1 / 2 * (
-        (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2) *
-        lambda_plus + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta ** 2 +
-                       3380 / 1319 * eta ** 3) * lambda_minus)
+    lambda_tilde = (
+        8
+        / 13
+        * (
+            (1 + 7 * eta - 31 * eta**2) * lambda_plus
+            + (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2) * lambda_minus
+        )
+    )
+
+    delta_lambda_tilde = (
+        1
+        / 2
+        * (
+            (1 - 4 * eta) ** 0.5
+            * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
+            * lambda_plus
+            + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 + 3380 / 1319 * eta**3)
+            * lambda_minus
+        )
+    )
 
     return lambda_tilde, delta_lambda_tilde
+
 
 def lambdas_to_lambda_tildes(params: Array):
     """
@@ -114,14 +128,26 @@ def lambdas_to_lambda_tildes(params: Array):
     _, eta = ms_to_Mc_eta(jnp.array([mass_1, mass_2]))
     lambda_plus = lambda_1 + lambda_2
     lambda_minus = lambda_1 - lambda_2
-    lambda_tilde = 8 / 13 * (
-        (1 + 7 * eta - 31 * eta**2) * lambda_plus +
-        (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2) * lambda_minus)
-    
-    delta_lambda_tilde = 1 / 2 * (
-        (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2) *
-        lambda_plus + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta ** 2 +
-                       3380 / 1319 * eta ** 3) * lambda_minus)
+    lambda_tilde = (
+        8
+        / 13
+        * (
+            (1 + 7 * eta - 31 * eta**2) * lambda_plus
+            + (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2) * lambda_minus
+        )
+    )
+
+    delta_lambda_tilde = (
+        1
+        / 2
+        * (
+            (1 - 4 * eta) ** 0.5
+            * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
+            * lambda_plus
+            + (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 + 3380 / 1319 * eta**3)
+            * lambda_minus
+        )
+    )
 
     return lambda_tilde, delta_lambda_tilde
 
@@ -151,28 +177,35 @@ def lambda_tildes_to_lambdas(params: Array):
         Tidal parameter of less massive neutron star.
 
     """
-    
+
     lambda_tilde, delta_lambda_tilde, mass_1, mass_2 = params
-    
+
     _, eta = ms_to_Mc_eta(jnp.array([mass_1, mass_2]))
-    coefficient_1 = (1 + 7 * eta - 31 * eta**2)
-    coefficient_2 = (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2)
-    coefficient_3 = (1 - 4 * eta)**0.5 *\
-                    (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
-    coefficient_4 = (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 +
-                     3380 / 1319 * eta**3)
-    lambda_1 =\
-        (13 * lambda_tilde / 8 * (coefficient_3 - coefficient_4) -
-         2 * delta_lambda_tilde * (coefficient_1 - coefficient_2))\
-        / ((coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4) -
-           (coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4))
-    lambda_2 =\
-        (13 * lambda_tilde / 8 * (coefficient_3 + coefficient_4) -
-         2 * delta_lambda_tilde * (coefficient_1 + coefficient_2)) \
-        / ((coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4) -
-           (coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4))
+    coefficient_1 = 1 + 7 * eta - 31 * eta**2
+    coefficient_2 = (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2)
+    coefficient_3 = (1 - 4 * eta) ** 0.5 * (
+        1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2
+    )
+    coefficient_4 = (
+        1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 + 3380 / 1319 * eta**3
+    )
+    lambda_1 = (
+        13 * lambda_tilde / 8 * (coefficient_3 - coefficient_4)
+        - 2 * delta_lambda_tilde * (coefficient_1 - coefficient_2)
+    ) / (
+        (coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4)
+        - (coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4)
+    )
+    lambda_2 = (
+        13 * lambda_tilde / 8 * (coefficient_3 + coefficient_4)
+        - 2 * delta_lambda_tilde * (coefficient_1 + coefficient_2)
+    ) / (
+        (coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4)
+        - (coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4)
+    )
 
     return lambda_1, lambda_2
+
 
 def lambda_tildes_to_lambdas_from_q(params: Array):
     """
@@ -199,29 +232,36 @@ def lambda_tildes_to_lambdas_from_q(params: Array):
         Tidal parameter of less massive neutron star.
 
     """
-    
+
     lambda_tilde, delta_lambda_tilde, q = params
-    
+
     eta = q / (1 + q) ** 2
-    
-    coefficient_1 = (1 + 7 * eta - 31 * eta**2)
-    coefficient_2 = (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta**2)
-    coefficient_3 = (1 - 4 * eta)**0.5 *\
-                    (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
-    coefficient_4 = (1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 +
-                     3380 / 1319 * eta**3)
-    lambda_1 =\
-        (13 * lambda_tilde / 8 * (coefficient_3 - coefficient_4) -
-         2 * delta_lambda_tilde * (coefficient_1 - coefficient_2))\
-        / ((coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4) -
-           (coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4))
-    lambda_2 =\
-        (13 * lambda_tilde / 8 * (coefficient_3 + coefficient_4) -
-         2 * delta_lambda_tilde * (coefficient_1 + coefficient_2)) \
-        / ((coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4) -
-           (coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4))
+
+    coefficient_1 = 1 + 7 * eta - 31 * eta**2
+    coefficient_2 = (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2)
+    coefficient_3 = (1 - 4 * eta) ** 0.5 * (
+        1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2
+    )
+    coefficient_4 = (
+        1 - 15910 / 1319 * eta + 32850 / 1319 * eta**2 + 3380 / 1319 * eta**3
+    )
+    lambda_1 = (
+        13 * lambda_tilde / 8 * (coefficient_3 - coefficient_4)
+        - 2 * delta_lambda_tilde * (coefficient_1 - coefficient_2)
+    ) / (
+        (coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4)
+        - (coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4)
+    )
+    lambda_2 = (
+        13 * lambda_tilde / 8 * (coefficient_3 + coefficient_4)
+        - 2 * delta_lambda_tilde * (coefficient_1 + coefficient_2)
+    ) / (
+        (coefficient_1 - coefficient_2) * (coefficient_3 + coefficient_4)
+        - (coefficient_1 + coefficient_2) * (coefficient_3 - coefficient_4)
+    )
 
     return lambda_1, lambda_2
+
 
 def get_chi_eff(params: Array) -> float:
     """Compute effective spin.
@@ -233,9 +273,10 @@ def get_chi_eff(params: Array) -> float:
         float: Effective spin.
     """
     m1, m2, chi1, chi2 = params
-    
+
     chi_eff = (m1 * chi1 + m2 * chi2) / (m1 + m2)
     return chi_eff
+
 
 def get_f_isco(m):
     r"""
