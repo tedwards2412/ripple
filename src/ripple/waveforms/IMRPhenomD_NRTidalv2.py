@@ -328,7 +328,7 @@ def _get_merger_frequency(theta: Array, kappa: float = None):
     return fHz_merger
 
 
-def _gen_NRTidalv2(
+def _gen_IMRPhenomD_NRTidalv2(
     f: Array,
     theta_intrinsic: Array,
     theta_extrinsic: Array,
@@ -381,7 +381,7 @@ def _gen_NRTidalv2(
     return h0
 
 
-def gen_NRTidalv2(
+def gen_IMRPhenomD_NRTidalv2(
     f: Array,
     params: Array,
     f_ref: float,
@@ -456,12 +456,12 @@ def gen_NRTidalv2(
     bbh_psi = Psi
 
     # Use BBH waveform and add tidal corrections
-    return _gen_NRTidalv2(
+    return _gen_IMRPhenomD_NRTidalv2(
         f, theta_intrinsic, theta_extrinsic, bbh_amp, bbh_psi, no_taper=no_taper
     )
 
 
-def gen_NRTidalv2_hphc(
+def gen_IMRPhenomD_NRTidalv2_hphc(
     f: Array,
     params: Array,
     f_ref: float,
@@ -491,7 +491,7 @@ def gen_NRTidalv2_hphc(
         hc (array): Strain of the cross polarization
     """
     iota = params[-1]
-    h0 = gen_NRTidalv2(
+    h0 = gen_IMRPhenomD_NRTidalv2(
         f, params[:-1], f_ref, use_lambda_tildes=use_lambda_tildes, no_taper=no_taper
     )
 
