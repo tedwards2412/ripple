@@ -136,7 +136,7 @@ def random_match(n: int, bounds: dict, IMRphenom: str = "IMRPhenomD_NRTidalv2", 
     thetas = np.array(thetas)
     matches = np.array(matches)
     if outdir is not None:
-        csv_name = f"{outdir}matches_data/matches_{IMRphenom}.csv"
+        csv_name = f"{outdir}/matches_{IMRphenom}.csv"
         print(f"Saving matches to {csv_name}")
         df = save_matches(csv_name, thetas, matches, is_tidal=is_tidal, verbose=True)
 
