@@ -2,7 +2,6 @@
 Detector noise power spectral densities.
 """
 
-
 import importlib.resources as pkg_resources
 from typing import Callable, Tuple
 
