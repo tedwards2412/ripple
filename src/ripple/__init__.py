@@ -7,6 +7,7 @@ and comparing waveforms.
 # from jax.config import config
 # config.update("jax_enable_x64", True)
 
+import ripple
 from math import pi
 from typing import Callable, Optional, Tuple
 import warnings
