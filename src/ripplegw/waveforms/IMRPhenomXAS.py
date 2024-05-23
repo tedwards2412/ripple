@@ -2,10 +2,10 @@
 import jax
 import jax.numpy as jnp
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
-from ripple.waveforms import IMRPhenomX_utils
+from ripplegw.waveforms import IMRPhenomX_utils
 from ..typing import Array
 
-from ripple import Mc_eta_to_ms
+from ripplegw import Mc_eta_to_ms
 
 eqspin_indx = 10
 uneqspin_indx = 39

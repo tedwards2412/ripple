@@ -15,7 +15,7 @@ from .IMRPhenomD_utils import (
 from .IMRPhenomD_QNMdata import fM_CUT
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
 from ..typing import Array
-from ripple import Mc_eta_to_ms
+from ripplegw import Mc_eta_to_ms
 
 
 def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:

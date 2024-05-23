@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from ripple import Mc_eta_to_ms
+from ripplegw import Mc_eta_to_ms
 
 from ..constants import gt, MSUN
 import numpy as np
@@ -128,10 +128,6 @@ def PhenomPOneFrequency(
     # the wrong array it will behave strangely
     norm = 2.0 * jnp.sqrt(5.0 / (64.0 * jnp.pi))
     theta_ripple = jnp.array([m1, m2, chi1, chi2])
-    # coeffs = get_coeffs(theta_ripple)
-    # transition_freqs = phP_get_transition_frequencies(
-    #     theta_ripple, coeffs[5], coeffs[6], chip
-    # )
 
     phase = PhDPhase(fs, theta_ripple, coeffs, transition_freqs)
     Dphi = lambda f: -PhDPhase(f, theta_ripple, coeffs, transition_freqs)
@@ -142,28 +138,6 @@ def PhenomPOneFrequency(
     # phase -= 2. * phic; # line 1316 ???
     hPhenom = Amp * (jnp.exp(-1j * phase))
     return hPhenom, Dphi
-
-
-# def PhenomPOneFrequency_phase(
-#     f: float,
-#     m1: float,
-#     m2: float,
-#     chi1: float,
-#     chi2: float,
-#     chip: float,
-#     phic: float,
-#     M: float,
-#     dist_mpc: float,
-# ):
-#     """ """
-#     theta_ripple = jnp.array([m1, m2, chi1, chi2])
-#     coeffs = get_coeffs(theta_ripple)
-#     transition_freqs = phP_get_transition_frequencies(
-#         theta_ripple, coeffs[5], coeffs[6], chip
-#     )
-
-#     phase = PhDPhase(f, theta_ripple, coeffs, transition_freqs)
-#     return -phase
 
 
 def gen_IMRPhenomPv2(

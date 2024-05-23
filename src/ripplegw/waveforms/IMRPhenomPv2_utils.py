@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from ripple import Mc_eta_to_ms
+from ripplegw import Mc_eta_to_ms
 
 from typing import Tuple
 from ..constants import gt, MSUN

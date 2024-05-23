@@ -6,9 +6,9 @@ import jax
 import jax.numpy as jnp
 from ..constants import gt, m_per_Mpc, PI, TWO_PI, MRSUN
 from ..typing import Array
-from ripple import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
-from ripple.waveforms.IMRPhenomD import Phase, Amp, get_IIb_raw_phase
+from ripplegw.waveforms.IMRPhenomD import Phase, Amp, get_IIb_raw_phase
 from .IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
