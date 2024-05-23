@@ -1,3 +1,8 @@
-import setuptools
+from setuptools import setup
 
-setuptools.setup()
+setup(
+    name="your_project",
+    install_requires=[
+        "ripplegw",
+    ],
+)
