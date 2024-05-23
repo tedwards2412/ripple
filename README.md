@@ -4,6 +4,10 @@ A small `jax` package for differentiable and fast gravitational wave data analys
 
 # Getting Started
 
+## Documentation
+
+You can find the full documentation at [Read the Docs](https://ripplegw.readthedocs.io/).
+
 ### Installation
 
 Both waveforms have been tested extensively and match `lalsuite` implementations to machine precision across all the parameter space. 
