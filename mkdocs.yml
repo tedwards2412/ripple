@@ -76,16 +76,5 @@ extra_css:
 
 nav:
     - Home: index.md
-      - API:
-      - Waveforms:
-          - IMRPhenomD: api/ripplegw/waveforms/IMRPhenomD.md
-          - IMRPhenomD NRTidalv2: api/ripplegw/waveforms/IMRPhenomD_NRTidalv2.md
-          - IMRPhenomD QNMdata: api/ripplegw/waveforms/IMRPhenomD_QNMdata.md
-          - IMRPhenomD Utils: api/ripplegw/waveforms/IMRPhenomD_utils.md
-          - IMRPhenomPv2: api/ripplegw/waveforms/IMRPhenomPv2.md
-          - IMRPhenomPv2 Utils: api/ripplegw/waveforms/IMRPhenomPv2_utils.md
-          - IMRPhenomXAS: api/ripplegw/waveforms/IMRPhenomXAS.md
-          - IMRPhenomX Utils: api/ripplegw/waveforms/IMRPhenomX_utils.md
-          - IMRPhenom Tidal Utils: api/ripplegw/waveforms/IMRPhenom_tidal_utils.md
-          - TaylorF2: api/ripplegw/waveforms/TaylorF2.md
+    - API: api/ripplegw/waveforms/*
     - Tutorial: notebooks/*
