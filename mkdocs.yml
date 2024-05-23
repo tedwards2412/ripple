@@ -76,5 +76,5 @@ extra_css:
 
 nav:
     - Home: index.md
-    - API: api/ripple/*
+    - API: api/ripplegw/*
     - Tutorial: notebooks/*
