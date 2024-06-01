@@ -1,7 +1,9 @@
 import jax.numpy as jnp
-from ..typing import Array
-from ..constants import PI
 from jax.lax import complex
+
+from ..constants import PI
+from ..typing import Array
+
 
 def semi_major_minor_from_e(e: Array) -> tuple[Array, Array]:
     """
@@ -18,7 +20,7 @@ def semi_major_minor_from_e(e: Array) -> tuple[Array, Array]:
     return a, b
 
 
-def gen_SineGaussian(
+def gen_SineGaussian_hphc(
     quality: Array,
     frequency: Array,
     hrss: Array,
@@ -47,7 +49,7 @@ def gen_SineGaussian(
             Controls the relative amplitudes of the
             hplus and hcross polarizations.
     Returns:
-        Jax Arrays of cross and plus polarizations
+        Jax Arrays of plus and cross polarizations
     """
     # determine times based on requested duration and sample rate
     # and shift so that the waveform is centered at t=0
@@ -74,10 +76,14 @@ def gen_SineGaussian(
     cos_phase, sin_phase = jnp.cos(phase), jnp.sin(phase)
 
     h0_plus = (
-        hrss * a / jnp.sqrt(cosine_norm * (cos_phase**2) + sine_norm * (sin_phase**2))
+        hrss
+        * a
+        / jnp.sqrt(cosine_norm * (cos_phase**2) + sine_norm * (sin_phase**2))
     )
     h0_cross = (
-        hrss * b / jnp.sqrt(cosine_norm * (sin_phase**2) + sine_norm * (cos_phase**2))
+        hrss
+        * b
+        / jnp.sqrt(cosine_norm * (sin_phase**2) + sine_norm * (cos_phase**2))
     )
 
     # cast the phase to a complex number
@@ -91,4 +97,4 @@ def gen_SineGaussian(
     cross = (fac.imag * h0_cross).astype(jnp.float64)
     plus = (fac.real * h0_plus).astype(jnp.float64)
 
-    return cross, plus
+    return plus, cross
