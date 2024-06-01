@@ -54,7 +54,7 @@ def gen_SineGaussian_hphc(
     # determine times based on requested duration and sample rate
     # and shift so that the waveform is centered at t=0
     num = int(duration * sample_rate)
-    times = jnp.arange(num, dtype=jnp.float64) / sample_rate
+    times = jnp.arange(num) / sample_rate
     times -= duration / 2.0
 
     # add dimension for calculating waveforms in batch
@@ -76,14 +76,10 @@ def gen_SineGaussian_hphc(
     cos_phase, sin_phase = jnp.cos(phase), jnp.sin(phase)
 
     h0_plus = (
-        hrss
-        * a
-        / jnp.sqrt(cosine_norm * (cos_phase**2) + sine_norm * (sin_phase**2))
+        hrss * a / jnp.sqrt(cosine_norm * (cos_phase**2) + sine_norm * (sin_phase**2))
     )
     h0_cross = (
-        hrss
-        * b
-        / jnp.sqrt(cosine_norm * (sin_phase**2) + sine_norm * (cos_phase**2))
+        hrss * b / jnp.sqrt(cosine_norm * (sin_phase**2) + sine_norm * (cos_phase**2))
     )
 
     # cast the phase to a complex number
@@ -94,7 +90,7 @@ def gen_SineGaussian_hphc(
     # window to taper the waveform
     fac = jnp.exp(phi**2 / (-2.0 * quality**2) + complex_phase)
 
-    cross = (fac.imag * h0_cross).astype(jnp.float64)
-    plus = (fac.real * h0_plus).astype(jnp.float64)
+    cross = fac.imag * h0_cross
+    plus = fac.real * h0_plus
 
     return plus, cross
