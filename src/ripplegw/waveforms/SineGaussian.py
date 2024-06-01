@@ -27,7 +27,7 @@ def gen_SineGaussian_hphc(
     phase: Array,
     eccentricity: Array,
     duration: float,
-    sample_rate: float = 2048.0,
+    sample_rate: float = 4096.0,
 ) -> tuple[Array, Array]:
     """
     Generate lalinference implementation of a sine-Gaussian waveform in Jax.
