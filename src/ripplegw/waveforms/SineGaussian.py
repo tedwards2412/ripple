@@ -1,13 +1,7 @@
-import jax
 import jax.numpy as jnp
 from ..typing import Array
 from ..constants import PI
 from jax.lax import complex
-from flax import linen as nn
-
-# Enable 64-bit precision
-jax.config.update("jax_enable_x64", True)
-
 
 def semi_major_minor_from_e(e: Array) -> tuple[Array, Array]:
     """
