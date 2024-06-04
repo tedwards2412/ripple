@@ -26,8 +26,7 @@ def gen_SineGaussian_hphc(
     hrss: Array,
     phase: Array,
     eccentricity: Array,
-    duration: float,
-    sample_rate: float = 4096.0,
+    time_grid: Array,
 ) -> tuple[Array, Array]:
     """
     Generate lalinference implementation of a sine-Gaussian waveform in Jax.
@@ -48,14 +47,14 @@ def gen_SineGaussian_hphc(
             Eccentricity of the sine-Gaussian waveform.
             Controls the relative amplitudes of the
             hplus and hcross polarizations.
+        time_grid:
+            Time grid (centered at t=0) on which to evaluate the waveform.
+            Create it using `jax.numpy.arange(-duration/2, duration/2, 1/fs)`
+            where `duration` is the duration of the waveform (in seconds) and `fs`
+            is the sample rate at which the waveform is evaluated.
     Returns:
         Jax Arrays of plus and cross polarizations
     """
-    # determine times based on requested duration and sample rate
-    # and shift so that the waveform is centered at t=0
-    num = int(duration * sample_rate)
-    times = jnp.arange(num) / sample_rate
-    times -= duration / 2.0
 
     # add dimension for calculating waveforms in batch
     frequency = frequency.reshape(-1, 1)
@@ -83,7 +82,7 @@ def gen_SineGaussian_hphc(
     )
 
     # cast the phase to a complex number
-    phi = 2 * pi * frequency * times
+    phi = 2 * pi * frequency * time_grid
     complex_phase = complex(jnp.zeros_like(phi), (phi - phase))
 
     # calculate the waveform and apply a tukey
