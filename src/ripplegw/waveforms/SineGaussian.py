@@ -21,12 +21,8 @@ def semi_major_minor_from_e(e: Array) -> tuple[Array, Array]:
 
 
 def gen_SineGaussian_hphc(
-    quality: Array,
-    frequency: Array,
-    hrss: Array,
-    phase: Array,
-    eccentricity: Array,
-    time_grid: Array,
+    t: Array,
+    theta: Array,
 ) -> tuple[Array, Array]:
     """
     Generate lalinference implementation of a sine-Gaussian waveform in Jax.
@@ -35,30 +31,37 @@ def gen_SineGaussian_hphc(
     for details on parameter definitions.
 
     Args:
-        quality:
-            Quality factor of the sine-Gaussian waveform
-        frequency:
-            Central frequency of the sine-Gaussian waveform
-        hrss:
-            Hrss of the sine-Gaussian waveform
-        phase:
-            Phase of the sine-Gaussian waveform
-        eccentricity:
-            Eccentricity of the sine-Gaussian waveform.
-            Controls the relative amplitudes of the
-            hplus and hcross polarizations.
-        time_grid:
+    --------
+        t:
             Time grid (centered at t=0) on which to evaluate the waveform.
             Create it using `jax.numpy.arange(-duration/2, duration/2, 1/fs)`
             where `duration` is the duration of the waveform (in seconds) and `fs`
             is the sample rate at which the waveform is evaluated.
+        theta:
+            Array of waveform parameters [quality, frequency, hrss, phase, eccentricity]
+            quality:
+                Quality factor of the sine-Gaussian waveform
+            frequency:
+                Central frequency of the sine-Gaussian waveform
+            hrss:
+                Hrss of the sine-Gaussian waveform
+            phase:
+                Phase of the sine-Gaussian waveform
+            eccentricity:
+                Eccentricity of the sine-Gaussian waveform.
+                Controls the relative amplitudes of the
+                hplus and hcross polarizations.
+        
     Returns:
-        Jax Arrays of plus and cross polarizations
+    --------
+        Jax Arrays of plus and cross polarizations (in that order)
     """
+    
+    quality, frequency, hrss, phase, eccentricity = theta
 
     # add dimension for calculating waveforms in batch
-    frequency = frequency.reshape(-1, 1)
     quality = quality.reshape(-1, 1)
+    frequency = frequency.reshape(-1, 1)
     hrss = hrss.reshape(-1, 1)
     phase = phase.reshape(-1, 1)
     eccentricity = eccentricity.reshape(-1, 1)
@@ -82,7 +85,7 @@ def gen_SineGaussian_hphc(
     )
 
     # cast the phase to a complex number
-    phi = 2 * pi * frequency * time_grid
+    phi = 2 * pi * frequency * t
     complex_phase = complex(jnp.zeros_like(phi), (phi - phase))
 
     # calculate the waveform and apply a tukey
