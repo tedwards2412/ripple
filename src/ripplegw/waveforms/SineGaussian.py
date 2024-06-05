@@ -51,20 +51,20 @@ def gen_SineGaussian_hphc(
                 Eccentricity of the sine-Gaussian waveform.
                 Controls the relative amplitudes of the
                 hplus and hcross polarizations.
-        
+
     Returns:
     --------
         Jax Arrays of plus and cross polarizations (in that order)
     """
-    
+
     quality, frequency, hrss, phase, eccentricity = theta
 
     # add dimension for calculating waveforms in batch
-    quality = quality.reshape(-1, 1)
-    frequency = frequency.reshape(-1, 1)
-    hrss = hrss.reshape(-1, 1)
-    phase = phase.reshape(-1, 1)
-    eccentricity = eccentricity.reshape(-1, 1)
+    # quality = quality.reshape(-1, 1)
+    # frequency = frequency.reshape(-1, 1)
+    # hrss = hrss.reshape(-1, 1)
+    # phase = phase.reshape(-1, 1)
+    # eccentricity = eccentricity.reshape(-1, 1)
 
     pi = jnp.array([PI])
 
