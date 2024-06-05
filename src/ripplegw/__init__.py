@@ -3,11 +3,6 @@ Core utilities for calculating properties of binaries, sampling their parameters
 and comparing waveforms.
 """
 
-# Note that we turned this off to test float32 capabilities
-# from jax.config import config
-# config.update("jax_enable_x64", True)
-
-import ripplegw
 from math import pi
 from typing import Callable, Optional, Tuple
 import warnings
@@ -17,6 +12,21 @@ import jax.numpy as jnp
 
 from .constants import C, G
 from .typing import Array
+
+
+def ht_to_hf(f, params, waveform):
+    r"""
+    Converts a time-domain waveform to the frequency domain.
+    """
+    Fs = 2 * f[-1]
+    dt = 1 / Fs
+    N = jnp.size(f)
+
+    # Generate the time grid
+    t = dt * jnp.arange(N)
+    h_t = waveform(t, params)
+    h_f = jnp.fft(h_t)
+    return h_f
 
 
 def Mc_eta_to_ms(m):
