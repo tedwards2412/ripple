@@ -9,9 +9,8 @@ import lalsimulation as lalsim
 import lal
 
 import matplotlib.pyplot as plt
-from jax.config import config
 
-config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
 
 # def random_match_waveforms_old(n, IMRphenom):
@@ -163,7 +162,7 @@ def random_match_waveforms(n, IMRphenom):
     # Get a frequency domain waveform
     thetas = []
     matches = []
-    f_ASD, ASD = np.loadtxt("O3Livingston.txt", unpack=True)
+    f_ASD, ASD = np.loadtxt("O3a_Livingston_ASD.dat", unpack=True)
 
     if "PhenomP" in IMRphenom:
         for i in tqdm(range(n)):
