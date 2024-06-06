@@ -28,7 +28,7 @@ def gen_NRSurrogate(f: Array, params: Array, f_ref: float):
     theta_NRSurrogate = jnp.array([m1 / m2, params[2], params[3]])
     M_tot = m1 + m2
 
-    model = NRHybSur3dq8Model("./NRHybSur3dq8.h5")
+    model = NRHybSur3dq8Model()
     h0 = ht_to_hf(f, theta_NRSurrogate, model)
 
     phase_shift = jnp.exp(-1j * (2 * jnp.pi * f - f_ref * params[5] + params[6]))

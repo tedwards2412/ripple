@@ -14,10 +14,26 @@ from .constants import C, G
 from .typing import Array
 
 
+import jax.numpy as jnp
+
+
 def ht_to_hf(f, params, waveform):
     r"""
     Converts a time-domain waveform to the frequency domain.
+
+    Parameters:
+    - f: array-like
+        The frequency array.
+    - params: dict
+        Parameters for the waveform function.
+    - waveform: callable
+        A function that generates the waveform given time array and parameters.
+
+    Returns:
+    - h_f: array-like
+        The frequency domain representation of the waveform.
     """
+    # Nyquist Sampling Theorem: Sampling frequency should be at least twice the max frequency
     Fs = 2 * f[-1]
     dt = 1 / Fs
     N = jnp.size(f)
@@ -25,7 +41,8 @@ def ht_to_hf(f, params, waveform):
     # Generate the time grid
     t = dt * jnp.arange(N)
     h_t = waveform(t, params)
-    h_f = jnp.fft(h_t)
+    h_f = jnp.fft.fft(h_t)
+
     return h_f
 
 
