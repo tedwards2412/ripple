@@ -35,3 +35,7 @@ clightGpc = C / 3.0856778570831e22
 """
 Speed of light in vacuum (:math:`c`), in gigaparsecs per second
 """
+
+# geometric units to SI
+GMSUN_SI = 1.32712442099000e20
+RSUN_SI = GMSUN_SI / C**2

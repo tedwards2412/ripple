@@ -12,38 +12,38 @@ import jax.numpy as jnp
 
 from .constants import C, G
 from .typing import Array
-
-
 import jax.numpy as jnp
 
 
-def ht_to_hf(f, params, waveform):
-    r"""
-    Converts a time-domain waveform to the frequency domain.
+def tukey(length, alpha=0.5):
+    """Create a Tukey window.
 
-    Parameters:
-    - f: array-like
-        The frequency array.
-    - params: dict
-        Parameters for the waveform function.
-    - waveform: callable
-        A function that generates the waveform given time array and parameters.
+    Args:
+        length (int): Number of points in the window.
+        alpha (float): Fraction of the window inside the cosine tapered region.
 
     Returns:
-    - h_f: array-like
-        The frequency domain representation of the waveform.
+        jnp.ndarray: The Tukey window.
     """
-    # Nyquist Sampling Theorem: Sampling frequency should be at least twice the max frequency
-    Fs = 2 * f[-1]
-    dt = 1 / Fs
-    N = jnp.size(f)
+    # Ensure alpha is between 0 and 1
+    if alpha <= 0:
+        return jnp.ones(length)  # Rectangular window
+    elif alpha >= 1:
+        return jnp.hanning(length)  # Hann window
 
-    # Generate the time grid
-    t = dt * jnp.arange(N)
-    h_t = waveform(t, params)
-    h_f = jnp.fft.fft(h_t)
-
-    return h_f
+    # Tukey window calculations
+    x = jnp.linspace(0, 1, length)
+    # Window definition
+    w = jnp.where(
+        x < alpha / 2,
+        0.5 * (1 + jnp.cos(2 * jnp.pi / alpha * (x - alpha / 2))),
+        jnp.where(
+            x > 1 - alpha / 2,
+            0.5 * (1 + jnp.cos(2 * jnp.pi / alpha * (x - 1 + alpha / 2))),
+            1,
+        ),
+    )
+    return w
 
 
 def Mc_eta_to_ms(m):
