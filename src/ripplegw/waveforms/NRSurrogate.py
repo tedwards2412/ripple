@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 from ..typing import Array
-from ripplegw import Mc_eta_to_ms, ht_to_hf
+from ripplegw import Mc_eta_to_ms
 from jaxNRSur.SurrogateModel import NRHybSur3dq8Model
 from ..constants import C, RSUN_SI, m_per_Mpc
 from ripplegw import tukey
@@ -27,7 +27,6 @@ class NRSurrogate:
         # construct window for FFT
         self.window = tukey(self.N, self.alpha)
 
-    @jax.jit
     def gen_NRSurrogate_td(self, params: Array):
         """Wrapper for jaxNR to produce waveform over given dimensionful time."""
         # get scaling parameters
@@ -46,7 +45,6 @@ class NRSurrogate:
         h = h_t * M_tot * RSUN_SI / D / m_per_Mpc
         return h, time_M
 
-    @jax.jit
     def gen_NRSurrogate_hphc(self, params: Array):
         """
         params array contains both intrinsic and extrinsic variables
