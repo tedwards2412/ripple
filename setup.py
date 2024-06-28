@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name="your_project",
+    name="ripplegw",
     install_requires=[
         "ripplegw",
     ],
