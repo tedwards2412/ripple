@@ -16,6 +16,8 @@ from .IMRPhenomD_utils import (
 from ..typing import Array
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
+MAX_TOL_ATAN = 1.0e-15
+
 
 # helper functions for LALtoPhenomP:
 def ROTATEZ(angle, x, y, z):
@@ -92,7 +94,12 @@ def convert_spins(
 
     thetaJ_sf = jnp.arccos(J0z_sf / J0)
 
-    phiJ_sf = jnp.arctan2(J0y_sf, J0x_sf)
+    no_inplane_J0 = (jnp.abs(J0x_sf) < MAX_TOL_ATAN) & (jnp.abs(J0y_sf) < MAX_TOL_ATAN)
+    phiJ_sf = jnp.where(
+        no_inplane_J0,
+        jnp.pi / 2.0 - phiRef,  # This is the aligned-spin case
+        jnp.arctan2(J0y_sf, J0x_sf),
+    )
 
     phi_aligned = -phiJ_sf
 
@@ -117,7 +124,12 @@ def convert_spins(
     tmp_x, tmp_y, tmp_z = ROTATEY(-thetaJ_sf, tmp_x, tmp_y, tmp_z)
     tmp_x, tmp_y, tmp_z = ROTATEZ(kappa, tmp_x, tmp_y, tmp_z)
 
-    alpha0 = jnp.arctan2(tmp_y, tmp_x)
+    no_inplane_LN = (jnp.abs(tmp_x) < MAX_TOL_ATAN) & (jnp.abs(tmp_y) < MAX_TOL_ATAN)
+    alpha0 = jnp.where(
+        no_inplane_LN,
+        jnp.pi,  # This is the aligned-spin case
+        jnp.arctan2(tmp_y, tmp_x),
+    )
 
     # Finally we determine thetaJ, by rotating N
     tmp_x, tmp_y, tmp_z = Nx_sf, Ny_sf, Nz_sf
