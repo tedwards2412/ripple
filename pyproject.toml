@@ -1,6 +1,47 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+[project]
+name = "ripplegw"
+version = "0.1.0"
+description = "Gravitational waveforms in Jax"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "jax>=0.5.3",
+    "jaxtyping>=0.3.2",
+    "numpy<2",
 ]
-build-backend = "setuptools.build_meta"
+authors = [
+    {name = "Thomas Edward", email = "To-fill@mail"},
+    {name = "Kaze Wong", email = "kazewong.physics@gmail.com"},
+]
+
+keywords = ["gravitational-wave", "waveform-model", "autodiff", "jax"]
+license = {text = "MIT"}
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+    "ipython>=9.3.0",
+    "matplotlib>=3.10.3",
+    "pytest>=8.4.1",
+    "ruff>=0.11.13",
+]
+
+[project.optional-dependencies]
+cuda = [
+    "jax[cuda]>=0.5.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+ripplegw = { workspace = true }
+
+[tool.pyright]
+include = ["src"]
+exclude = ["test", "docs"]
+
+[tool.ruff]
+include = ["src"]
+exclude = ["test", "docs"]

@@ -10,7 +10,7 @@ from ripple.waveforms import PPE_IMRPhenomD, IMRPhenomD, IMRPhenomD_utils
 import matplotlib.pyplot as plt
 from ripple.constants import gt
 
-#plt.style.use("../plot_style.mplstyle")
+# plt.style.use("../plot_style.mplstyle")
 import numpy as np
 import cProfile
 import lalsimulation as lalsim
@@ -302,7 +302,7 @@ def test_Amp_phenomD():
 
     plt.figure(figsize=(7, 5))
     plt.plot(
-        freq[f_mask], #* ((theta[0] + theta[1]) * 4.92549094830932e-6),
+        freq[f_mask],  # * ((theta[0] + theta[1]) * 4.92549094830932e-6),
         hp.data.data[f_mask],
         label="lalsuite",
     )
@@ -358,8 +358,8 @@ def plot_waveforms():
         [Mc, eta, chi1[2], chi2[2], dist_mpc, tc, phic, inclination]
     )
 
-    #ppes = np.random.uniform(0,1e-5, 15)
-    #print(ppes)
+    # ppes = np.random.uniform(0,1e-5, 15)
+    # print(ppes)
 
     theta = np.array([m1_msun, m2_msun, chi1[2], chi2[2]])
     f_l = 32.0
@@ -404,7 +404,9 @@ def plot_waveforms():
     freqs = np.arange(len(hp.data.data)) * del_f
     mask_lal = (freqs >= f_l) & (freqs < f_u)
 
-    hp_ripple, hc_ripple = PPE_IMRPhenomD.gen_IMRPhenomD_polar(fs, theta_ripple, ppes, f_ref)
+    hp_ripple, hc_ripple = PPE_IMRPhenomD.gen_IMRPhenomD_polar(
+        fs, theta_ripple, ppes, f_ref
+    )
 
     plt.figure(figsize=(15, 5))
     plt.plot(

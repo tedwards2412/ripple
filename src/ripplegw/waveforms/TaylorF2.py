@@ -4,20 +4,21 @@ This file implements the TaylorF2 waveform, as described in the LALSuite library
 
 import jax.numpy as jnp
 from ..constants import EulerGamma, gt, m_per_Mpc, PI, MRSUN
-from ..typing import Array
-from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from ripplegw.utils import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam
+from jaxtyping import Array, Float, PyTree
+from ripplegw.waveforms.WaveformModel import WaveformModel, Polarization
 
 ###########################
 ### AUXILIARY FUNCTIONS ###
 ###########################
 
 
-def get_3PNSOCoeff(mByM):
+def get_3PNSOCoeff(mByM: float) -> float:
     return mByM * (25.0 + 38.0 / 3.0 * mByM)
 
 
-def get_5PNSOCoeff(mByM):
+def get_5PNSOCoeff(mByM: float) -> float:
     return -mByM * (
         1391.5 / 8.4
         - mByM * (1.0 - mByM) * 10.0 / 3.0
@@ -25,11 +26,11 @@ def get_5PNSOCoeff(mByM):
     )
 
 
-def get_6PNSOCoeff(mByM):
+def get_6PNSOCoeff(mByM: float) -> float:
     return PI * mByM * (1490.0 / 3.0 + mByM * 260.0)
 
 
-def get_7PNSOCoeff(mByM):
+def get_7PNSOCoeff(mByM: float) -> float:
     eta = mByM * (1.0 - mByM)
     return mByM * (
         -17097.8035 / 4.8384
@@ -40,49 +41,49 @@ def get_7PNSOCoeff(mByM):
     )
 
 
-def get_4PNS1S2Coeff(eta):
+def get_4PNS1S2Coeff(eta: float) -> float:
     return 247.0 / 4.8 * eta
 
 
-def get_4PNS1S2OCoeff(eta):
+def get_4PNS1S2OCoeff(eta: float) -> float:
     return -721.0 / 4.8 * eta
 
 
-def get_4PNQM2SOCoeff(mByM):
+def get_4PNQM2SOCoeff(mByM: float) -> float:
     return -720.0 / 9.6 * mByM * mByM
 
 
-def get_4PNSelf2SOCoeff(mByM):
+def get_4PNSelf2SOCoeff(mByM: float) -> float:
     return 1.0 / 9.6 * mByM * mByM
 
 
-def get_4PNQM2SCoeff(mByM):
+def get_4PNQM2SCoeff(mByM: float) -> float:
     return 240.0 / 9.6 * mByM * mByM
 
 
-def get_4PNSelf2SCoeff(mByM):
+def get_4PNSelf2SCoeff(mByM: float) -> float:
     return -7.0 / 9.6 * mByM * mByM
 
 
-def get_6PNS1S2OCoeff(eta):
+def get_6PNS1S2OCoeff(eta: float) -> float:
     return (326.75 / 1.12 + 557.5 / 1.8 * eta) * eta
 
 
-def get_6PNSelf2SCoeff(mByM):
+def get_6PNSelf2SCoeff(mByM: float) -> float:
     return (
         (-4108.25 / 6.72 - 108.5 / 1.2 * mByM + 125.5 / 3.6 * mByM * mByM) * mByM * mByM
     )
 
 
-def get_6PNQM2SCoeff(mByM):
+def get_6PNQM2SCoeff(mByM: float) -> float:
     return (4703.5 / 8.4 + 2935.0 / 6.0 * mByM - 120.0 * mByM * mByM) * mByM * mByM
 
 
-def get_10PNTidalCoeff(mByM):
+def get_10PNTidalCoeff(mByM: float) -> float:
     return (-288.0 + 264.0 * mByM) * mByM * mByM * mByM * mByM
 
 
-def get_12PNTidalCoeff(mByM):
+def get_12PNTidalCoeff(mByM: float) -> float:
     return (
         (
             -15895.0 / 28.0
@@ -97,11 +98,11 @@ def get_12PNTidalCoeff(mByM):
     )
 
 
-def get_13PNTidalCoeff(mByM):
+def get_13PNTidalCoeff(mByM: float) -> float:
     return mByM * mByM * mByM * mByM * 24.0 * (12.0 - 11.0 * mByM) * PI
 
 
-def get_14PNTidalCoeff(mByM):
+def get_14PNTidalCoeff(mByM: float) -> float:
     mByM3 = mByM * mByM * mByM
     mByM4 = mByM3 * mByM
     return (
@@ -118,7 +119,7 @@ def get_14PNTidalCoeff(mByM):
     )
 
 
-def get_15PNTidalCoeff(mByM):
+def get_15PNTidalCoeff(mByM: float) -> float:
     mByM2 = mByM * mByM
     mByM3 = mByM2 * mByM
     mByM4 = mByM3 * mByM
@@ -131,11 +132,11 @@ def get_15PNTidalCoeff(mByM):
     )
 
 
-def get_flux_0PNCoeff(eta):
+def get_flux_0PNCoeff(eta: float) -> float:
     return 32.0 * eta * eta / 5.0
 
 
-def get_energy_0PNCoeff(eta):
+def get_energy_0PNCoeff(eta: float) -> float:
     return -eta / 2.0
 
 
@@ -143,9 +144,31 @@ def get_energy_0PNCoeff(eta):
 ### WAVEFORM ###
 ################
 
+class TaylorF2(WaveformModel):
+    
+    def __init__(self):
+        # TODO: Include default model parameters here
+        self.model_parameters = {}
+
+    def full_model(self, sample_points: Float[Array, " n_sample"], source_parameters: Float[Array, " n_params"], config_parameters: PyTree, model_parameters: PyTree) -> dict[Polarization, Float[Array, " n_sample"]]:
+        # TODO: Expose model parameters
+        f_ref = config_parameters['f_ref']
+        use_lambda_tildes = model_parameters.get('use_lambda_tildes', True)
+        hp, hc = gen_TaylorF2_hphc(
+            sample_points,
+            source_parameters,
+            f_ref,
+            use_lambda_tildes=use_lambda_tildes
+        )
+        return {
+            Polarization.P: hp,
+            Polarization.C: hc,
+        }
+
+
 
 def get_PNPhasing_F2(
-    m1: float, m2: float, S1z: float, S2z: float, lambda1: float, lambda2: float
+    m1: Float, m2: Float, S1z: Float, S2z: Float, lambda1: Float, lambda2: Float
 ) -> tuple[dict, dict]:
     """
     Gets dictionaries giving the phasing coefficients to be used in the approximant.
@@ -264,7 +287,12 @@ def get_PNPhasing_F2(
     return phasing_coeffs, phasing_log_coeffs
 
 
-def gen_TaylorF2(f: Array, params: Array, f_ref: float, use_lambda_tildes: bool = True):
+def gen_TaylorF2(
+    f: Float[Array, "..."],
+    params: Float[Array, "9"],
+    f_ref: float,
+    use_lambda_tildes: bool = True
+) -> Float[Array, "..."]:
     """
     Generate TaylorF2 frequency domain waveform
 
@@ -304,8 +332,11 @@ def gen_TaylorF2(f: Array, params: Array, f_ref: float, use_lambda_tildes: bool 
 
 
 def gen_TaylorF2_hphc(
-    f: Array, params: Array, f_ref: float, use_lambda_tildes: bool = True
-):
+    f: Float[Array, "..."],
+    params: Float[Array, "10"],
+    f_ref: float,
+    use_lambda_tildes: bool = True
+) -> tuple[Float[Array, "..."], Float[Array, "..."]]:
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -338,8 +369,11 @@ def gen_TaylorF2_hphc(
 
 
 def _gen_TaylorF2(
-    f: Array, theta_intrinsic: Array, theta_extrinsic: Array, f_ref: float
-):
+    f: Float[Array, "..."],
+    theta_intrinsic: Float[Array, "6"],
+    theta_extrinsic: Float[Array, "3"],
+    f_ref: float
+) -> Float[Array, "..."]:
     """
     Generates the TaylorF2 waveform accoding to lal implementation.
 

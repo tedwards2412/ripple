@@ -5,10 +5,12 @@ This file implements the NRTidalv2 corrections that can be applied to any BBH ba
 import jax
 import jax.numpy as jnp
 from ..constants import gt, m_per_Mpc, PI, TWO_PI, MRSUN
-from ..typing import Array
-from ripplegw import Mc_eta_to_ms, lambda_tildes_to_lambdas
+from jaxtyping import Array, Float, PyTree
+from ripplegw.utils import Mc_eta_to_ms, lambda_tildes_to_lambdas
 from .IMRPhenom_tidal_utils import get_quadparam_octparam, get_kappa
 from ripplegw.waveforms.IMRPhenomD import Phase, Amp, get_IIb_raw_phase
+from ripplegw.waveforms.WaveformModel import WaveformModel, Polarization
+
 from .IMRPhenomD_utils import (
     get_coeffs,
     get_transition_frequencies,
@@ -19,10 +21,35 @@ from .IMRPhenomD_QNMdata import fM_CUT
 ### AMPLITUDE ###
 #################
 
+class IMRPhenomD_NRTidalv2(WaveformModel):
+    """Wrapper class for IMRPhenomXAS waveform model.
+    """
+    
+    def __init__(self):
+        # TODO: Include default model parameters here
+        self.model_parameters = {}
+
+
+    def full_model(self, sample_points: Float[Array, " n_sample"], source_parameters: Float[Array, " n_params"], config_parameters: PyTree, model_parameters: PyTree) -> dict[Polarization, Float[Array, " n_sample"]]:
+        # TODO: Expose model parameters
+        f_ref = config_parameters['f_ref']
+        use_lambda_tildes = model_parameters.get('use_lambda_tildes', True)
+        no_taper = model_parameters.get('no_taper', False)
+        hp, hc = gen_IMRPhenomD_NRTidalv2_hphc(
+            sample_points,
+            source_parameters,
+            f_ref,
+            use_lambda_tildes=use_lambda_tildes,
+            no_taper=no_taper,
+        )
+        return {
+            Polarization.P: hp,
+            Polarization.C: hc,
+        }
 
 # The code below to compute the Planck taper is obtained from gwfast (https://github.com/CosmoStatGW/gwfast/blob/ccde00e644682639aa8c9cbae323e42718fd61ca/gwfast/waveforms.py#L1332)
 @jax.custom_jvp
-def get_planck_taper(x: Array, y: float) -> Array:
+def get_planck_taper(x: Float[Array, "..."], y: float) -> Float[Array, "..."]:
     """
     Compute the Planck taper function.
 
@@ -46,7 +73,7 @@ def get_planck_taper(x: Array, y: float) -> Array:
     )
 
 
-def get_planck_taper_der(x: Array, y: float):
+def get_planck_taper_der(x: Float[Array, "..."], y: float) -> Float[Array, "..."]:
     """
     Derivative of the Planck taper function.
 
@@ -84,7 +111,7 @@ get_planck_taper.defjvps(
 )
 
 
-def get_amp0_lal(M: float, distance: float):
+def get_amp0_lal(M: float, distance: float) -> float:
     """
     Get the amp0 prefactor as defined in LAL in LALSimIMRPhenomD, line 331.
 
@@ -99,7 +126,9 @@ def get_amp0_lal(M: float, distance: float):
     return amp0
 
 
-def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float = 1):
+def get_tidal_amplitude(
+    x: Float[Array, "..."], theta: Float[Array, "6"], kappa: float, distance: float = 1
+) -> Float[Array, "..."]:
     """
     Get the tidal amplitude corrections as given in equation (24) of the NRTidal paper.
 
@@ -142,7 +171,9 @@ def get_tidal_amplitude(x: Array, theta: Array, kappa: float, distance: float = 
 #############
 
 
-def get_tidal_phase(x: Array, theta: Array, kappa: float) -> Array:
+def get_tidal_phase(
+    x: Float[Array, "..."], theta: Float[Array, "6"], kappa: float
+) -> Float[Array, "..."]:
     """
     Computes the tidal phase psi_T from equation (17) of the NRTidalv2 paper.
 
@@ -201,7 +232,9 @@ def get_tidal_phase(x: Array, theta: Array, kappa: float) -> Array:
     return psi_T
 
 
-def get_spin_phase_correction(x: Array, theta: Array) -> Array:
+def get_spin_phase_correction(
+    x: Float[Array, "..."], theta: Float[Array, "6"]
+) -> Float[Array, "..."]:
     """
     Get the higher order spin corrections, as detailed in Section III C of the NRTidalv2 paper.
 
@@ -284,7 +317,9 @@ def get_spin_phase_correction(x: Array, theta: Array) -> Array:
     return psi_SS
 
 
-def _get_merger_frequency(theta: Array, kappa: float = None):
+def _get_merger_frequency(
+    theta: Float[Array, "6"], kappa: float = None
+) -> float:
     """
     Computes the merger frequency in Hz of the given system. This is defined in equation (11) in https://arxiv.org/abs/1804.02235 and the lal source code.
 
@@ -329,13 +364,13 @@ def _get_merger_frequency(theta: Array, kappa: float = None):
 
 
 def _gen_IMRPhenomD_NRTidalv2(
-    f: Array,
-    theta_intrinsic: Array,
-    theta_extrinsic: Array,
-    bbh_amp: Array,
-    bbh_psi: Array,
+    f: Float[Array, "..."],
+    theta_intrinsic: Float[Array, "6"],
+    theta_extrinsic: Float[Array, "3"],
+    bbh_amp: Float[Array, "..."],
+    bbh_psi: Float[Array, "..."],
     no_taper: bool = False,
-):
+) -> Float[Array, "..."]:
     """
     Master internal function to get the GW strain for given parameters. The function takes
     a BBH strain, computed from an underlying BBH approximant, e.g. IMRPhenomD, and applies the
@@ -382,12 +417,12 @@ def _gen_IMRPhenomD_NRTidalv2(
 
 
 def gen_IMRPhenomD_NRTidalv2(
-    f: Array,
-    params: Array,
+    f: Float[Array, "..."],
+    params: Float[Array, "9"],
     f_ref: float,
     use_lambda_tildes: bool = True,
     no_taper: bool = False,
-) -> Array:
+) -> Float[Array, "..."]:
     """
     Generate NRTidalv2 frequency domain waveform following NRTidalv2 paper.
     vars array contains both intrinsic and extrinsic variables
@@ -462,12 +497,12 @@ def gen_IMRPhenomD_NRTidalv2(
 
 
 def gen_IMRPhenomD_NRTidalv2_hphc(
-    f: Array,
-    params: Array,
+    f: Float[Array, "..."],
+    params: Float[Array, "10"],
     f_ref: float,
     use_lambda_tildes: bool = True,
     no_taper: bool = False,
-):
+) -> tuple[Float[Array, "..."], Float[Array, "..."]]:
     """
     vars array contains both intrinsic and extrinsic variables
 

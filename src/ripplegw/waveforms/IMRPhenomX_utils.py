@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import jax
 
 from ..constants import gt, PI
-from ..typing import Array
+from jaxtyping import Array
 
 # Dimensionless cutoff frequency for PhenomXAS
 fM_CUT = 0.3

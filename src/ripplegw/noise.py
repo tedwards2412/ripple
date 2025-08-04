@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from . import noise_resources
-from .typing import Array
+from jaxtyping import Array
 
 
 f_range_LIGOI = (40.0, 1e4)

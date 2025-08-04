@@ -4,8 +4,7 @@ Small utility script for shared functions between tidal waveforms, especially fo
 
 import jax
 import jax.numpy as jnp
-from ..typing import Array
-
+from jaxtyping import Array
 
 def universal_relation(coeffs: Array, x: float):
     """

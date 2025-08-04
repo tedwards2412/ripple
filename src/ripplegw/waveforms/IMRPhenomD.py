@@ -14,11 +14,35 @@ from .IMRPhenomD_utils import (
 
 from .IMRPhenomD_QNMdata import fM_CUT
 from ..constants import EulerGamma, gt, m_per_Mpc, C, PI
-from ..typing import Array
-from ripplegw import Mc_eta_to_ms
+from jaxtyping import Array, Float, PyTree
+from ripplegw.utils import Mc_eta_to_ms
+from ripplegw.waveforms.WaveformModel import WaveformModel, Polarization
+
+class IMRPhenomD(WaveformModel):
+    """
+    Wrapper class for IMRPhenomD waveform model.
+    """
+
+    def __init__(self):
+        # TODO: Include default model parameters here
+        self.model_parameters = {}
 
 
-def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
+    def full_model(self, sample_points: Float[Array, " n_sample"], source_parameters: Float[Array, " n_params"], config_parameters: PyTree, model_parameters: PyTree) -> dict[Polarization, Float[Array, " n_sample"]]:
+        # TODO: Expose model parameters
+        f_ref = config_parameters['f_ref']
+        hp, hc = gen_IMRPhenomD_hphc(
+            sample_points,
+            source_parameters,
+            f_ref,
+        )
+        return {
+            Polarization.P: hp,
+            Polarization.C: hc,
+        }
+        
+
+def get_inspiral_phase(fM_s: Float, theta: Float[Array, "4"], coeffs: Float[Array, "19"]) -> Float:
     """
     Calculate the inspiral phase for the IMRPhenomD waveform.
     """
@@ -162,7 +186,9 @@ def get_inspiral_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     return phi_Ins
 
 
-def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
+def get_IIa_raw_phase(
+    fM_s: Float, theta: Float[Array, "4"], coeffs: Float[Array, "19"]
+) -> Float:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -176,7 +202,9 @@ def get_IIa_raw_phase(fM_s: Array, theta: Array, coeffs: Array) -> Array:
     return phi_IIa_raw
 
 
-def get_IIb_raw_phase(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array:
+def get_IIb_raw_phase(
+    fM_s: Float, theta: Float[Array, "4"], coeffs: Float[Array, "19"], f_RD: Float, f_damp: Float
+) -> Float:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -196,14 +224,16 @@ def get_IIb_raw_phase(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) ->
     return phi_IIb_raw
 
 
-def get_Amp0(fM_s: Array, eta: float) -> Array:
+def get_Amp0(fM_s: Float, eta: float) -> Float:
     Amp0 = (
         (2.0 / 3.0 * eta) ** (1.0 / 2.0) * (fM_s) ** (-7.0 / 6.0) * PI ** (-1.0 / 6.0)
     )
     return Amp0
 
 
-def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
+def get_inspiral_Amp(
+    fM_s: Float, theta: Float[Array, "4"], coeffs: Float[Array, "19"]
+) -> Float:
     # Below is taken from https://git.ligo.org/lscsoft/lalsuite/-/blob/master/lalsimulation/lib/LALSimIMRPhenomD_internals.c
     # Lines 302 --> 351
     m1, m2, chi1, chi2 = theta
@@ -327,8 +357,8 @@ def get_inspiral_Amp(fM_s: Array, theta: Array, coeffs: Array) -> Array:
 
 
 def get_IIa_Amp(
-    fM_s: Array, theta: Array, coeffs: Array, f1, f3, f_RD, f_damp
-) -> Array:
+    fM_s: Float, theta: Float[Array, "4"], coeffs: Float[Array, "19"], f1: Float, f3: Float, f_RD: Float, f_damp: Float
+) -> Float:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -360,7 +390,9 @@ def get_IIa_Amp(
     return Amp_IIa
 
 
-def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array:
+def get_IIb_Amp(
+    fM_s: Float, theta: Float[Array, "4"], coeffs: Float[Array, "19"], f_RD: Float, f_damp: Float
+) -> Float:
     m1, m2, _, _ = theta
     m1_s = m1 * gt
     m2_s = m2 * gt
@@ -382,7 +414,12 @@ def get_IIb_Amp(fM_s: Array, theta: Array, coeffs: Array, f_RD, f_damp) -> Array
 
 
 # @jax.jit
-def Phase(f: Array, theta: Array, coeffs: Array, transition_freqs: Array) -> Array:
+def Phase(
+    f: Float[Array, "..."],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+    transition_freqs: Float[Array, "6"]
+) -> Float[Array, "..."]:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
     Sets time and phase of coealence to be zero.
@@ -461,8 +498,12 @@ def Phase(f: Array, theta: Array, coeffs: Array, transition_freqs: Array) -> Arr
 
 # @jax.jit
 def Amp(
-    f: Array, theta: Array, coeffs: Array, transition_frequencies: Array, D=1
-) -> Array:
+    f: Float[Array, "..."],
+    theta: Float[Array, "4"],
+    coeffs: Float[Array, "19"],
+    transition_frequencies: Float[Array, "6"],
+    D: float = 1
+) -> Float[Array, "..."]:
     """
     Computes the amplitude of the PhenomD frequency domain waveform following 1508.07253.
     Note that this waveform also assumes that object one is the more massive.
@@ -516,12 +557,12 @@ def Amp(
 
 # @jax.jit
 def _gen_IMRPhenomD(
-    f: Array,
-    theta_intrinsic: Array,
-    theta_extrinsic: Array,
-    coeffs: Array,
+    f: Float[Array, "..."],
+    theta_intrinsic: Float[Array, "4"],
+    theta_extrinsic: Float[Array, "3"],
+    coeffs: Float[Array, "19"],
     f_ref: float,
-):
+) -> Float[Array, "..."]:
     M_s = (theta_intrinsic[0] + theta_intrinsic[1]) * gt
 
     # Shift phase so that peak amplitude matches t = 0
@@ -550,7 +591,11 @@ def _gen_IMRPhenomD(
     return h0
 
 
-def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomD(
+    f: Float[Array, "..."],
+    params: Float[Array, "7"],
+    f_ref: float
+) -> Float[Array, "..."]:
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables
@@ -579,7 +624,11 @@ def gen_IMRPhenomD(f: Array, params: Array, f_ref: float):
     return h0
 
 
-def gen_IMRPhenomD_hphc(f: Array, params: Array, f_ref: float):
+def gen_IMRPhenomD_hphc(
+    f: Float[Array, "..."],
+    params: Float[Array, "8"],
+    f_ref: float
+) -> tuple[Float[Array, "..."], Float[Array, "..."]]:
     """
     Generate PhenomD frequency domain waveform following 1508.07253.
     vars array contains both intrinsic and extrinsic variables

@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from ripplegw import Mc_eta_to_ms
+from ripplegw.utils import Mc_eta_to_ms
 
 from typing import Tuple
 from ..constants import gt, MSUN
@@ -13,7 +13,7 @@ from .IMRPhenomD_utils import (
     EradRational0815,
     FinalSpin0815_s,
 )
-from ..typing import Array
+from jaxtyping import Array
 from .IMRPhenomD_QNMdata import QNMData_a, QNMData_fRD, QNMData_fdamp
 
 
